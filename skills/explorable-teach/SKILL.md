@@ -239,9 +239,12 @@ When the topic needs a tool not in the catalog:
 </head>
 <body>
   <!-- Content using 1-3 interaction patterns -->
-  
+
   <!-- CDN deps (only what's needed) -->
-  <!-- Component JS (only what's needed) -->
+  <!-- Component JS for the patterns this lesson uses -->
+
+  <!-- Infrastructure: nav + tutor + manifest. Never list these individually. -->
+  <script src="../assets/lesson-boot.js" data-unit="NNNN"></script>
 </body>
 </html>
 ```
@@ -264,8 +267,11 @@ nobody can find was not worth writing.
 
 Three rules, all mandatory:
 
-1. **Every page carries the nav bar** (`assets/nav.js`). Back to the dossier, previous and next
-   unit, and this unit's siblings. Never hand-write link lists into a lesson.
+1. **Do not wire infrastructure by hand.** One line does it — `<script
+   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in the
+   nav bar, the tutor, and the unit manifest in the right order. Even that line is a safety net
+   rather than a chore: `scripts/wire-lessons.sh` injects it into any page missing it, so run
+   that after writing a lesson and forget about it. Your attention belongs on the teaching.
 2. **`index.html` is the entry point** — the dossier cover. Update it whenever you add a unit or
    change a progress marker. The learner should never need to open `lessons/` in a file browser.
 3. **Siblings link to each other.** A lesson points at its checkpoint and assignment; they point

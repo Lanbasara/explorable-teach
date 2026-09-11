@@ -53,6 +53,7 @@ place "$TPL/assets/nav.js"      "assets/nav.js"
 place "$TPL/assets/nav.css"     "assets/nav.css"
 place "$TPL/assets/units.js"    "assets/units.js"
 place "$TPL/index.html"         "index.html"
+place "$TPL/assets/lesson-boot.js" "assets/lesson-boot.js"
 
 chmod +x "$TARGET/tutor/tutorctl.sh" 2>/dev/null || true
 

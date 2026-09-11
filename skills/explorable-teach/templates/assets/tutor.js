@@ -194,7 +194,10 @@
   var chip = el('div', 'tutor-chip');
   chip.appendChild(document.createTextNode('🎓 问老师'));
 
-  document.addEventListener('DOMContentLoaded', function () {
+  // Guarded rather than a bare DOMContentLoaded listener: lesson-boot.js loads
+  // this file dynamically, by which time that event has usually already fired —
+  // a plain listener would never run and the widget would silently never mount.
+  function mountTutor() {
     document.body.appendChild(backdrop);
     document.body.appendChild(drawer);
     document.body.appendChild(fab);
@@ -202,7 +205,9 @@
     renderNotes();
     restoreActive();
     probe();
-  });
+  }
+  if (document.body) mountTutor();
+  else document.addEventListener('DOMContentLoaded', mountTutor);
 
   // A reload should not cost the learner the thread they were in the middle of.
   function restoreActive() {
