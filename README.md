@@ -127,6 +127,12 @@ confusions.
 
 Read it before planning the next lesson.
 
+## Design decisions
+
+[`docs/DECISIONS.md`](docs/DECISIONS.md) records why this works the way it does and what was
+rejected on the way there — including the reasoning from before the project had version control.
+`CHANGELOG.md` records what shipped; that records why.
+
 ## License
 
 MIT
