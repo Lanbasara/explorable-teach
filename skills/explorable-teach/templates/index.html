@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卷宗 · 从内核抽象到 Agent 工具</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .dossier-thesis { margin: 0 0 52px; }
+
+  .unit-list { list-style: none; padding: 0; margin: 0; }
+  .unit {
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 4px 14px;
+    align-items: baseline;
+    padding: 15px 14px;
+    margin: 0 -14px;
+    border-radius: var(--radius);
+    border-bottom: 1px solid var(--border);
+  }
+  .unit:last-child { border-bottom: none; }
+  .unit.live { background: var(--bg-soft); }
+  .unit.pending { opacity: .5; }
+
+  .unit-status { font-size: 15px; line-height: 1.6; }
+  .unit-num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .unit-title { font-size: 16px; font-weight: 600; color: var(--fg); margin: 2px 0 3px; }
+  .unit-claim { font-size: 13.5px; color: var(--fg-dim); line-height: 1.65; }
+  .unit-note  { font-size: 12.5px; color: var(--accent-warm); margin-top: 5px; }
+  .unit-body  { grid-column: 2; }
+
+  .unit-links { grid-column: 3; grid-row: 1 / span 2; display: flex; gap: 6px; align-items: center; }
+  .unit-links a, .unit-links span {
+    font-size: 12.5px; text-decoration: none; white-space: nowrap;
+    padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+  }
+  .unit-links a { color: var(--fg-dim); background: var(--bg-card); }
+  .unit-links a:hover { color: var(--fg); border-color: var(--border-hi); }
+  .unit-links a.primary { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .unit-links span { color: var(--fg-faint); opacity: .4; border-style: dashed; }
+
+  .doc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .doc-card {
+    display: block; text-decoration: none; padding: 14px 16px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .doc-card:hover { border-color: var(--border-hi); }
+  .doc-card b { color: var(--accent); font-size: 14px; font-weight: 600; }
+  .doc-card em { display: block; font-style: normal; color: var(--fg-dim); font-size: 12.5px; margin-top: 4px; line-height: 1.6; }
+
+  .tutor-status {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 13px 16px; border-radius: var(--radius);
+    background: var(--bg-card); border: 1px solid var(--border);
+    font-size: 13.5px; color: var(--fg-dim);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-faint); flex: none; }
+  .dot.up { background: var(--accent-good); }
+  .dot.down { background: var(--fg-faint); }
+  .tutor-status code {
+    background: var(--bg); padding: 2px 8px; border-radius: 5px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent-warm);
+  }
+
+  @media (max-width: 620px) {
+    .unit { grid-template-columns: 26px 1fr; }
+    .unit-links { grid-column: 2; grid-row: auto; flex-wrap: wrap; margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="lesson">
+
+<header class="lesson-header">
+  <div class="lesson-num">卷宗</div>
+  <h1 id="course-title"></h1>
+  <p class="lesson-sub" id="course-sub"></p>
+</header>
+
+<div class="callout thesis dossier-thesis" id="thesis-box" hidden>
+  <span class="callout-label" id="thesis-label"></span>
+  <p id="thesis-body"></p>
+</div>
+
+<h2>课程序列</h2>
+<ul class="unit-list" id="units"></ul>
+
+<h2>课程文档</h2>
+<div class="doc-grid" id="docs"></div>
+
+<div id="refs-section" hidden>
+  <h2>速查表</h2>
+  <div class="doc-grid" id="refs"></div>
+</div>
+
+<h2>问答助教</h2>
+<div class="tutor-status">
+  <span class="dot" id="tdot"></span>
+  <span id="tmsg">正在检测……</span>
+</div>
+
+<footer class="lesson-footer">
+  <p>状态图例：✅ 已完成并验证 · 🚧 已授课待验证 · ⬜ 未开始。
+  进度以 <code>CURRICULUM.md</code> 为准，两处应保持一致。</p>
+</footer>
+
+</div>
+
+<script src="assets/units.js"></script>
+<script>
+(function () {
+  'use strict';
+  var ICON = { done: '✅', teaching: '🚧', todo: '⬜' };
+  var CLS  = { done: 'live', teaching: 'live', todo: 'pending' };
+
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x) n.textContent = x; return n; }
+
+  /* ---- course identity (authored HTML from units.js, not user input) ---- */
+  var course = window.TEACH_COURSE || {};
+  document.title = (course.title || '卷宗') + ' · 卷宗';
+  document.getElementById('course-title').textContent = course.title || '课程卷宗';
+  document.getElementById('course-sub').innerHTML = course.subtitle || '';
+  if (course.thesis) {
+    document.getElementById('thesis-box').hidden = false;
+    document.getElementById('thesis-label').textContent = course.thesisLabel || '主命题';
+    document.getElementById('thesis-body').innerHTML = course.thesis;
+  }
+
+  /* ---- units ---- */
+  var list = document.getElementById('units');
+  (window.TEACH_UNITS || []).forEach(function (u) {
+    var li = el('li', 'unit ' + (CLS[u.status] || 'pending'));
+    li.appendChild(el('div', 'unit-status', ICON[u.status] || '⬜'));
+
+    var body = el('div', 'unit-body');
+    body.appendChild(el('div', 'unit-num', u.num));
+    body.appendChild(el('div', 'unit-title', u.title));
+    body.appendChild(el('div', 'unit-claim', u.claim || ''));
+    if (u.assignmentNote) body.appendChild(el('div', 'unit-note', '作业：' + u.assignmentNote));
+    li.appendChild(body);
+
+    var links = el('div', 'unit-links');
+    [['lesson', '正文', true], ['checkpoint', '验收', false], ['assignment', '作业', false]]
+      .forEach(function (p) {
+        if (u[p[0]]) {
+          var a = el('a', p[2] ? 'primary' : '', p[1]);
+          a.href = u[p[0]];
+          links.appendChild(a);
+        } else if (u.status !== 'todo') {
+          links.appendChild(el('span', '', p[1]));
+        }
+      });
+    li.appendChild(links);
+    list.appendChild(li);
+  });
+
+  /* ---- docs + reference sheets ---- */
+  function cards(target, items) {
+    items.forEach(function (d) {
+      var a = el('a', 'doc-card');
+      a.href = d.path;
+      a.appendChild(el('b', '', d.label));
+      a.appendChild(el('em', '', d.note || ''));
+      target.appendChild(a);
+    });
+  }
+  cards(document.getElementById('docs'), window.TEACH_DOCS || []);
+  var refs = window.TEACH_REFS || [];
+  if (refs.length) {
+    document.getElementById('refs-section').hidden = false;
+    cards(document.getElementById('refs'), refs);
+  }
+
+  /* ---- tutor health ---- */
+  var dot = document.getElementById('tdot'), msg = document.getElementById('tmsg');
+  var httpish = location.protocol === 'http:' || location.protocol === 'https:';
+  var url = (httpish ? '' : 'http://127.0.0.1:4173') + '/api/health';
+
+  function down(reason) {
+    dot.className = 'dot down';
+    msg.textContent = '';
+    msg.appendChild(document.createTextNode(reason + '在教案根目录运行 '));
+    var c = el('code', '', './tutor/tutorctl.sh start');
+    msg.appendChild(c);
+    msg.appendChild(document.createTextNode(' 即可在页面内直接问答。课程本身不依赖它。'));
+  }
+
+  fetch(url, { method: 'GET' })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (d) {
+      dot.className = 'dot up';
+      msg.textContent = '在线 · 已运行 ' + Math.round((d.uptimeSec || 0) / 60) + ' 分钟'
+        + '（空闲 ' + Math.round((d.idleTimeoutSec || 0) / 3600) + ' 小时后自动退出）';
+    })
+    .catch(function () { down('未启动。'); });
+})();
+</script>
+</body>
+</html>

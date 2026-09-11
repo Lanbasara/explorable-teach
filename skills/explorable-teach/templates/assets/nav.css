@@ -1,0 +1,86 @@
+/* nav.css — thin cross-page navigation bar.
+   Deps: style.css (design tokens). Pairs with nav.js + units.js.
+   Stays well below tutor.css (8500-9500). */
+
+.tnav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  margin: 0 -20px 0;
+  padding: 0 20px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.tnav-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.tnav a,
+.tnav .tnav-here,
+.tnav .tnav-off {
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: 6px;
+  padding: 3px 8px;
+  transition: background .15s, color .15s;
+}
+
+.tnav a { color: var(--fg-dim); }
+.tnav a:hover { color: var(--fg); background: var(--bg-soft); }
+
+.tnav-home { color: var(--accent) !important; font-weight: 500; }
+.tnav-home:hover { background: var(--bg-card) !important; }
+
+/* sibling artifacts of the current unit */
+.tnav-sibs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.tnav-here {
+  color: var(--fg);
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  padding: 2px 8px;
+  cursor: default;
+}
+.tnav-off {
+  color: var(--fg-faint);
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.tnav-spacer { flex: 1 1 auto; }
+
+.tnav-step { color: var(--fg-dim); }
+.tnav-step.disabled { color: var(--fg-faint); opacity: .4; pointer-events: none; }
+
+.tnav-unit {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  color: var(--fg-faint);
+  text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .tnav-unit, .tnav-step-label { display: none; }
+  .tnav-inner { gap: 8px; }
+  .tnav-sibs { padding-left: 8px; }
+}
+
+@media print { .tnav { display: none; } }

@@ -17,6 +17,8 @@
     return m ? decodeURIComponent(m[0]) : 'lesson';
   })();
   var STORE_KEY = 'tutor-notes::' + lessonPath;
+  var THREADS_KEY = 'tutor-threads::' + lessonPath;
+  var MAX_THREADS = 20;
 
   var online = false;
   var busy = false;
@@ -32,11 +34,85 @@
     return 'th-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
 
+  // ---------------------------------------------------------------- thread store
+  // Threads are the widget's own UI state. Losing them to a stray click is a bug,
+  // so they persist per lesson and every thread stays reachable from the history.
+
+  function loadStore() {
+    try {
+      var s = JSON.parse(localStorage.getItem(THREADS_KEY) || '{}');
+      if (!s || !Array.isArray(s.threads)) return { active: null, threads: [] };
+      return s;
+    } catch (e) { return { active: null, threads: [] }; }
+  }
+  function saveStore(s) {
+    try { localStorage.setItem(THREADS_KEY, JSON.stringify(s)); } catch (e) { /* quota */ }
+  }
+
+  // Persist the live thread. Empty threads are never stored — an opened-and-
+  // abandoned drawer should not litter the history.
+  function persistConvo() {
+    if (!convo.id || !convo.turns.length) return;
+    var s = loadStore();
+    var rec = { id: convo.id, selection: convo.selection || '', turns: convo.turns, at: Date.now() };
+    var i = s.threads.map(function (t) { return t.id; }).indexOf(convo.id);
+    if (i === -1) s.threads.push(rec); else s.threads[i] = rec;
+    s.threads.sort(function (a, b) { return b.at - a.at; });
+    if (s.threads.length > MAX_THREADS) s.threads.length = MAX_THREADS;
+    s.active = convo.id;
+    saveStore(s);
+  }
+
+  function setActive(id) {
+    var s = loadStore();
+    s.active = id;
+    saveStore(s);
+  }
+
+  // Archives whatever is live, then opens a clean thread. Nothing is discarded.
   function startThread(sel) {
+    persistConvo();
     convo.id = newThreadId();
-    convo.selection = sel;
+    convo.selection = sel || '';
     convo.turns = [];
+    renderThread();
+    renderHistory();
+  }
+
+  function loadThread(rec) {
+    persistConvo();
+    convo.id = rec.id;
+    convo.selection = rec.selection || '';
+    convo.turns = (rec.turns || []).slice();
+    currentSelection = convo.selection;
+    setActive(convo.id);
+    renderThread();
+    renderQuote();
+    renderHistory();
+  }
+
+  function renderThread() {
     while (thread.firstChild) thread.removeChild(thread.firstChild);
+    var lastQ = '';
+    convo.turns.forEach(function (t) {
+      if (t.role === 'user') {
+        lastQ = t.content;
+        addMsg('user', t.content);
+      } else {
+        var m = addMsg('tutor', t.content);
+        (function (q, a) { addPin(m.wrap, q, function () { return a; }); })(lastQ, t.content);
+      }
+    });
+  }
+
+  function renderQuote() {
+    if (currentSelection) {
+      quote.textContent = currentSelection;
+      quote.classList.remove('hidden');
+    } else {
+      quote.textContent = '';
+      quote.classList.add('hidden');
+    }
   }
 
   // ---------------------------------------------------------------- utils
@@ -68,13 +144,18 @@
   title.appendChild(document.createTextNode('🎓 问答助教'));
   var status = el('span', 'tutor-status', '检测中');
   title.appendChild(status);
+  var histBtn = el('button', 'tutor-newtopic tutor-hist-btn', '历史');
+  histBtn.title = '回到之前问过的话题';
   var newTopicBtn = el('button', 'tutor-newtopic', '新话题');
-  newTopicBtn.title = '清空这段对话，重新开始问';
+  newTopicBtn.title = '收起这段对话，另起一个话题（不会丢，可在「历史」里找回）';
   var closeBtn = el('button', 'tutor-close', '×');
   closeBtn.setAttribute('aria-label', '关闭');
   head.appendChild(title);
+  head.appendChild(histBtn);
   head.appendChild(newTopicBtn);
   head.appendChild(closeBtn);
+
+  var histPanel = el('div', 'tutor-histpanel');
 
   var quote = el('div', 'tutor-quote hidden');
   var thread = el('div', 'tutor-thread');
@@ -102,6 +183,7 @@
   foot.appendChild(hint);
 
   drawer.appendChild(head);
+  drawer.appendChild(histPanel);
   drawer.appendChild(quote);
   drawer.appendChild(thread);
   drawer.appendChild(foot);
@@ -118,8 +200,26 @@
     document.body.appendChild(fab);
     document.body.appendChild(chip);
     renderNotes();
+    restoreActive();
     probe();
   });
+
+  // A reload should not cost the learner the thread they were in the middle of.
+  function restoreActive() {
+    var s = loadStore();
+    if (!s.threads.length) return;
+    var rec = null;
+    if (s.active) {
+      rec = s.threads.filter(function (t) { return t.id === s.active; })[0] || null;
+    }
+    if (!rec) rec = s.threads[0];
+    convo.id = rec.id;
+    convo.selection = rec.selection || '';
+    convo.turns = (rec.turns || []).slice();
+    currentSelection = convo.selection;
+    renderThread();
+    renderQuote();
+  }
 
   // ---------------------------------------------------------------- health
 
@@ -154,16 +254,19 @@
   // ---------------------------------------------------------------- open/close
 
   function open(selText) {
-    currentSelection = selText || '';
-    // Same passage reopened -> continue. Different passage -> fresh thread.
-    if (!convo.id || currentSelection !== convo.selection) startThread(currentSelection);
-    if (currentSelection) {
-      quote.textContent = currentSelection;
-      quote.classList.remove('hidden');
-    } else {
-      quote.textContent = '';
-      quote.classList.add('hidden');
+    var sel = selText || '';
+    if (sel && sel !== convo.selection) {
+      // A different passage is a genuinely different line of questioning.
+      // startThread archives the outgoing one rather than dropping it.
+      startThread(sel);
+    } else if (!convo.id) {
+      startThread(sel);
     }
+    // Empty selection (the FAB) or the same passage continues what is already
+    // open. Reopening must never cost the learner a conversation.
+    currentSelection = convo.selection || '';
+    renderQuote();
+    renderHistory();
     backdrop.classList.add('open');
     drawer.classList.add('open');
     fab.classList.add('hidden');
@@ -172,6 +275,8 @@
   }
 
   function close() {
+    persistConvo();
+    closeHistory();
     backdrop.classList.remove('open');
     drawer.classList.remove('open');
     fab.classList.remove('hidden');
@@ -179,13 +284,77 @@
 
   newTopicBtn.addEventListener('click', function () {
     startThread(currentSelection);
+    closeHistory();
     input.focus();
   });
   closeBtn.addEventListener('click', close);
-  backdrop.addEventListener('click', close);
+  // No backdrop-click-to-close: dismissing a half-read answer by clicking the
+  // page was the exact accident that lost conversations. Use × or Esc.
   fab.addEventListener('click', function () { open(''); });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && drawer.classList.contains('open')) close();
+    if (e.key !== 'Escape') return;
+    if (histPanel.classList.contains('open')) return closeHistory();
+    if (drawer.classList.contains('open')) close();
+  });
+  window.addEventListener('beforeunload', persistConvo);
+
+  // ---------------------------------------------------------------- history
+
+  function relTime(ts) {
+    var s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (s < 60) return '刚刚';
+    if (s < 3600) return Math.floor(s / 60) + ' 分钟前';
+    if (s < 86400) return Math.floor(s / 3600) + ' 小时前';
+    return Math.floor(s / 86400) + ' 天前';
+  }
+
+  function threadLabel(rec) {
+    var first = '';
+    for (var i = 0; i < rec.turns.length; i++) {
+      if (rec.turns[i].role === 'user') { first = rec.turns[i].content; break; }
+    }
+    if (!first) first = rec.selection || '（空话题）';
+    return first.length > 42 ? first.slice(0, 42) + '…' : first;
+  }
+
+  function closeHistory() { histPanel.classList.remove('open'); }
+
+  function renderHistory() {
+    var s = loadStore();
+    // The live thread may not be persisted yet; show it so "current" is visible.
+    var list = s.threads.slice();
+    if (convo.id && convo.turns.length && !list.some(function (t) { return t.id === convo.id; })) {
+      list.unshift({ id: convo.id, selection: convo.selection, turns: convo.turns, at: Date.now() });
+    }
+
+    while (histPanel.firstChild) histPanel.removeChild(histPanel.firstChild);
+
+    if (!list.length) {
+      histPanel.appendChild(el('div', 'tutor-histempty', '还没有问过什么。'));
+      return;
+    }
+
+    list.forEach(function (rec) {
+      var item = el('button', 'tutor-histitem');
+      if (rec.id === convo.id) item.classList.add('current');
+      item.appendChild(el('div', 'tutor-histq', threadLabel(rec)));
+      var meta = el('div', 'tutor-histmeta');
+      var n = rec.turns.filter(function (t) { return t.role === 'user'; }).length;
+      meta.textContent = n + ' 问 · ' + relTime(rec.at);
+      item.appendChild(meta);
+      item.addEventListener('click', function () {
+        if (rec.id !== convo.id) loadThread(rec);
+        closeHistory();
+        input.focus();
+      });
+      histPanel.appendChild(item);
+    });
+  }
+
+  histBtn.addEventListener('click', function () {
+    if (histPanel.classList.contains('open')) return closeHistory();
+    renderHistory();
+    histPanel.classList.add('open');
   });
 
   // ---------------------------------------------------------------- selection chip
@@ -273,6 +442,8 @@
       }
       addMsg('user', question);
       convo.turns.push({ role: 'user', content: question });
+      persistConvo();
+      renderHistory();
       input.value = '';
       return;
     }
@@ -359,6 +530,8 @@
         convo.turns.push({ role: 'user', content: question });
         convo.turns.push({ role: 'assistant', content: acc });
         addPin(out.wrap, question, function () { return acc; });
+        persistConvo();
+        renderHistory();
         thread.scrollTop = thread.scrollHeight;
       } else if (name === 'error') {
         caret.remove();

@@ -256,6 +256,28 @@ Same rules as `teach`, plus:
 - Progressive enhancement: readable as plain text if JS breaks
 - Open the lesson file for the user after creating it
 
+### A unit is navigable, or it does not exist
+
+A teaching unit is usually more than one file: the lesson, sometimes a checkpoint, sometimes an
+assignment. Left unlinked, those become artifacts the learner has to go hunting for, and a file
+nobody can find was not worth writing.
+
+Three rules, all mandatory:
+
+1. **Every page carries the nav bar** (`assets/nav.js`). Back to the dossier, previous and next
+   unit, and this unit's siblings. Never hand-write link lists into a lesson.
+2. **`index.html` is the entry point** — the dossier cover. Update it whenever you add a unit or
+   change a progress marker. The learner should never need to open `lessons/` in a file browser.
+3. **Siblings link to each other.** A lesson points at its checkpoint and assignment; they point
+   back. The learner should be able to move through a unit without touching the address bar.
+
+Keep files flat (`0001-slug.html`, `0001b-checkpoint.html`). Do not nest units into folders —
+it buys nothing and breaks every relative asset path.
+
+Assignments are HTML for the same reason: a `.md` file is invisible from the browser the learner
+is already in. Keep the rubric inside that same HTML in a non-rendered block, so the task and its
+grading criteria never drift apart.
+
 ## The AI Tutor
 
 Lessons are static HTML, and the learner will hit sentences that don't land. The fix is an

@@ -49,6 +49,10 @@ place "$TPL/tutor/README.md"    "tutor/README.md"
 place "$TPL/assets/tutor.js"    "assets/tutor.js"
 place "$TPL/assets/tutor.css"   "assets/tutor.css"
 place "$TPL/agents/tutor.md"    ".claude/agents/tutor.md"
+place "$TPL/assets/nav.js"      "assets/nav.js"
+place "$TPL/assets/nav.css"     "assets/nav.css"
+place "$TPL/assets/units.js"    "assets/units.js"
+place "$TPL/index.html"         "index.html"
 
 chmod +x "$TARGET/tutor/tutorctl.sh" 2>/dev/null || true
 
@@ -56,6 +60,8 @@ echo
 echo "$copied created, $skipped left alone."
 echo
 echo "Still to author (these depend on the subject and the learner):"
+echo "  (assets/units.js was installed empty — fill it in so index.html has content)"
+echo
 for f in MISSION.md CURRICULUM.md RESOURCES.md TECH-STACK.md NOTES.md; do
   [ -e "$TARGET/$f" ] && echo "  have    $f" || echo "  MISSING $f"
 done
