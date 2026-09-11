@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1
+
+### Changed
+
+- **Interviewing is now evidence-based, not file-based.** `teach` treats an unpopulated
+  `MISSION.md` as a trigger to interview, and that condition is always true in a new
+  workspace — so a request that already stated the goal, the constraints and the
+  explicit non-goals still got a questionnaire. Inheriting that rule wholesale was the
+  bug. The skill now interviews only when the mission is genuinely underdetermined,
+  writes `MISSION.md` from the opening request when that request already carries it, and
+  confirms in one line instead. The override is stated explicitly so the inherited rule
+  cannot quietly reassert itself.
+
 ## 0.2.0
 
 Everything here came out of the first real use of 0.1.0.

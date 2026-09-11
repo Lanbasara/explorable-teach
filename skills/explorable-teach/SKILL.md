@@ -17,7 +17,18 @@ Unlike static teaching skills, `explorable-teach` operates in two phases:
 
 Before writing any lesson, do this:
 
-1. **Establish the mission** — interview the user if unclear (same as `teach`)
+1. **Establish the mission.** Interview only when it is genuinely underdetermined.
+
+   This deliberately **overrides** `teach`, which interviews whenever `MISSION.md` is absent —
+   a condition always true in a new workspace, so it fires even on a request that already said
+   everything. A missing file is not evidence of a missing mission.
+
+   If the opening request already carries why they are learning, what they want to be able to
+   do, and what they do not want, write `MISSION.md` from it and confirm in one line: *"this is
+   what I think you're after — correct me."* Ask only for what is genuinely absent **and** would
+   change the plan; a question whose every answer leads to the same first lesson is not worth
+   asking. Interrogating someone who just handed you a thorough brief reads as not having read
+   it.
 2. **Research the topic's best interactive affordances**:
    - Search the web: "best interactive {topic} tutorial", "explorable explanation {topic}"
    - Identify what existing interactive teaching does well for this topic
@@ -474,7 +485,8 @@ that wrote the assignment. Mechanically it is the tutor with a different role fi
 
 ## Reference Documents, Mission, ZPD, Knowledge, Skills, Wisdom, NOTES.md
 
-Same rules as the `teach` skill.
+Same rules as the `teach` skill, with one exception: `teach` makes an unpopulated `MISSION.md`
+a trigger to interview. Here it is not — see [Phase 1](#phase-1-research--plan-run-once-when-workspace-is-new).
 
 ## Acquiring Wisdom
 
