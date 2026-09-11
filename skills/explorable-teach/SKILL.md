@@ -46,10 +46,12 @@ Before writing any lesson, do this:
 ```
 
 5. **Build the initial `assets/` component library** based on the selected stack
-6. **Scaffold the infrastructure** by running `scripts/init-workspace.sh` (this is what the
-   `/explorable-teach:init` command does). It installs the tutor subagent, the tutor service,
-   and the in-page widget. It never overwrites, so re-run it to repair a workspace that lost a
-   file. Then tune `tutor/ROLE.md` for this subject — see [The AI Tutor](#the-ai-tutor).
+6. **Tune `tutor/ROLE.md`** for this subject — see [The AI Tutor](#the-ai-tutor).
+
+`/explorable-teach:init` normally scaffolds the plumbing before you get here. If the workspace
+is bare (no `tutor/`, no `index.html`), run `scripts/init-workspace.sh` yourself first — it is
+idempotent, so running it when it was already run costs nothing. Scaffolding is plumbing;
+everything above it is the part that needs you.
 
 ### Phase 2: Teach (ongoing)
 
