@@ -1,0 +1,18 @@
+{
+  "name": "explorable-teach",
+  "version": "0.1.0",
+  "description": "Teach any topic through interactive, explorable HTML lessons — with a stateless AI tutor living inside the page.",
+  "author": {
+    "name": "Lanbasara",
+    "email": "Lanbasara@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "teaching",
+    "learning",
+    "explorable-explanations",
+    "interactive",
+    "tutor",
+    "skills"
+  ]
+}
