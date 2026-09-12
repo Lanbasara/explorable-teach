@@ -20,3 +20,9 @@ See `docs/agents/triage-labels.md`.
 Single-context: `CONTEXT.md` (glossary) and `docs/DECISIONS.md` (design decisions) at the
 repo root. This repo keeps decisions as one narrative record rather than numbered ADRs.
 See `docs/agents/domain.md`.
+
+### Tests
+
+`npm test` — Node's built-in test runner, zero third-party dependencies, no install step.
+The suite checks that this plugin's documents and scripts still describe reality. See
+`docs/agents/tests.md`.

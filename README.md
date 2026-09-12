@@ -127,6 +127,18 @@ confusions.
 
 Read it before planning the next lesson.
 
+## Tests
+
+```
+npm test
+```
+
+Node's built-in test runner, no dependencies and no install step. The suite checks that the
+plugin's documents and scripts still describe reality: every pointer in an agent-facing
+document resolves, the scaffold is safe to re-run against a workspace you have already put
+work into, and the lesson bootstrap tag lands exactly once.
+[`docs/agents/tests.md`](docs/agents/tests.md) has the details.
+
 ## Design decisions
 
 [`docs/DECISIONS.md`](docs/DECISIONS.md) records why this works the way it does and what was

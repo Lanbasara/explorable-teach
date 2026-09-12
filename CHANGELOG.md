@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A test suite, run with `npm test`.** Node's built-in runner, zero third-party
+  dependencies, no install step. It holds the plugin to the thing it keeps failing at:
+  documents that promise what is not there. Every relative pointer in an agent-facing
+  document — including the file list inside `SKILL.md`'s install block — must resolve; the
+  scaffold must be safe to re-run against a workspace you have already put work into; the
+  lesson bootstrap tag must land exactly once, and a second wiring run must change nothing.
+  `tests/helpers/workspace.js` gives each test a throwaway fixture Workspace.
+  `docs/agents/tests.md` explains how to build on it, and is explicit about what the suite
+  does *not* yet cover.
+
 ## 0.2.1
 
 ### Changed
