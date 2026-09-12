@@ -15,43 +15,12 @@ const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
+const { sections, step } = require('./helpers/markdown.js');
 
 const SKILL_MD = path.join(SKILL_DIR, 'SKILL.md');
 const SKILL = fs.readFileSync(SKILL_MD, 'utf8');
 
 const rel = (abs) => path.relative(REPO_ROOT, abs);
-
-/**
- * A document's top-level sections, as `{ title, body }` in document order.
- * Fenced code is skipped, so a `## ` inside an example block is not a heading.
- */
-function sections(markdown, level = 2) {
-  const marker = '#'.repeat(level) + ' ';
-  const found = [];
-  let fenced = false;
-
-  for (const line of markdown.split('\n')) {
-    if (line.startsWith('```')) fenced = !fenced;
-    if (!fenced && line.startsWith(marker)) {
-      found.push({ title: line.slice(marker.length).trim(), body: [] });
-    } else if (found.length) {
-      found[found.length - 1].body.push(line);
-    }
-  }
-
-  return found.map((s) => ({ title: s.title, body: s.body.join('\n') }));
-}
-
-/** One numbered step of an ordered list, from its number to the next one. */
-function step(body, number) {
-  const lines = body.split('\n');
-  const start = lines.findIndex((l) => l.startsWith(`${number}.`));
-  if (start < 0) return null;
-
-  const rest = lines.slice(start + 1);
-  const end = rest.findIndex((l) => /^\d+\./.test(l));
-  return [lines[start], ...(end < 0 ? rest : rest.slice(0, end))].join('\n');
-}
 
 /** The terms `CONTEXT.md` defines under one of its `###` groupings. */
 function glossaryTerms(grouping) {

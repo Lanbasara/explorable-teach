@@ -54,16 +54,22 @@ multi-turn continuity without reintroducing the decay.
 
 ## 5. The tutor ships as a workspace template, not a plugin agent
 
-**Decided:** the plugin carries an inert `templates/agents/tutor.md`; `init` copies it into the
-workspace, where it registers project-scoped.
+**Decided:** the plugin carries an inert `templates/agents/tutor.md`; the scaffold copies it into
+the workspace, where it registers project-scoped.
 
 **Rejected:** a top-level `agents/` directory in the plugin, which would be tidier. Claude Code
-discovers subagents only in `.claude/agents/`, and a plugin-level agent registers **globally**.
+discovers subagents only in `.claude/agents/` (project) and `~/.claude/agents/` (user) — never
+inside a skill directory — and a plugin-level agent registers **globally**.
 Subagents have no `disable-model-invocation` equivalent, so it would be auto-routable in every
 unrelated project. Project scoping is the only invocation control a subagent has.
 
 It also would not want to be global: a tutor for Shell and a tutor for music theory are not the
 same role. Each workspace tunes its own `ROLE.md`.
+
+**This entry is now the only copy of that reasoning.** `SKILL.md` carried it as a section for a
+human reader who was never going to read it there — it argues a packaging decision the Teacher
+cannot act on and will never face. Decision 19 moved it here. If a future maintainer is tempted
+by the tidier `agents/` directory, this is the paragraph that has to be answered first.
 
 ## 6. The skill is manual-only
 
@@ -257,6 +263,52 @@ distinguish instruments, timing and judge do.
 
 **Held from decision 8:** the Assignment stays loosely specified. What is fixed is its place on
 the ladder, not its shape.
+
+## 19. Material only some Sessions reach sits behind a pointer
+
+**Decided:** first-run setup moves to `FIRST-RUN.md`; tutor installation, operation and
+troubleshooting move to `TUTOR.md`. `SKILL.md` keeps a pointer to each and exactly two tutor
+facts inline — that the learner's logged questions are read during the boot sequence, and that a
+lesson must stay fully readable with the service stopped.
+
+**Why those two and no others.** They are the only tutor facts that change what the Teacher
+*does*. The question log is a teaching judgement: three questions about one paragraph means the
+lesson is wrong. The offline constraint binds every page the Teacher authors, and a page written
+against a running service is broken in a way nobody notices until the service is down. Everything
+else — ports, pids, start commands, the troubleshooting order, why the tutor is stateless — is
+read on installation or on failure, and on no other session.
+
+**Why this is a correctness fix rather than tidying.** First-run setup fired on roughly one
+session in twenty and occupied about fifty inline lines under a top-level heading. Reference that
+should have been disclosed does not merely take up room: it buries the steps beside it, and turns
+attending to them into a coin flip. The variance is the defect. This is the same argument
+decision 16 made about ordering, applied to volume.
+
+**Rejected:** sibling skills for the disclosed material. The skill is user-invoked (decision 6),
+so autonomous discovery buys nothing and would cost permanently resident context. Plain files
+reached by pointers are also what a Teacher already knows how to follow.
+
+**Rejected:** keeping the tutor's design rationale inline as orientation. A Teacher that reads
+*why* the tutor is stateless behaves no differently from one that does not; it is a maintainer's
+question. It lives in decisions 4, 5 and 7, and the skill points at the operating instructions
+instead.
+
+**Consequence:** `tests/disclosure.test.js` fails a `SKILL.md` that names the tutor anywhere
+outside those two facts and a pointer — so the runbook cannot drift back a paragraph at a time,
+which is how it arrived the first time.
+
+**Sharpened by review, which broke the first version of that check.** Classifying a line as "a
+pointer" forgives everything else on it, so a claim riding beside a `](./TUTOR.md)` passed — and
+a line *budget* did not catch it either, because folding a claim into an existing line leaves the
+count unchanged. A line naming the tutor in its own prose must now fit in 90 characters: room to
+point, no room to claim. The budget stays, for a different failure — accumulating signposts.
+
+**Found while doing it:** removing eight headings left every `](#anchor)` in the document set
+unverified. A link at a disclosed heading still resolves as a *file*, so the existing pointer
+check was perfectly happy while the reader landed at the top of a long document. `pointers.test.js`
+now resolves the fragment too — and the slug rule that does it was wrong on first writing, in a
+way that inverted the check: collapsing a run of spaces rather than hyphenating each one rejects
+the correct link at `Tier 4: Retention & Review` and accepts the broken one.
 
 ---
 

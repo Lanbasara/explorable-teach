@@ -159,10 +159,11 @@ npm test
 
 Node's built-in test runner, no dependencies and no install step. The suite checks that the
 plugin's documents and scripts still describe reality: every pointer in an agent-facing
-document resolves, every `assets/…` path a document names exists in a scaffolded workspace,
-the scaffold is safe to re-run against a workspace you have already put work into, the
-lesson bootstrap tag lands exactly once, and the skill still opens on the boot sequence
-rather than on reference material. The shipped components are mounted in a hand-written
+document resolves — including the heading it names — every `assets/…` path a document names
+exists in a scaffolded workspace, the scaffold is safe to re-run against a workspace you have
+already put work into, the lesson bootstrap tag lands exactly once, and the skill still opens
+on the boot sequence with its reference material behind pointers rather than in front of the
+steps. The shipped components are mounted in a hand-written
 DOM and actually driven — answered, stepped, reordered — rather than merely read.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 

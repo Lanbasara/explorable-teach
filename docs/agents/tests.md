@@ -18,15 +18,17 @@ question: **do the plugin's documents and scripts still describe reality?**
 
 | Suite | Holds this promise |
 |-------|--------------------|
-| `tests/pointers.test.js` | Every relative pointer in an agent-facing document resolves to a file that exists |
+| `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, hangs everything off the Unit, and names one entry point |
+| `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
 | `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
+| `tests/markdown-helper.test.js` | The Markdown reader below sees the document structure a reader sees |
 
 ## The fixture Workspace
 
@@ -71,6 +73,95 @@ Grow the subset on purpose when a Component genuinely needs more.
 Lesson template says to write one, using every shipped Component. Both `assets.test.js` and
 `components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
 and its markup to that page**; every check then covers it without being told separately.
+
+## The Markdown reader
+
+`tests/helpers/markdown.js` answers three questions about a document's shape: what are its
+sections, what anchors does it offer, and where is each subject named. Two suites assert on the
+shape of `SKILL.md`, because here shape *is* behaviour — what an agent reads first is what it
+attends to, and material sitting inline is material it reads whether or not this Session needed
+it.
+
+```js
+sections(SKILL)[0].title;                 // 'Boot sequence' — the opening material
+step(boot.body, 1);                       // one numbered step, to the next number
+anchorsIn(SKILL);                         // every heading, as the anchor it is reachable at
+linesMentioning(SKILL, 'tutor');          // every mention, with the line it starts on
+```
+
+Everything here walks the document through one `eachLine`, so there is **one** rule for what
+fenced code is. Three copies of that rule had drifted into three different spellings before
+review caught it, which is how a parser ends up disagreeing with itself about what a heading is.
+
+Three subtleties, all load-bearing, all pinned by `markdown-helper.test.js`:
+
+**A heading inside a fenced block is not a heading.** `SKILL.md` fences a Lesson template and a
+Markdown skeleton, and a reader fooled by either reports sections nobody ever sees. A fence
+indented inside a list item is still a fence.
+
+**Prose here is hard-wrapped**, so where a line break falls is a typographic accident.
+`linesMentioning` folds a wrapped paragraph or list item back into one logical line before
+matching, and reports the line it started on. A check reading raw lines reads the accident: one
+sentence becomes two claims, a hard-wrapped `idle timeout` stops being findable, and re-wrapping
+a paragraph breaks a check that has nothing to do with wrapping.
+
+**Slugging replaces each space, never a run of them.** Dropping the `—` in
+`Tier 1: Core — ships…` leaves *two* spaces, and GitHub hyphenates both, so the real anchor is
+`tier-1-core--ships…`. Collapsing them — which this did until review caught it — inverts the
+check: the correct link fails and the broken one passes.
+
+## The disclosure check
+
+`disclosure.test.js` holds the second half of the same argument the spine check makes about
+ordering, applied to volume. First-run setup fired on roughly one Session in twenty and occupied
+about fifty inline lines under a top-level heading; the Tutor's ports, start commands and
+troubleshooting order sat between two teaching sections. Reference that should have been
+disclosed does not merely take up room — it buries the steps beside it, and turns attending to
+them into a coin flip. So these are variance checks, not tidiness checks: every one of them is
+about where material *sits*.
+
+**Each disclosed document exists, carries its material, and is pointed at.** `FIRST-RUN.md` and
+`TUTOR.md` each have to hold what they were disclosed for, and `SKILL.md` has to link both.
+Disclosed is not removed: material behind a pointer nobody follows is material that is gone.
+
+**First-run setup is not a section of the main document**, and the Boot sequence branches to it
+by pointer rather than by in-document anchor — the branch is the only route there, so it is the
+one place the pointer has to be.
+
+**The Tutor runbook is not in the main document.** The check reads for the vocabulary only a
+runbook uses — `tutorctl`, `/api/health`, ports, pids, the idle timeout, `server.js` — and
+fails on any of it in `SKILL.md`, whatever heading it came back under. The observer is guarded
+against `TUTOR.md`: a vocabulary the runbook itself does not use would find nothing anywhere and
+pass by describing no runbook.
+
+**Exactly two Tutor facts stay inline**, because exactly two change what the Teacher does: the
+learner's logged questions are read at Boot, which is a teaching judgement, and a Lesson must
+stay readable with the service stopped, which constrains every page authored. Every mention of
+the Tutor in `SKILL.md` must be one of those two or a pointer at `TUTOR.md`; anything else fails
+by name and line number. That is what stops the runbook drifting back a paragraph at a time,
+which is how it arrived the first time.
+
+That classification has a hole, and review found it before this shipped: a line is forgiven for
+carrying a pointer, so a claim sharing a line with one classified cleanly. The instance was a
+Unit bullet asserting that a question is answered without leaving the page, passing because
+`](./TUTOR.md)` sat beside it.
+
+Two things close it, and it is worth knowing which does what — a **line budget** alone does
+*not*, because folding a claim into a line that already exists leaves the count unchanged. That
+was measured, not assumed.
+
+- **A signpost stays short.** A line naming the Tutor in its own prose — rather than only inside
+  a link to `TUTOR.md` — must fit in 90 characters, which is room to point and no room to claim.
+  A line that merely links out while discussing something else, like grading or recorded
+  prohibitions, is exempt: its length is about its own subject.
+- **At most six lines may name the Tutor at all**, so it cannot return by accumulating
+  signposts. Raising that number is a decision to argue, not a way to make a red suite green.
+
+**The rationale the skill no longer carries is in the decisions record.** Why the Tutor is a
+Workspace template rather than a plugin-level agent is a maintainer's reasoning, so it left the
+skill — and reasoning that leaves without being recorded is reasoning a future maintainer
+re-derives, or reverses without knowing it. The check reads the record for the four things that
+argued for it, and fails if the skill still carries them too.
 
 ## The spine check
 
@@ -141,6 +232,12 @@ two forms count:
   `tests/`, `commands` — anywhere in the text, prose or code block. That last part is what
   puts a script a document tells an agent to run, or a template it names, under the check.
 
+A `#fragment` is part of the pointer, and a bare `#anchor` is the same promise made about the
+document it sits in. Both resolve against the headings of the file they land on, slugged the way
+GitHub slugs them. This is the half that a restructuring breaks: disclosing a section removes its
+heading, and every link at it still resolves as a *file* — so the reader arrives at the top of a
+long document and is left to search it, with nothing failing.
+
 Each form resolves against **exactly one** root. Never offer a pointer a list of roots to
 try: a pointer that happens to exist somewhere the agent would never look would pass while
 still sending its reader nowhere.
@@ -185,3 +282,16 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
 - **The tutor server is not exercised.** `run()` runs a command to completion; a
   long-running server needs a method this helper does not have yet.
+- **The "exactly two Tutor facts" check cannot read a sentence.** Length is a proxy for whether
+  a line claims or points, and a short claim would pass — "the Tutor is stateless" is 24
+  characters. What the checks really hold is that the *runbook* cannot come back and that the
+  Tutor cannot spread. Judging whether a short line is a fact or a signpost is still a reader's
+  job.
+- **Nothing measures how long the main document is.** The checks hold what is *in* it, which is
+  the thing that changes behaviour. A document that stayed long by growing material every
+  Session genuinely reads would pass, and should.
+- **No Markdown renderer validates the anchors.** `anchorFor` reimplements GitHub's slug rules,
+  and is pinned against real headings from this repo — but it is a reimplementation, not the
+  renderer. Duplicate headings, which GitHub disambiguates with a numeric suffix, are not
+  modelled: two identical headings in one document would make the second unreachable without
+  failing anything.

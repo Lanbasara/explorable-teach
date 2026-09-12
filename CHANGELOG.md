@@ -4,6 +4,16 @@
 
 ### Changed
 
+- **First-run setup and the tutor runbook moved out of the skill, behind pointers.** Setting up
+  a workspace fires on roughly one session in twenty and had fifty inline lines under a
+  top-level heading; the tutor's ports, start commands and troubleshooting order were an
+  operations runbook sitting between two teaching sections. Both are now documents of their
+  own — `FIRST-RUN.md` and `TUTOR.md` — reached by a pointer from the session that actually
+  needs them. This is a variance fix rather than tidying: reference that should have been
+  disclosed buries the steps beside it, and turns attending to them into a coin flip. Exactly
+  two tutor facts stay inline, because exactly two change what the teacher does — the learner's
+  logged questions are read at boot, and a lesson must stay fully readable with the service
+  stopped.
 - **The skill opens on the Boot sequence, and hangs everything off the Unit.** `SKILL.md` used
   to open on a two-phase workflow and reach the Boot sequence four hundred lines later, behind
   a Component catalog and a Tutor runbook — reference material standing in front of the one
@@ -30,6 +40,11 @@
 
 ### Added
 
+- **Anchors are now under the integrity check.** A link at a heading — `](#the-unit)`, or
+  `](./SKILL.md#boot-sequence)` — resolves against the headings of the file it lands on, not
+  just against the file. This is the half a restructuring breaks: disclosing a section removes
+  its heading, every link at it still resolves as a *file*, and the reader lands at the top of
+  a long document with nothing having failed.
 - **The core Components now ship with the plugin.** Shared styles, plus Exercise,
   Predict-Reveal, Step Animation and Drag Ordering, live in the plugin and are installed by
   the scaffold. Until now the catalog named roughly twenty component files and shipped none,

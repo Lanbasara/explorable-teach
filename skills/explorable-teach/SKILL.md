@@ -16,7 +16,7 @@ delivers one Unit, and then ends.
 
 Begin every Session here, in this order, before proposing anything.
 
-1. **Scaffold, if the Workspace is bare.** No `index.html` and no `tutor/` means nothing has
+1. **Scaffold, if the Workspace is bare.** No `index.html` and no `assets/` means nothing has
    been set up yet — run `${CLAUDE_PLUGIN_ROOT}/scripts/init-workspace.sh`. It never
    overwrites, so running it against a Workspace already holding work costs nothing, and it is
    also the repair tool for a Workspace that lost a file. The script owns what a Workspace
@@ -30,15 +30,15 @@ Begin every Session here, in this order, before proposing anything.
 3. `CURRICULUM.md` — the plan, and the progress marker on each Unit.
 4. The last two or three `learning-records/` — where the learner actually is, rather than where
    the plan says they are.
-5. `learning-records/questions.jsonl` — what confused them since you last looked. This is the
-   highest-signal feedback the Workspace produces: three questions about one paragraph means
-   that Lesson is wrong, not that the learner is slow.
+5. `learning-records/questions.jsonl` — every question the learner put to the Tutor since you
+   last looked. This is the highest-signal feedback the Workspace produces: three questions
+   about one paragraph means that Lesson is wrong, not that the learner is slow.
 6. `NOTES.md` — how to work with this person. The prohibitions in it are binding.
 
 Then branch once, on what those reads told you:
 
-- No `MISSION.md`, or one that does not yet say why this person is here → [first
-  run](#first-run-research-and-plan).
+- No `MISSION.md`, or one that does not yet say why this person is here → [FIRST-RUN.md](./FIRST-RUN.md),
+  once per Workspace.
 - Otherwise → propose the next Unit, and [teach it](#the-teaching-loop).
 
 ## The Unit
@@ -57,8 +57,7 @@ Everything else in this document is a face of that one object:
   they teach. See [Component Catalog](#component-catalog).
 - **The assessment ladder verifies it.** Exercises inside the Lesson, a Checkpoint at its end,
   an Assignment some Units later. See [the assessment ladder](#the-assessment-ladder).
-- **The Tutor serves the learner inside it.** A question about a passage is answered without
-  leaving the page. See [The AI Tutor](#the-ai-tutor).
+- **The Tutor serves the learner inside it.** See [TUTOR.md](./TUTOR.md).
 - **The Session boundary is its lifecycle.** A Unit opens with the Boot sequence and closes when
   the Workspace can carry it forward without you. See [Session
   Boundaries](#session-boundaries).
@@ -72,8 +71,8 @@ nobody can find was not worth writing.
 Three rules, all mandatory:
 
 1. **Do not wire infrastructure by hand.** One line does it — `<script
-   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in the
-   nav bar, the Tutor, and the Unit manifest in the right order. Even that line is a safety net
+   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in
+   every piece of page infrastructure, in the right order. Even that line is a safety net
    rather than a chore: `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` injects it into any page
    missing it, so run that after writing a Lesson and forget about it. Your attention belongs on the teaching.
 2. **`index.html` is the Dossier** — the one page every Unit is reachable from. Update it
@@ -85,54 +84,6 @@ Three rules, all mandatory:
 
 Keep files flat (`0001-slug.html`, `0001b-checkpoint.html`). Do not nest Units into folders — it
 buys nothing and breaks every relative asset path.
-
-## First run: research and plan
-
-Once per Workspace, before writing anything teachable.
-
-1. **Establish the Mission.** Interview only when it is genuinely underdetermined.
-
-   **A missing file is not evidence of a missing Mission.** A new Workspace never has
-   `MISSION.md`, and that says nothing about whether the learner has already told you why they
-   are here. Interview on what they said, not on what the directory contains.
-
-   If the opening request already carries why they are learning, what they want to be able to
-   do, and what they do not want, write `MISSION.md` from it and confirm in one line: *"this is
-   what I think you're after — correct me."* Ask only for what is genuinely absent **and** would
-   change the plan; a question whose every answer leads to the same first Unit is not worth
-   asking. Interrogating someone who just handed you a thorough brief reads as not having read
-   it.
-2. **Research the topic's best interactive affordances**:
-   - Search the web: "best interactive {topic} tutorial", "explorable explanation {topic}"
-   - Identify what existing interactive teaching does well for this topic
-   - Determine which interaction patterns fit (not all topics need the same tools)
-3. **Select the tech stack** — from the Component Catalog below, pick what fits. Also search for **topic-specific tools** that may not be in the catalog (e.g., a music theory topic might benefit from Web Audio API + Tone.js)
-4. **Write `TECH-STACK.md`** at the Workspace root:
-
-```md
-# Tech Stack for {topic}
-
-## Rationale
-{Why these tools were chosen for this specific topic}
-
-## Selected Components
-| Component | Library | Why |
-|-----------|---------|-----|
-| ... | ... | ... |
-
-## Topic-Specific Tools (if any)
-| Tool | CDN | Purpose |
-|------|-----|---------|
-
-## Deferred (available but not needed now)
-| Component | When to add |
-|-----------|-------------|
-```
-
-5. **Plan the Curriculum** as an ordered list of Units in `CURRICULUM.md`, each with a progress
-   marker, ordered by dependency between ideas rather than by any book's table of contents.
-6. **Build whatever Components the first Units need** beyond the ones the scaffold installed.
-7. **Tune `tutor/ROLE.md`** for this subject — see [The AI Tutor](#the-ai-tutor).
 
 ## The teaching loop
 
@@ -155,7 +106,7 @@ One Unit at a time, once the Boot sequence has told you where the learner is:
 State files:
 
 - `MISSION.md`: The reason the user is learning. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md). See [The Mission](#the-mission).
-- `TECH-STACK.md`: Selected interactive tools for this Workspace. Written on first run, updated as needed.
+- `TECH-STACK.md`: The interaction patterns this subject needs. Written on the first run — see [FIRST-RUN.md](./FIRST-RUN.md) — and updated as the Curriculum reaches material the current stack cannot teach.
 - `RESOURCES.md`: Curated trusted sources. Use [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md). Never trust parametric knowledge.
 - `./learning-records/*.md`: Use [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md). Numbered `0001-slug.md`.
 - `./reference/*.html`: Compressed reference documents for quick lookup. See [Reference Documents](#reference-documents).
@@ -163,7 +114,7 @@ State files:
 - `./assets/*`: Reusable interactive Components.
 - `CURRICULUM.md`: The ordered plan of Units **and** the progress marker on each. See [Session Boundaries](#session-boundaries).
 - `./assignments/*.html`: Optional. Task + Rubric, and the learner's Submission. See [the assessment ladder](#the-assessment-ladder).
-- `./tutor/server.js`: Optional. The local Tutor service. See [The AI Tutor](#the-ai-tutor).
+- `./tutor/`: The Tutor service. See [TUTOR.md](./TUTOR.md).
 - `NOTES.md`: How this learner wants to be taught. See [Recorded preferences](#recorded-preferences-notesmd).
 
 ## Philosophy
@@ -413,7 +364,7 @@ that a Component written for one subject still reads like the rest of the Worksp
   <!-- Component JS for the patterns this lesson uses, e.g.: -->
   <script src="../assets/predict-reveal.js"></script>
 
-  <!-- Infrastructure: nav + tutor + manifest. Never list these individually. -->
+  <!-- Page infrastructure. One tag, and never wire its contents individually. -->
   <script src="../assets/lesson-boot.js" data-unit="NNNN"></script>
 </body>
 </html>
@@ -443,8 +394,9 @@ Every Lesson:
   found — for the learner to go and read or watch;
 - links by HTML anchor to the reference documents and the neighbouring Units it builds on;
 - ends with a sandbox or an open challenge;
-- reads as plain text with scripting off;
-- reminds the learner they can ask the Tutor about anything that did not land.
+- reads as plain text with scripting off, and stays fully readable with the Tutor service
+  stopped — a background process nobody started must never be what blocks studying — while
+  still telling the learner they can ask about anything that did not land.
 
 Open the Lesson file for the learner once you have written it.
 
@@ -476,7 +428,7 @@ Lesson is interactive rather than a page of prose, and nothing added later may d
 
 Write them for storage strength, not fluency — see [Fluency and storage
 strength](#fluency-and-storage-strength). Judging happens in the page, so an Exercise never
-needs a Tutor, a server, or a network.
+needs a server or a network.
 
 ### Checkpoints
 
@@ -516,123 +468,7 @@ the learner is already in. Keep the Rubric inside that same HTML in a non-render
 task and its grading criteria never drift apart.
 
 Grading is done by a **fresh Grader** reading the stored Rubric, never by recalling the Session
-that wrote the Assignment. Mechanically it is the Tutor with a different role file — add
-`tutor/ROLE-grader.md` and one entry in the server's `ROLES` map.
-
-## The AI Tutor
-
-Lessons are static HTML, and the learner will hit sentences that don't land. The fix is an
-in-page Tutor — but it must not be *the Session that wrote the Lesson*. That Session carries
-curriculum-planning state that shouldn't leak into an explanation, and it decays as it grows.
-
-**The Tutor holds no process state.** Each question spawns a fresh headless Claude whose working
-directory is the Workspace, with read-only tools. Never `--resume` or `--continue` — a resumed
-session would drag back exactly the rot this design exists to avoid.
-
-Follow-up questions still work, because the client replays the last few turns **inside the
-request**, capped. That is bounded replay, not a session: state lives in the payload and dies
-with it. The learner gets a real back-and-forth; the Tutor gets a clean context every time.
-
-Context is acquired **progressively**. The server inlines what is always needed (`NOTES.md`,
-`MISSION.md`, the selected passage, recent turns); the Tutor goes and reads the Lesson,
-`CURRICULUM.md`, or `learning-records/` when the question actually demands it. Resist the urge
-to tune this toward "read less for lower latency" — a question containing 这段 or "the part
-above" cannot be answered from the selection alone, and a wrong answer costs far more than two
-seconds.
-
-### The skill scaffolds it; the learner's study session owns it
-
-Artifacts persist across conversations. Processes belong to the learner, not to a conversation —
-but that cuts both ways: a process you start must *outlive* you, and you must be able to *see*
-it.
-
-- **Do** let the scaffold write the Tutor files, exactly as it writes `assets/*.js`.
-- **Do not** start the server as a side effect of teaching. No silent daemons.
-- **Do** start, restart, or stop it when the learner asks, or when they report the Tutor is not
-  responding. Always start it detached (see below) so it survives the end of this conversation.
-  Its lifetime is the learner's study session, not your session.
-- **Never** write a Lesson that depends on the server being up. The page must be fully readable,
-  and the widget must degrade to a clipboard prompt when `/api/health` is unreachable — which is
-  a normal state, not a failure.
-
-### Installing it
-
-The first step of the [Boot sequence](#boot-sequence) installs it, along with everything else
-that does not vary by subject. There is nothing to place by hand, and nothing here to copy: the
-only Tutor file this skill authors is `tutor/ROLE.md`, which it tunes for the subject.
-
-`server.js` carries security-sensitive code — path-traversal guards, argv `spawn` with no shell,
-input caps, loopback-only bind, idle auto-shutdown. That is exactly why the scaffold copies it
-rather than any Session writing it: re-deriving that from prose risks silently dropping a guard.
-Adapt it only if the topic genuinely demands it, and say so when you do.
-
-The server is zero-dependency Node. It serves the Lessons over http (which also lifts the
-`file://` restrictions that gate Pyodide, sql.js, and ES modules) and exposes `POST /api/ask`,
-which runs headless Claude with `--restricted` and read-only tools.
-
-### Why the Tutor ships as a workspace template, not a plugin agent
-
-Claude Code discovers subagents only in `.claude/agents/` (project) and `~/.claude/agents/`
-(user) — never inside a skill directory. So the skill carries an inert
-`templates/agents/tutor.md` and the scaffold copies it into the Workspace, where it registers
-project-scoped.
-
-That indirection is deliberate. A plugin *can* bundle an `agents/` directory, and that would be
-the tidier distribution — but a plugin-level agent registers **globally**, and subagents have no
-`disable-model-invocation` equivalent, so it would be auto-routable in every unrelated project.
-It would also be one fixed definition, when the whole point is that each Workspace tunes its own
-`ROLE.md` for its own subject.
-
-Project scoping is the only invocation control a subagent has. Spend it here.
-
-If you package this skill as a plugin for distribution, put the **skill** under the plugin's
-`skills/` and leave the Tutor as a template the scaffold materialises. Do not promote it to a
-plugin-level agent.
-
-### Two ways to reach the same Tutor
-
-Both read the same `tutor/ROLE.md`, so neither is a downgrade:
-
-| Path | How | When |
-|------|-----|------|
-| In-page drawer | learner runs `node tutor/server.js` | while studying, question tied to a passage |
-| `tutor` subagent | ask in any Claude Code session | no server running; zero lifecycle |
-
-### Operating it
-
-When the learner says the Tutor is broken, silent, or slow, probe before theorising:
-
-```
-./tutor/tutorctl.sh status     # up? which port, pid, uptime, idle time
-./tutor/tutorctl.sh start      # detached via nohup; writes tutor/.tutor.pid
-./tutor/tutorctl.sh restart
-./tutor/tutorctl.sh stop
-curl -s 127.0.0.1:4173/api/health
-```
-
-Common causes, in the order worth checking: the server was never started; it exited on idle
-timeout; the port is held by a stale process from an earlier session; `claude` is not on `PATH`
-in the environment that launched it. `tutor/server.log` holds the output of a detached start.
-
-The idle timeout is deliberately long — hours, not minutes. The failure it guards against is a
-forgotten process lingering for days, not one sitting idle over lunch. Never shorten it to the
-point where the learner has to think about restarts; that is the opposite of the goal.
-
-### Writing the role prompt
-
-`ROLE.md` should instruct the Tutor to *read the Workspace* rather than hardcoding facts about
-the learner — that keeps it reusable and always current. The server inlines the small
-always-needed files (`NOTES.md`, `MISSION.md`) into the payload; the Tutor reads
-`CURRICULUM.md`, the Lesson HTML, and `learning-records/` only when the question needs them.
-
-Do not assume questions are about vocabulary — most need surrounding context to answer well. The
-Tutor must **disclose progressively**: answer the question actually asked, bridge from what the
-learner already knows, and check whether a prerequisite is present rather than silently teaching
-it. It must obey the hard prohibitions in `NOTES.md`.
-
-**Every question is logged to `learning-records/questions.jsonl`**, which the Boot sequence
-reads. Adding a Grader is one more role file — see [the assessment
-ladder](#the-assessment-ladder).
+that wrote the Assignment. Standing one up is one more role file — see [TUTOR.md](./TUTOR.md).
 
 ## Session Boundaries
 
@@ -680,9 +516,8 @@ things they never want to see again. `NOTES.md` is where those go, and it is whe
 before designing a Unit or opening a Session.
 
 Record a preference the moment it is stated, in their framing rather than your summary of it.
-Hard prohibitions are binding, and they bind beyond this conversation — the Tutor is held to
-them too, so a prohibition written here reaches every agent the learner talks to. See
-[Writing the role prompt](#writing-the-role-prompt).
+Hard prohibitions are binding, and they bind beyond this conversation: a prohibition written
+here reaches every agent the learner talks to. See [TUTOR.md](./TUTOR.md).
 
 ## Acquiring Wisdom
 

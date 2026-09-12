@@ -12,6 +12,7 @@ const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, pointersIn, resolvePointer, DOC_ROOTS } = require('./helpers/docs.js');
+const { anchorsIn } = require('./helpers/markdown.js');
 
 const docs = agentDocs();
 const pointers = docs.flatMap(pointersIn);
@@ -48,6 +49,32 @@ test('every relative pointer resolves to a file that exists', () => {
     broken.map(show),
     [],
     'these pointers name something that is not in the repo',
+  );
+});
+
+test('every anchor resolves to a heading that is actually there', () => {
+  // The other half of the same promise. A link at a heading that has been
+  // renamed or disclosed into another document still resolves as a *file*, so
+  // the check above is happy — and the reader lands at the top of a long
+  // document and is left to search it. Sections move often here; headings are
+  // exactly what a restructuring removes.
+  const anchored = pointers.filter((p) => p.fragment);
+
+  // Guard the observer: extraction that dropped fragments would pass for free.
+  assert.ok(anchored.length >= 10, `expected anchored pointers, found ${anchored.length}`);
+
+  const offered = new Map();
+  const broken = anchored.filter((p) => {
+    const file = resolvePointer(p);
+    if (file === null || fs.statSync(file).isDirectory()) return false; // the check above owns this
+    if (!offered.has(file)) offered.set(file, anchorsIn(fs.readFileSync(file, 'utf8')));
+    return !offered.get(file).has(p.fragment);
+  });
+
+  assert.deepEqual(
+    broken.map(show),
+    [],
+    'these pointers name a heading that no longer exists where they send their reader',
   );
 });
 

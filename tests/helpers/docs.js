@@ -11,6 +11,10 @@
  * Two kinds count as a pointer:
  *
  *   1. A Markdown link with a relative target — `[templates/](./templates/)`.
+ *      Its `#fragment`, when it has one, is part of the promise: a link at a
+ *      heading that is not there lands its reader at the top of a document and
+ *      leaves them to search. An in-document `#anchor` is the same promise made
+ *      about the document it sits in.
  *   2. A path rooted at a directory this repo owns — `scripts/wire-lessons.sh`,
  *      `templates/agents/tutor.md` — wherever it appears, prose or code block.
  *
@@ -54,7 +58,7 @@ const ROOTED_PATH = new RegExp(
   // Not preceded by anything that would make this the tail of a longer path
   // or a URL — `cdnjs.com/x/scripts/y` is not a pointer at our scripts/.
   String.raw`(?<![\w./-])(?:\$\{CLAUDE_PLUGIN_ROOT\}/)?` +
-    `(?:${OWNED_ROOTS.join('|')})/[\\w./-]*`,
+    `(?:${OWNED_ROOTS.join('|')})/[\\w./#-]*`,
   'g',
 );
 
@@ -107,29 +111,32 @@ function agentDocs() {
 }
 
 /**
- * Every relative pointer in one document, as `{ doc, line, raw, target, root }`
- * — `root` being the single directory the target must resolve against.
+ * Every relative pointer in one document, as
+ * `{ doc, line, raw, target, root, fragment }` — `root` being the single
+ * directory the target must resolve against, and `fragment` the heading it
+ * names inside the file it lands on, when it names one.
  */
 function pointersIn(doc) {
   const docDir = path.dirname(doc);
   const found = [];
 
   fs.readFileSync(doc, 'utf8').split('\n').forEach((text, index) => {
-    const at = (raw, target, root) => {
+    const at = (raw, target, root, fragment) => {
       if (MEANT_TO_BE_ABSENT.some((p) => target.startsWith(p))) return;
-      found.push({ doc, line: index + 1, raw, target, root });
+      found.push({ doc, line: index + 1, raw, target, root, fragment });
     };
 
-    for (const [, target] of text.matchAll(MARKDOWN_LINK)) {
-      if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue; // http:, mailto:, …
-      if (target.startsWith('#')) continue; // in-document anchor
-      // A link is written from where the document sits.
-      at(target, target.split('#')[0], docDir);
+    for (const [, href] of text.matchAll(MARKDOWN_LINK)) {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href)) continue; // http:, mailto:, …
+      const [file, fragment] = href.split('#');
+      // A link is written from where the document sits, and a bare `#anchor`
+      // names the document it is written in.
+      at(href, file === '' ? path.basename(doc) : file, docDir, fragment);
     }
 
     for (const [raw] of text.matchAll(ROOTED_PATH)) {
-      const target = raw.replace('${CLAUDE_PLUGIN_ROOT}/', '');
-      at(raw, target, target.startsWith('templates/') ? SKILL_DIR : REPO_ROOT);
+      const [target, fragment] = raw.replace('${CLAUDE_PLUGIN_ROOT}/', '').split('#');
+      at(raw, target, target.startsWith('templates/') ? SKILL_DIR : REPO_ROOT, fragment);
     }
   });
 
