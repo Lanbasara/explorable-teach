@@ -251,9 +251,11 @@ that a component written for one subject still reads like the rest of the worksp
    the markup its author is expected to write. That comment is the component's documentation;
    there is nowhere else to look.
 3. **Progressive enhancement** — a lesson must read as plain text with scripting off. A
-   component hides things only *after* mounting, by marking its own root `is-live` and scoping
-   every hiding rule to that class. A stylesheet that hides content outright hides it from the
-   learner whose scripts never ran.
+   component hides things only *after* mounting: it marks its own root `is-live`, and every
+   hiding rule it writes is scoped to a class only its own script ever sets. A stylesheet that
+   hides content outright hides it from the learner whose scripts never ran — and so does
+   `hidden` written into the markup by hand, so **never author a `hidden` attribute in a
+   lesson**. Let the component set it.
 4. **Every interaction has a keyboard and a touch path.** Drag-only is unusable on a phone and
    invisible to a keyboard; the shipped drag component pairs dragging with move buttons.
 5. **Retina-aware** — canvas-based components use `devicePixelRatio`

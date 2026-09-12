@@ -94,8 +94,8 @@ test('every design token a stylesheet uses is defined in the shared styles', () 
 
   assert.ok(tokens.size >= 10, `expected tokens to check, found ${tokens.size}`);
 
-  const undefined_ = [...tokens].filter((name) => !definitions.has(name)).sort();
-  assert.deepEqual(undefined_, [], 'these are used as design tokens but nothing defines them');
+  const undeclared = [...tokens].filter((name) => !definitions.has(name)).sort();
+  assert.deepEqual(undeclared, [], 'these are used as design tokens but nothing defines them');
 });
 
 test('every Component declares its dependencies at its head', () => {
@@ -131,8 +131,15 @@ test('a Component only hides what it has taken over', () => {
   // Progressive enhancement, made checkable. A stylesheet that hides content
   // outright hides it from the learner whose scripting is off too — so every
   // hiding rule has to be scoped to a state only the Component's script sets.
-  for (const component of COMPONENTS) {
-    const css = read(path.join(TEMPLATES, 'assets', component.css));
+  //
+  // The shared stylesheet is in scope too, since a hiding rule added there
+  // would reach every Lesson at once. Its one blanket rule, `[hidden]`, is the
+  // mechanism the Components hide *with*: an element carries that attribute
+  // only because a script put it there, and `SKILL.md` tells authors never to
+  // write it by hand.
+  for (const css of [read(path.join(TEMPLATES, 'assets', SHARED_STYLES))].concat(
+    COMPONENTS.map((c) => read(path.join(TEMPLATES, 'assets', c.css))),
+  )) {
 
     for (const block of css.split('}')) {
       const brace = block.indexOf('{');
@@ -142,10 +149,12 @@ test('a Component only hides what it has taken over', () => {
       const body = block.slice(brace + 1);
       if (!/display:\s*none|visibility:\s*hidden/.test(body)) continue;
 
+      if (selector === '[hidden]') continue;
+
       assert.match(
         selector,
         /\.is-/,
-        `${component.css}: "${selector}" hides content whether or not the Component ever ran`,
+        `"${selector}" hides content whether or not the Component that owns it ever ran`,
       );
     }
   }

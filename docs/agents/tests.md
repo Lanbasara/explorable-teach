@@ -113,8 +113,11 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   catalog row with an `assets/` prefix is therefore how you opt a Component into the check.
 - **No browser runs any of this.** The fixture DOM dispatches events and mutates the tree; it
   computes no styles and lays nothing out. `components.test.js` checks that every class a
-  Component puts on the page is *styled somewhere* — never that it looks right. Judging a
-  lesson's appearance still means opening it.
+  Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,
+  and `is-live` is exempt because it is the mount marker rather than a visual state — but never
+  that it looks right. Judging a lesson's appearance still means opening it.
+- **`file://` is inferred, not observed.** `assets.test.js` reads the Components for `fetch`,
+  `XMLHttpRequest`, module syntax and URLs; nothing here actually opens a page from disk.
 - **`docs/adr/` is exempt.** `docs/agents/domain.md` names it as the convention this repo
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
 - **The tutor server is not exercised.** `run()` runs a command to completion; a

@@ -17,6 +17,15 @@ const { Workspace } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
 const { COMPONENTS, SHARED_STYLES, LESSON_HTML } = require('./helpers/lesson.js');
 
+/**
+ * A stylesheet minus its print rules. A class styled only when the lesson is
+ * printed is not styled for the learner reading it, so it must not count as
+ * coverage below.
+ */
+function onScreen(css) {
+  return css.replace(/@media\s+print\s*\{[\s\S]*?\n\}/g, '');
+}
+
 /** The fixture Lesson, in a Workspace scaffolded the way a learner's is. */
 function lesson(t, { run = COMPONENTS.map((c) => c.js) } = {}) {
   const ws = Workspace.create(t);
@@ -204,6 +213,18 @@ test('a step animation cannot run off either end', (t) => {
   assert.ok(page.query('.steps-next').hasAttribute('disabled'));
 });
 
+test('a step can be jumped to by click or by keyboard', (t) => {
+  const page = lesson(t, { run: ['step-animation.js'] });
+  const steps = page.queryAll('.steps-step');
+
+  page.click(steps[2]);
+  assert.match(page.text('.steps-count'), /3\s*\/\s*4/);
+
+  assert.equal(steps[0].getAttribute('tabindex'), '0', 'a clickable step must also be reachable');
+  page.press(steps[0], 'Enter');
+  assert.match(page.text('.steps-count'), /1\s*\/\s*4/);
+});
+
 test('a step animation is drivable from the keyboard', (t) => {
   const page = lesson(t, { run: ['step-animation.js'] });
   const root = page.query('.steps');
@@ -217,42 +238,42 @@ test('a step animation is drivable from the keyboard', (t) => {
 
 /* -------------------------------------------------------------- drag-order */
 
-test('a drag exercise can be reordered without a mouse', (t) => {
+test('a drag-ordering Component can be reordered without a mouse', (t) => {
   const page = lesson(t, { run: ['drag-order.js'] });
-  const items = page.queryAll('.dragorder-item');
+  const items = page.queryAll('.drag-order-item');
 
   assert.equal(items.length, 3);
   assert.equal(items[0].getAttribute('draggable'), 'true');
 
-  page.click(items[1].querySelector('.dragorder-up'));
+  page.click(items[1].querySelector('.drag-order-up'));
 
-  const order = page.queryAll('.dragorder-item').map((li) => li.getAttribute('data-order'));
+  const order = page.queryAll('.drag-order-item').map((li) => li.getAttribute('data-order'));
   assert.deepEqual(order, ['1', '2', '3'], 'moving the second item up should sort the list');
 });
 
-test('a drag exercise is checked against the authored order', (t) => {
+test('drag ordering is checked against the authored order', (t) => {
   const page = lesson(t, { run: ['drag-order.js'] });
-  const check = page.query('.dragorder-check');
+  const check = page.query('.drag-order-check');
 
   page.click(check);
 
-  assert.ok(page.query('.dragorder').classList.contains('is-wrong'), 'as authored, the order is wrong');
-  assert.ok(page.query('.dragorder-item').classList.contains('is-misplaced'));
-  assert.ok(page.text('.dragorder-verdict').length > 0, 'a verdict has to say something');
+  assert.ok(page.query('.drag-order').classList.contains('is-wrong'), 'as authored, the order is wrong');
+  assert.ok(page.query('.drag-order-item').classList.contains('is-misplaced'));
+  assert.ok(page.text('.drag-order-verdict').length > 0, 'a verdict has to say something');
 
-  page.click(page.queryAll('.dragorder-item')[1].querySelector('.dragorder-up'));
+  page.click(page.queryAll('.drag-order-item')[1].querySelector('.drag-order-up'));
   page.click(check);
 
-  assert.ok(page.query('.dragorder').classList.contains('is-correct'));
-  assert.ok(!page.query('.dragorder').classList.contains('is-wrong'), 'the old verdict must be cleared');
-  for (const item of page.queryAll('.dragorder-item')) {
+  assert.ok(page.query('.drag-order').classList.contains('is-correct'));
+  assert.ok(!page.query('.drag-order').classList.contains('is-wrong'), 'the old verdict must be cleared');
+  for (const item of page.queryAll('.drag-order-item')) {
     assert.ok(item.classList.contains('is-placed'), 'every item is in place once the order is right');
   }
 });
 
 test('dropping one item onto another reorders the list', (t) => {
   const page = lesson(t, { run: ['drag-order.js'] });
-  const items = page.queryAll('.dragorder-item');
+  const items = page.queryAll('.drag-order-item');
   const dataTransfer = { setData() {}, getData: () => '', effectAllowed: '', dropEffect: '' };
 
   page.fire(items[1], 'dragstart', { dataTransfer });
@@ -262,7 +283,7 @@ test('dropping one item onto another reorders the list', (t) => {
   page.fire(items[0], 'drop', { dataTransfer });
   page.fire(items[1], 'dragend', { dataTransfer });
 
-  const order = page.queryAll('.dragorder-item').map((li) => li.getAttribute('data-order'));
+  const order = page.queryAll('.drag-order-item').map((li) => li.getAttribute('data-order'));
   assert.deepEqual(order, ['1', '2', '3'], 'the dragged item lands where it was dropped');
   assert.ok(!items[1].classList.contains('is-dragging'), 'the drag state has to be cleaned up');
 });
@@ -271,7 +292,7 @@ test('dropping one item onto another reorders the list', (t) => {
 
 test('every class a Component puts on the page is styled', (t) => {
   const page = lesson(t);
-  const shared = fs.readFileSync(page.workspace.path(`assets/${SHARED_STYLES}`), 'utf8');
+  const shared = onScreen(fs.readFileSync(page.workspace.path(`assets/${SHARED_STYLES}`), 'utf8'));
 
   // Drive each Component into its states first, so the classes that only exist
   // after an interaction are on the page when this check reads it.
@@ -279,10 +300,10 @@ test('every class a Component puts on the page is styled', (t) => {
   page.click(page.query('button.predict-reveal'));
   page.click(page.query('button.predict-reveal'));
   page.click(page.query('.steps-next'));
-  page.click(page.query('.dragorder-check'));
+  page.click(page.query('.drag-order-check'));
 
   for (const component of COMPONENTS) {
-    const css = fs.readFileSync(page.workspace.path(`assets/${component.css}`), 'utf8');
+    const css = onScreen(fs.readFileSync(page.workspace.path(`assets/${component.css}`), 'utf8'));
     const root = page.query(component.root);
     const classes = new Set();
 
@@ -305,6 +326,11 @@ test('every class a Component puts on the page is styled', (t) => {
     );
 
     for (const token of classes) {
+      // `is-live` is the mount marker every Component sets, and a Component
+      // with nothing to restyle on mount legitimately never keys off it. It
+      // still has to be set: the tests and the print rules both read it.
+      if (token === 'is-live') continue;
+
       const styled = new RegExp(String.raw`\.${token}(?![\w-])`);
       assert.ok(
         styled.test(css) || styled.test(shared),

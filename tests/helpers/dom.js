@@ -558,17 +558,9 @@ class Page {
     const win = {
       document: doc,
       location: { protocol: 'file:', pathname: '/lessons/fixture.html', href: 'file:///lessons/fixture.html' },
-      localStorage: memoryStorage(),
-      setTimeout: (fn) => {
-        fn();
-        return 0;
-      },
-      clearTimeout: () => {},
-      requestAnimationFrame: (fn) => {
-        fn(0);
-        return 0;
-      },
-      cancelAnimationFrame: () => {},
+      // Deliberately bare. No shipped Component schedules work or stores
+      // anything, and an absent global throws loudly the moment one starts to
+      // — which is the signal to add it here on purpose, with a test.
       // Deliberately absent: getComputedStyle. Nothing here lays anything out,
       // so any answer it gave would be a lie a Component could act on.
       addEventListener: doc.addEventListener.bind(doc),
@@ -628,16 +620,6 @@ class Page {
     el.value = value;
     return this.fire(el, 'input');
   }
-}
-
-function memoryStorage() {
-  const store = new Map();
-  return {
-    getItem: (k) => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: (k) => store.delete(k),
-    clear: () => store.clear(),
-  };
 }
 
 module.exports = { Page, DomEvent, parseHTML };

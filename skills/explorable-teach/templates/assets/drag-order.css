@@ -5,7 +5,7 @@
    touchscreen there is no hover, and they are the only way to move an item
    there. */
 
-.dragorder {
+.drag-order {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -13,22 +13,22 @@
   margin: 1.8em 0;
 }
 
-.dragorder-prompt {
+.drag-order-prompt {
   font-weight: 600;
   color: var(--fg);
   margin: 0 0 .9em;
 }
 
-.dragorder-items { margin: 0; }
+.drag-order-items { margin: 0; }
 
-.dragorder.is-live .dragorder-items {
+.drag-order.is-live .drag-order-items {
   list-style: none;
   padding-left: 0;
   display: grid;
   gap: 7px;
 }
 
-.dragorder-item {
+.drag-order-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -41,23 +41,23 @@
   cursor: grab;
   transition: color .15s, border-color .15s, opacity .15s;
 }
-.dragorder-item:hover { color: var(--fg); border-color: var(--border-hi); }
-.dragorder-item.is-dragging { opacity: .45; cursor: grabbing; }
+.drag-order-item:hover { color: var(--fg); border-color: var(--border-hi); }
+.drag-order-item.is-dragging { opacity: .45; cursor: grabbing; }
 
-.dragorder-item.is-placed { border-color: var(--accent-good); color: var(--accent-good); }
-.dragorder-item.is-misplaced { border-color: var(--accent-bad); color: var(--accent-bad); }
+.drag-order-item.is-placed { border-color: var(--accent-good); color: var(--accent-good); }
+.drag-order-item.is-misplaced { border-color: var(--accent-bad); color: var(--accent-bad); }
 
 /* ---------- per-item move buttons ---------- */
 
-.dragorder-move {
+.drag-order-move {
   margin-left: auto;
   display: flex;
   gap: 4px;
   flex: none;
 }
 
-.dragorder-up,
-.dragorder-down {
+.drag-order-up,
+.drag-order-down {
   padding: 1px 8px;
   font-size: 13px;
   line-height: 1.5;
@@ -66,7 +66,7 @@
 
 /* ---------- check ---------- */
 
-.dragorder-controls {
+.drag-order-controls {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -74,12 +74,12 @@
   margin-top: 1.1em;
 }
 
-.dragorder-check { flex: none; }
+.drag-order-check { flex: none; }
 
-.dragorder-verdict {
+.drag-order-verdict {
   margin: 0;
   font-size: 14.5px;
   font-weight: 600;
 }
-.dragorder.is-correct .dragorder-verdict { color: var(--accent-good); }
-.dragorder.is-wrong .dragorder-verdict { color: var(--accent-bad); }
+.drag-order.is-correct .drag-order-verdict { color: var(--accent-good); }
+.drag-order.is-wrong .drag-order-verdict { color: var(--accent-bad); }

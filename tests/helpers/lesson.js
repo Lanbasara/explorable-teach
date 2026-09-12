@@ -41,7 +41,7 @@ const COMPONENTS = [
     name: 'drag-order',
     css: 'drag-order.css',
     js: 'drag-order.js',
-    root: '.dragorder',
+    root: '.drag-order',
   },
 ];
 
@@ -97,9 +97,9 @@ ${COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}">`).joi
   <p class="exercise-why">子进程从 fork() 的返回处继续,不是从 main 开头。</p>
 </div>
 
-<div class="dragorder" data-drag-order>
-  <p class="dragorder-prompt">把 shell 执行一条命令的步骤排成正确顺序</p>
-  <ol class="dragorder-items">
+<div class="drag-order" data-drag-order>
+  <p class="drag-order-prompt">把 shell 执行一条命令的步骤排成正确顺序</p>
+  <ol class="drag-order-items">
     <li data-order="2">fork() 复制出子进程</li>
     <li data-order="1">shell 读到一行命令</li>
     <li data-order="3">exec() 把子进程替换成新程序</li>

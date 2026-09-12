@@ -62,7 +62,7 @@
     var nudge = null;
     var nudged = false;
 
-    function warn() {
+    function showNudge() {
       nudged = true;
       root.classList.add('is-nudged');
       if (!nudge) {
@@ -87,7 +87,7 @@
     }
 
     button.addEventListener('click', function () {
-      if (!guess.value.trim() && !nudged) return warn();
+      if (!guess.value.trim() && !nudged) return showNudge();
       reveal();
     });
 

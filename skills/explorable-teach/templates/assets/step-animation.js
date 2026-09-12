@@ -117,8 +117,18 @@
     // through four of them to get back to it.
     each(steps, function (step, i) {
       step.classList.add('steps-step');
+      step.setAttribute('role', 'button');
+      step.setAttribute('tabindex', '0');
+
       step.addEventListener('click', function () {
         go(i);
+      });
+      step.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+          event.preventDefault();
+          event.stopPropagation();
+          go(i);
+        }
       });
     });
 

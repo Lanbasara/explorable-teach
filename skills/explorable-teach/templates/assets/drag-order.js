@@ -10,9 +10,9 @@
    Markup the Lesson author writes — in a deliberately wrong order, with
    `data-order` giving the right one:
 
-     <div class="dragorder" data-drag-order>
-       <p class="dragorder-prompt">把这些步骤排成正确顺序</p>
-       <ol class="dragorder-items">
+     <div class="drag-order" data-drag-order>
+       <p class="drag-order-prompt">把这些步骤排成正确顺序</p>
+       <ol class="drag-order-items">
          <li data-order="2">fork() 复制出子进程</li>
          <li data-order="1">shell 读到一行命令</li>
          <li data-order="3">exec() 把子进程替换成新程序</li>
@@ -65,22 +65,22 @@
   }
 
   function mount(root) {
-    var list = root.querySelector('.dragorder-items');
+    var list = root.querySelector('.drag-order-items');
     if (!list) return;
 
     var authored = list.querySelectorAll('li');
     if (authored.length < 2) return;
 
     var controls = document.createElement('div');
-    controls.className = 'dragorder-controls';
+    controls.className = 'drag-order-controls';
 
     var check = document.createElement('button');
-    check.className = 't-btn dragorder-check';
+    check.className = 't-btn drag-order-check';
     check.setAttribute('type', 'button');
     check.textContent = CHECK;
 
     var verdict = document.createElement('p');
-    verdict.className = 'dragorder-verdict';
+    verdict.className = 'drag-order-verdict';
     verdict.setAttribute('role', 'status');
 
     controls.appendChild(check);
@@ -123,13 +123,13 @@
     }
 
     each(authored, function (item) {
-      item.classList.add('dragorder-item');
+      item.classList.add('drag-order-item');
       item.setAttribute('draggable', 'true');
 
       var moves = document.createElement('span');
-      moves.className = 'dragorder-move';
-      var up = button('dragorder-up', '↑', UP);
-      var down = button('dragorder-down', '↓', DOWN);
+      moves.className = 'drag-order-move';
+      var up = button('drag-order-up', '↑', UP);
+      var down = button('drag-order-down', '↓', DOWN);
       moves.appendChild(up);
       moves.appendChild(down);
       item.appendChild(moves);
