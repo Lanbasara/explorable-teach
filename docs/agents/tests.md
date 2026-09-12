@@ -19,6 +19,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | Suite | Holds this promise |
 |-------|--------------------|
 | `tests/pointers.test.js` | Every relative pointer in an agent-facing document resolves to a file that exists |
+| `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
 | `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
@@ -70,6 +71,24 @@ Lesson template says to write one, using every shipped Component. Both `assets.t
 `components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
 and its markup to that page**; every check then covers it without being told separately.
 
+## The decoupling check
+
+`SKILL.md` was once written as a diff against another author's skill: a heading naming seven
+pedagogical topics, and a body saying "same rules as" and pointing at a document the running
+agent cannot open. On the author's machine that plugin happened to be installed, so the defect
+never reproduced there. `decoupling.test.js` reads every file under `skills/` and fails on any
+line that names that project — by name, by author, by a "same rules as" deferral, or by a path
+into the plugin cache.
+
+`teach` is a verb this repo uses in almost every paragraph, so the patterns never match the bare
+word; they match it *as a skill*. The observer is guarded from both sides: every reference the
+repo actually carried before the pedagogy was absorbed must still be recognised, and a handful of
+sentences naming `explorable-teach` itself must still be ignored.
+
+The README is checked for the opposite thing. What the rebuild removed is the runtime dependency,
+not the debt — so the acknowledgement has to stay somewhere a human reads, and the check fails if
+it goes missing.
+
 ## Two rules for adding tests
 
 **Never restate what a script installs.** The scaffold owns its own file list; a test that
@@ -118,6 +137,9 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   that it looks right. Judging a lesson's appearance still means opening it.
 - **`file://` is inferred, not observed.** `assets.test.js` reads the Components for `fetch`,
   `XMLHttpRequest`, module syntax and URLs; nothing here actually opens a page from disk.
+- **The decoupling check stops at the skill directory.** `commands/` is agent-facing too and
+  is not scanned. It is clean today, and issue #5 removes the one document in it; if anything
+  else lands there, widen the scan rather than trusting that.
 - **`docs/adr/` is exempt.** `docs/agents/domain.md` names it as the convention this repo
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
 - **The tutor server is not exercised.** `run()` runs a command to completion; a

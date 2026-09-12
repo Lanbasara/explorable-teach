@@ -5,13 +5,13 @@ disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
 
-The user has asked you to teach them something using explorable, interactive lessons. This is an enhanced teaching skill that produces **rich interactive HTML** — not static text with questions bolted on.
+The user has asked you to teach them something using explorable, interactive lessons — **rich interactive HTML**, not static text with questions bolted on.
 
-This skill inherits the pedagogical foundations of the `teach` skill (mission-driven, zone of proximal development, fluency vs storage strength, knowledge → skills → wisdom) and adds two powerful layers: a **dynamic tool research phase** and a **rich interactive component library**.
+This is a stateful request. They intend to learn the subject over many sessions, and the current directory is the workspace that remembers between them.
 
 ## Two-Phase Workflow
 
-Unlike static teaching skills, `explorable-teach` operates in two phases:
+This skill operates in two phases:
 
 ### Phase 1: Research & Plan (run once when workspace is new)
 
@@ -19,9 +19,9 @@ Before writing any lesson, do this:
 
 1. **Establish the mission.** Interview only when it is genuinely underdetermined.
 
-   This deliberately **overrides** `teach`, which interviews whenever `MISSION.md` is absent —
-   a condition always true in a new workspace, so it fires even on a request that already said
-   everything. A missing file is not evidence of a missing mission.
+   **A missing file is not evidence of a missing mission.** A new workspace never has
+   `MISSION.md`, and that says nothing about whether the learner has already told you why they
+   are here. Interview on what they said, not on what the directory contains.
 
    If the opening request already carries why they are learning, what they want to be able to
    do, and what they do not want, write `MISSION.md` from it and confirm in one line: *"this is
@@ -66,7 +66,7 @@ everything above it is the part that needs you.
 
 ### Phase 2: Teach (ongoing)
 
-Same iterative teaching loop as `teach`, but with interactive lessons:
+The teaching loop, one lesson at a time:
 
 1. Run the [boot sequence](#boot-sequence) to find the zone of proximal development
 2. Research the next topic from `RESOURCES.md` and trusted sources
@@ -79,29 +79,84 @@ Same iterative teaching loop as `teach`, but with interactive lessons:
 
 State files:
 
-- `MISSION.md`: The reason the user is learning. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md).
-- `TECH-STACK.md`: **NEW** — Selected interactive tools for this workspace. Written in Phase 1, updated as needed.
+- `MISSION.md`: The reason the user is learning. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md). See [The mission](#the-mission).
+- `TECH-STACK.md`: Selected interactive tools for this workspace. Written in Phase 1, updated as needed.
 - `RESOURCES.md`: Curated trusted sources. Use [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md). Never trust parametric knowledge.
 - `./learning-records/*.md`: Use [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md). Numbered `0001-slug.md`.
-- `./reference/*.html`: Compressed reference documents for quick lookup.
+- `./reference/*.html`: Compressed reference documents for quick lookup. See [Reference Documents](#reference-documents).
 - `./lessons/*.html`: Interactive lessons. Numbered `0001-slug.html`.
 - `./assets/*`: Reusable interactive components.
-- `CURRICULUM.md`: The lesson plan **and** its progress markers. See [Session Boundaries](#session-boundaries).
+- `CURRICULUM.md`: The ordered plan of units **and** the progress marker on each. See [Session Boundaries](#session-boundaries).
 - `./assignments/*.md`: Optional. Task + rubric, and the learner's submission. See [Assignments](#assignments-optional-agent-judged).
 - `./tutor/server.js`: Optional. The local tutor service. See [The AI Tutor](#the-ai-tutor).
-- `NOTES.md`: User preferences and working notes.
+- `NOTES.md`: How this learner wants to be taught. See [Recorded preferences](#recorded-preferences-notesmd).
 
 ## Philosophy
 
-### Inherited from teach
+### Knowledge, skills, wisdom
 
-- **Knowledge** from high-quality resources, **Skills** from interactive practice, **Wisdom** from communities
-- **Mission-driven**: every lesson traces to a concrete goal
-- **Zone of proximal development**: challenge just enough
-- **Storage strength > fluency**: design for long-term retention via desirable difficulty
-- **Citations everywhere**: lessons reference trusted sources, never bare claims
+Learning something deeply takes three things, and they come from three different places.
 
-### Added: Explorable Explanations
+- **Knowledge** is captured from high-trust sources. Draw it from `RESOURCES.md`, never from
+  your own recall — parametric knowledge is exactly the kind that is confidently wrong. Until
+  `RESOURCES.md` is well populated, finding good sources *is* the work.
+- **Skills** are built by doing, inside a feedback loop. That is what a lesson's exercises are
+  for: the loop must be tight, and the feedback immediate and ideally automatic.
+- **Wisdom** comes from outside the workspace entirely — from other learners and practitioners.
+  See [Acquiring Wisdom](#acquiring-wisdom).
+
+Subjects sit at different points along that spectrum. Theoretical physics leans on knowledge;
+yoga leans on skills. Work out which one this subject is before planning the curriculum.
+
+**Knowledge and skills have opposite relationships with difficulty.** While the learner is
+acquiring knowledge, difficulty is the enemy — it eats the working memory they need for
+understanding, so clear the path. While they are building a skill, difficulty is the tool:
+effortful retrieval is the thing that makes the knowledge durable. Teach easy, practise hard.
+
+Teach only the knowledge the skill actually requires, then get them practising it. Every claim
+carries a citation to the source it came from; a bare claim is untrustworthy even when it is
+true, because the learner has no way to check it.
+
+### Fluency and storage strength
+
+Two things feel identical from the inside and are not:
+
+- **Fluency strength** — retrieval right now, with the material still on the screen.
+- **Storage strength** — retrieval in six weeks, cold.
+
+Fluency gives an illusory sense of mastery. Storage strength is the real goal, and the only way
+to build it is **desirable difficulty**:
+
+- **Retrieval practice** — make the learner produce the answer from memory rather than recognise
+  it among options.
+- **Spacing** — distribute practice over time instead of massing it into one sitting.
+- **Interleaving** — mix related-but-different material into one practice set. This is for skills
+  work only; interleaving knowledge acquisition just overloads working memory.
+
+An exercise the learner can answer by scrolling up is measuring fluency and teaching nothing.
+When writing options, make every one the same length in words and, where you can, in characters:
+formatting that singles out the right answer turns a retrieval exercise into a spotting exercise.
+
+### The mission
+
+`MISSION.md` holds the reason this person is learning this subject, and every unit traces back
+to it. Without it, knowledge acquisition is ungrounded — lessons feel abstract, and you have no
+basis for judging what to teach next. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md).
+
+Missions move as the learner develops, and that is normal rather than a failure of planning.
+Confirm the change with them, update `MISSION.md`, and write a learning record capturing it —
+a mission that shifted silently steers every future session from a document nobody re-read.
+
+### Zone of proximal development
+
+Every lesson should leave the learner feeling challenged *just enough*. Too easy and nothing
+sticks; too hard and their working memory goes to being lost rather than to the material.
+
+When the learner names exactly what they want next, teach that. Otherwise locate the zone
+yourself: read `learning-records/` for what they have actually demonstrated, read `MISSION.md`
+for where they are heading, and teach the most relevant thing that fits between the two.
+
+### Explorable explanations
 
 Inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
 
@@ -111,7 +166,7 @@ Inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
 4. **Sandbox at the end.** Every lesson should end with a space for free exploration.
 5. **Progressive disclosure.** Introduce one concept at a time. Each interaction adds one layer of complexity.
 
-### Added: Dynamic Tool Selection
+### Dynamic tool selection
 
 **The skill is the methodology. The tools are dynamic.**
 
@@ -294,13 +349,29 @@ lesson has to be styled whether or not a script ever runs.
 
 ## Lessons
 
-Same rules as `teach`, plus:
+A lesson is one self-contained HTML file in `./lessons/`, numbered `0001-slug.html`. It is the
+thing you actually produce — where knowledge and skills reach the learner.
 
-- Each lesson uses **1-3 interaction patterns** (pick what fits, don't use everything)
-- Lead with interaction, not explanation — "hook them with the question, not the answer"
-- End every lesson with a sandbox or open challenge
-- Progressive enhancement: readable as plain text if JS breaks
-- Open the lesson file for the user after creating it
+**Keep it short.** Working memory is small, and a lesson that overruns it teaches nothing past
+the point where it overran. Aim for one tangible win per lesson: tied to the mission, sitting in
+the zone of proximal development, completable quickly, and something the next lesson can build
+on.
+
+**Make it beautiful.** Clean readable typography, generous space, nothing decorative that is not
+carrying meaning — think Tufte. The learner will come back to these to review.
+
+Every lesson:
+
+- uses **1-3 interaction patterns** — pick what fits, don't use everything;
+- leads with interaction rather than explanation: hook them with the question, not the answer;
+- cites its sources inline, and recommends **one primary source** — the highest-trust thing you
+  found — for the learner to go and read or watch;
+- links by HTML anchor to the reference documents and the neighbouring lessons it builds on;
+- ends with a sandbox or an open challenge;
+- reads as plain text with scripting off;
+- reminds the learner they can ask the tutor about anything that did not land.
+
+Open the lesson file for the learner once you have written it.
 
 ### A unit is navigable, or it does not exist
 
@@ -315,7 +386,7 @@ Three rules, all mandatory:
    nav bar, the tutor, and the unit manifest in the right order. Even that line is a safety net
    rather than a chore: `scripts/wire-lessons.sh` injects it into any page missing it, so run
    that after writing a lesson and forget about it. Your attention belongs on the teaching.
-2. **`index.html` is the entry point** — the dossier cover. Update it whenever you add a unit or
+2. **`index.html` is the dossier** — the one page every unit is reachable from. Update it whenever you add a unit or
    change a progress marker. The learner should never need to open `lessons/` in a file browser.
 3. **Siblings link to each other.** A lesson points at its checkpoint and assignment; they point
    back. The learner should be able to move through a unit without touching the address bar.
@@ -513,11 +584,42 @@ Grading is done by a **fresh grader** reading the stored rubric, never by recall
 that wrote the assignment. Mechanically it is the tutor with a different role file — add
 `tutor/ROLE-grader.md` and one entry in the server's `ROLES` map.
 
-## Reference Documents, Mission, ZPD, Knowledge, Skills, Wisdom, NOTES.md
+## Reference Documents
 
-Same rules as the `teach` skill, with one exception: `teach` makes an unpopulated `MISSION.md`
-a trigger to interview. Here it is not — see [Phase 1](#phase-1-research--plan-run-once-when-workspace-is-new).
+Lessons are rarely revisited. Reference documents are — so write them as you go, into
+`./reference/`, and link to them from the lessons they came out of.
+
+A reference document is the compressed essence of what a lesson taught, in a shape built for
+lookup rather than for reading: syntax and snippets for a programming language, an algorithm or a
+flowchart for a process, poses and sequences for yoga, routines for fitness. They are the raw
+units of knowledge that outlive the lesson that introduced them, so make them beautiful and make
+them print well.
+
+**A glossary is the reference document almost every subject earns**, and it is the one with the
+longest reach: once the workspace has one, every lesson adheres to its terms. Use
+[GLOSSARY-FORMAT.md](./GLOSSARY-FORMAT.md).
+
+## Recorded preferences (`NOTES.md`)
+
+The learner will tell you how they want to be taught — pace, language, analogies that land,
+things they never want to see again. `NOTES.md` is where those go, and it is where you look
+before designing a lesson or opening a session.
+
+Record a preference the moment it is stated, in their framing rather than your summary of it.
+Hard prohibitions are binding, and they bind beyond this conversation — the tutor is held to
+them too, so a prohibition written here reaches every agent the learner talks to. See
+[Writing the role prompt](#writing-the-role-prompt).
 
 ## Acquiring Wisdom
 
-Same as `teach` — delegate to communities when the question requires real-world experience.
+Wisdom is the part no lesson can deliver. It comes from testing a skill outside the learning
+environment, against people who have already done the thing.
+
+When a question turns on real-world experience rather than on knowledge, your default posture is
+to answer it as well as you can — and then to hand it on to a **community**. A community is
+somewhere the learner can put the skill in front of others: a forum, a subreddit, a class they
+can afford, a local group. Find high-reputation ones and record them under
+`## Wisdom (Communities)` in `RESOURCES.md`.
+
+If the learner says they do not want to join a community, respect it, and note it in `NOTES.md`
+so that no future session proposes one again.
