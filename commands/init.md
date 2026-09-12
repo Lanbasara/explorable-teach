@@ -20,8 +20,9 @@ Run the scaffold:
 
 It copies the parts that are identical for every subject — the tutor service and its control
 script, the in-page widget, the nav bar, the dossier cover, the unit manifest, the lesson
-bootstrap, and the `tutor` subagent. It never overwrites, so it is also the repair tool for a
-workspace that lost a file.
+bootstrap, the `tutor` subagent, and the shared stylesheet with the core interaction
+components. It never overwrites, so it is also the repair tool for a workspace that lost a
+file.
 
 Report what it created and what it left alone.
 

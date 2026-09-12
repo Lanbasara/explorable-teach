@@ -20,10 +20,13 @@
  * reader nowhere.
  *
  * A bare filename is deliberately not a pointer. When a document names
- * `MISSION.md` or `assets/quiz.js` it means a path inside the *learner's*
+ * `MISSION.md` or `TECH-STACK.md` it means a path inside the *learner's*
  * Workspace, which does not exist when this suite runs. Resolving those against
- * the repo would be meaningless. See `docs/agents/tests.md` for what that
- * leaves uncovered.
+ * the repo would be meaningless.
+ *
+ * `assets/…` is the same shape and is likewise skipped here — but it is not
+ * uncovered: `assets.test.js` resolves those against a *scaffolded* Workspace,
+ * which is the only place they can mean anything.
  */
 
 const fs = require('node:fs');

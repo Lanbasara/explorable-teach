@@ -1,0 +1,63 @@
+/* predict-reveal.css — predict first, then see what really happens.
+   Deps: style.css (design tokens). Pairs with predict-reveal.js.
+
+   Nothing here hides the answer; predict-reveal.js does that. A page whose
+   stylesheet failed to load must not end up withholding the lesson. */
+
+.predict {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 1.8em 0;
+}
+
+.predict-question {
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 .9em;
+}
+
+.predict-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.predict-guess {
+  flex: 1 1 240px;
+  min-height: 56px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+}
+.predict-guess::placeholder { color: var(--fg-faint); }
+.predict-guess:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.predict-guess[readonly] { color: var(--fg-dim); background: var(--bg-soft); resize: none; }
+
+.predict-reveal { flex: none; }
+
+.predict-nudge {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--accent-warm);
+  font-size: 14px;
+}
+
+.predict-answer {
+  margin-top: 1.1em;
+  padding-top: 1.1em;
+  border-top: 1px solid var(--border);
+}
+.predict-answer > :last-child { margin-bottom: 0; }
+
+.predict.is-revealed { border-left-color: var(--accent-good); }
+.predict.is-nudged .predict-guess { border-color: var(--accent-warm); }

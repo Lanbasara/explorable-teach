@@ -55,6 +55,18 @@ place "$TPL/assets/units.js"    "assets/units.js"
 place "$TPL/index.html"         "index.html"
 place "$TPL/assets/lesson-boot.js" "assets/lesson-boot.js"
 
+# Shared styles, then the Components that do not vary by subject. Every page
+# in the workspace links style.css; a lesson links only the Components it uses.
+place "$TPL/assets/style.css"           "assets/style.css"
+place "$TPL/assets/exercise.js"         "assets/exercise.js"
+place "$TPL/assets/exercise.css"        "assets/exercise.css"
+place "$TPL/assets/predict-reveal.js"   "assets/predict-reveal.js"
+place "$TPL/assets/predict-reveal.css"  "assets/predict-reveal.css"
+place "$TPL/assets/step-animation.js"   "assets/step-animation.js"
+place "$TPL/assets/step-animation.css"  "assets/step-animation.css"
+place "$TPL/assets/drag-order.js"       "assets/drag-order.js"
+place "$TPL/assets/drag-order.css"      "assets/drag-order.css"
+
 chmod +x "$TARGET/tutor/tutorctl.sh" 2>/dev/null || true
 
 echo

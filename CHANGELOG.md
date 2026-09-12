@@ -4,15 +4,32 @@
 
 ### Added
 
+- **The core Components now ship with the plugin.** Shared styles, plus Exercise,
+  Predict-Reveal, Step Animation and Drag Ordering, live in the plugin and are installed by
+  the scaffold. Until now the catalog named roughly twenty component files and shipped none,
+  and every freshly scaffolded workspace opened on a dead `assets/style.css` link. These five
+  are identical for every subject, so they get one home rather than a copy per workspace.
+  Each declares its dependencies and its markup at its file head, each stays readable with
+  scripting off, each works opened from `file://`, and none of them touches the network —
+  the GSAP and SortableJS dependencies the catalog used to list turned out to be a CSS
+  transition and six native drag events.
+- **`style.css` owns the design tokens.** Colours, spacing and fonts are defined once;
+  `nav.css`, `tutor.css`, every Component and the dossier cover read them and define none, so
+  re-theming a workspace is one file. It is linked from the page `<head>` rather than injected
+  by script, so a lesson is styled whether or not anything ran. Light mode and a print
+  stylesheet come with it; printing reveals what the interaction was hiding.
 - **A test suite, run with `npm test`.** Node's built-in runner, zero third-party
   dependencies, no install step. It holds the plugin to the thing it keeps failing at:
   documents that promise what is not there. Every relative pointer in an agent-facing
   document — including the file list inside `SKILL.md`'s install block — must resolve; the
   scaffold must be safe to re-run against a workspace you have already put work into; the
   lesson bootstrap tag must land exactly once, and a second wiring run must change nothing.
-  `tests/helpers/workspace.js` gives each test a throwaway fixture Workspace.
-  `docs/agents/tests.md` explains how to build on it, and is explicit about what the suite
-  does *not* yet cover.
+  `tests/helpers/workspace.js` gives each test a throwaway fixture Workspace, and
+  `tests/helpers/dom.js` a DOM small enough to read and real enough to mount a Component in —
+  so every shipped Component is answered, stepped and reordered by the suite rather than
+  merely read. Naming an `assets/…` path in a document is now a promise the suite enforces:
+  it must exist in a scaffolded workspace. `docs/agents/tests.md` explains how to build on
+  all of it, and is explicit about what the suite does *not* cover.
 
 ## 0.2.1
 

@@ -19,9 +19,12 @@ question: **do the plugin's documents and scripts still describe reality?**
 | Suite | Holds this promise |
 |-------|--------------------|
 | `tests/pointers.test.js` | Every relative pointer in an agent-facing document resolves to a file that exists |
+| `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
+| `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
 | `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
+| `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
 
 ## The fixture Workspace
 
@@ -43,6 +46,29 @@ so "running this twice changed nothing" is a real claim rather than a timestamp 
 directly rather than through `sh`, so the shebang and the executable bit are under test too.
 It waits for the command to exit, with a timeout as a backstop — a script that hangs should
 fail one test rather than wedge the suite.
+
+## The fixture DOM
+
+`tests/helpers/dom.js` is a DOM small enough to read and real enough to mount a Component in.
+There is no browser here and no jsdom, so a Component that a test only *reads* is not under
+test at all — "it renders" has to mean something ran.
+
+```js
+const page = Page.load(LESSON_HTML, ws.path('assets'));  // a scaffolded Workspace's assets/
+page.script('exercise.js');                              // run the shipped file, not a copy
+page.click(page.queryAll('.exercise-option')[1]);
+assert.ok(page.query('.exercise').classList.contains('is-correct'));
+```
+
+It is deliberately a subset, and it fails loudly rather than quietly when a Component reaches
+past that subset: an unsupported selector throws instead of matching nothing, and `innerHTML`
+throws on assignment, because a shipped Component must build nodes rather than splice markup.
+Grow the subset on purpose when a Component genuinely needs more.
+
+`tests/helpers/lesson.js` holds the fixture Lesson — one page written the way `SKILL.md`'s
+Lesson template says to write one, using every shipped Component. Both `assets.test.js` and
+`components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
+and its markup to that page**; every check then covers it without being told separately.
 
 ## Two rules for adding tests
 
@@ -69,21 +95,26 @@ Each form resolves against **exactly one** root. Never offer a pointer a list of
 try: a pointer that happens to exist somewhere the agent would never look would pass while
 still sending its reader nowhere.
 
-A bare filename is not a pointer. When a document names `MISSION.md` or `assets/quiz.js` it
-means a path inside the *learner's* Workspace, which does not exist when this suite runs.
+A bare filename is not a pointer. When a document names `MISSION.md` or `TECH-STACK.md` it
+means a path inside the *learner's* Workspace, which does not exist when this suite runs. An
+`assets/…` path is the same shape and is skipped here too — `assets.test.js` resolves those
+against a scaffolded Workspace instead, which is the only place they can mean anything.
 
 ## What is deliberately not tested
 
 Known gaps, so that nobody reads a green suite as a stronger claim than it is:
 
 - **`templates/` is not scanned as a document.** It is material copied into a Workspace, so
-  its relative paths resolve *there*.
-- **The Component catalog in `SKILL.md` is not checked.** It names roughly twenty component
-  files as bare filenames, which are Workspace paths by the rule above — and none are
-  shipped. Closing that is a rewrite of the catalog, not a tightening of this check.
-- **Nothing verifies that a shipped template only references assets the scaffold installs.**
-  `templates/index.html` links `assets/style.css`, which `scripts/init-workspace.sh` never
-  places. That is a live defect and a different check from this one.
+  its relative paths resolve *there*. `assets.test.js` covers the part that matters — every
+  `assets/…` path a template names must exist in a scaffolded Workspace.
+- **The Component catalog's later tiers are not checked**, on purpose. A row written as a
+  bare filename (`scrolly.js`) is a pattern to build on demand, not a promise. A row written
+  as a path (`assets/exercise.js`) *is* a promise, and `assets.test.js` holds it. Writing a
+  catalog row with an `assets/` prefix is therefore how you opt a Component into the check.
+- **No browser runs any of this.** The fixture DOM dispatches events and mutates the tree; it
+  computes no styles and lays nothing out. `components.test.js` checks that every class a
+  Component puts on the page is *styled somewhere* — never that it looks right. Judging a
+  lesson's appearance still means opening it.
 - **`docs/adr/` is exempt.** `docs/agents/domain.md` names it as the convention this repo
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
 - **The tutor server is not exercised.** `run()` runs a command to completion; a

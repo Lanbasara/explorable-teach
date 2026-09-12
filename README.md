@@ -63,6 +63,13 @@ WebGL scene.
 `init` picks the stack per subject. A philosophy course and an algorithms course should not end
 up with the same tooling.
 
+Five things do not vary by subject, so they ship with the plugin and land in `assets/` when you
+scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
+answer), **predict-reveal**, **step animations**, and **drag-to-order**. None of them loads a
+library, so a lesson works from `file://` with no network; each one degrades to plain readable
+text with scripting off; and every interaction has a keyboard and a touch path, not just a drag.
+Everything further down the catalog is built on demand, for the subject that needs it.
+
 ## The tutor
 
 Static lessons cannot answer questions. So each lesson can summon a tutor — but not the
@@ -135,8 +142,10 @@ npm test
 
 Node's built-in test runner, no dependencies and no install step. The suite checks that the
 plugin's documents and scripts still describe reality: every pointer in an agent-facing
-document resolves, the scaffold is safe to re-run against a workspace you have already put
-work into, and the lesson bootstrap tag lands exactly once.
+document resolves, every `assets/…` path a document names exists in a scaffolded workspace,
+the scaffold is safe to re-run against a workspace you have already put work into, and the
+lesson bootstrap tag lands exactly once. The shipped components are mounted in a hand-written
+DOM and actually driven — answered, stepped, reordered — rather than merely read.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 
 ## Design decisions

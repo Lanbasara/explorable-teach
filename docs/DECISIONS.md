@@ -151,6 +151,58 @@ The deeper defect was therefore that correct behaviour depended on whether memor
 populated. The fix makes the mission readable from the opening request itself. **A missing file
 is not evidence of a missing mission.**
 
+## 14. The Components that do not vary by subject ship with the plugin
+
+**Decided:** shared styles, Exercise, Predict-Reveal, Step Animation and Drag Ordering live in
+`templates/assets/` and are installed by the scaffold. The rest of the catalog stays a menu.
+
+**Why:** the catalog named roughly twenty component files and shipped none, and the Lesson
+template linked a stylesheet the scaffold never placed — so every new workspace opened with a
+dead link. Those five are identical for every subject, which makes twenty copies of them across
+twenty workspaces twenty places for the same bug to live. One home, fixed once.
+
+**Rejected:** shipping the whole catalog. Decision 3 stands — the catalog is a menu, and a
+plugin that installs a 3D engine into a philosophy course has misread its own rule. The line is
+"does this vary by subject?", not "is this useful?".
+
+**Rejected:** the CDN dependencies the catalog listed for two of them — GSAP for step animation,
+SortableJS for drag ordering. Both are replaceable with a CSS transition and native drag events.
+A Component that needs a CDN fails on a train, and the plugin's own rule is that a Lesson works
+from `file://`.
+
+**Consequence:** a catalog row written as a path (`assets/exercise.js`) is a promise the test
+suite enforces; a row written as a bare filename (`scrolly.js`) is a pattern to build on demand.
+The prefix is the opt-in.
+
+**The duplication between Components is deliberate.** All four repeat the same mount tail
+(`document.body ? mountAll() : wait for DOMContentLoaded`), a three-line `each()` helper, and a
+card shell in their stylesheets. Factoring those into a shared `component-base.js` would make
+every Component depend on a file loading first — and a Lesson links only the Components it
+uses, so `lesson-boot.js` would have to learn an ordering it deliberately does not model. One
+file per Component, self-contained, is also what makes a Component copyable into a workspace
+and editable there. Twelve duplicated lines is the cheaper side of that trade; do not
+"fix" it without changing the loading model first.
+
+## 15. A DOM small enough to read, rather than a browser
+
+**Decided:** `tests/helpers/dom.js` — a hand-written DOM subset that parses the fixture Lesson,
+runs the shipped Component files, and dispatches real events at them.
+
+**Why:** the suite takes no third-party dependencies and has no install step, so there is no
+jsdom and no headless browser. Without *something*, a Component test degrades into asserting
+that a file contains the word `click`, which is not a test of anything.
+
+**Rejected:** asserting on component source text. It passes for free — a file can contain every
+word such a check greps for and still never mount.
+
+**The subset fails loudly.** An unimplemented selector throws rather than matching nothing, and
+`innerHTML` throws on assignment — the second doubles as a guard that a shipped Component builds
+nodes instead of splicing markup into the page.
+
+**Known limit, stated so nobody over-reads a green suite:** nothing here computes a style or
+lays anything out. The tests check that every class a Component applies is styled *somewhere*;
+whether a lesson looks right is still answered by opening it.
+
 ---
 
 ## Where the full record lives

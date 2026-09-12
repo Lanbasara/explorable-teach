@@ -5,7 +5,7 @@ disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
 
-The user has asked you to teach them something using explorable, interactive lessons. This is an enhanced teaching skill that produces **rich interactive HTML** — not static text with quizzes.
+The user has asked you to teach them something using explorable, interactive lessons. This is an enhanced teaching skill that produces **rich interactive HTML** — not static text with questions bolted on.
 
 This skill inherits the pedagogical foundations of the `teach` skill (mission-driven, zone of proximal development, fluency vs storage strength, knowledge → skills → wisdom) and adds two powerful layers: a **dynamic tool research phase** and a **rich interactive component library**.
 
@@ -105,7 +105,7 @@ State files:
 
 Inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
 
-1. **Interaction before explanation.** Don't explain, then quiz. Let the learner *discover* through interaction, then name what they found.
+1. **Interaction before explanation.** Don't explain, then test. Let the learner *discover* through interaction, then name what they found.
 2. **Predict → Reveal.** Before showing how something works, ask the learner to predict. Cognitive conflict (wrong prediction + real answer) is the strongest learning signal.
 3. **Show the process, not the result.** Animate *how* things happen step by step, not just *what* the outcome is.
 4. **Sandbox at the end.** Every lesson should end with a space for free exploration.
@@ -122,7 +122,7 @@ Teaching a language? Use spaced repetition flashcards and pronunciation exercise
 
 **Don't default to the full catalog.** Pick what fits. A lesson about philosophy needs good typography and scrollytelling, not a 3D engine.
 
-**Default to minimal.** If plain text + one quiz can teach the concept well, don't add a 3D terrain. Every interactive component must serve a specific teaching goal — ask "what can't the student understand without this interaction?" before adding it. Interactivity solves the problem of "static text can't teach this well enough", not the problem of "this page looks too plain". Never add features to show off; always add them because you thought hard about what the teaching goal demands.
+**Default to minimal.** If plain text + one exercise can teach the concept well, don't add a 3D terrain. Every interactive component must serve a specific teaching goal — ask "what can't the student understand without this interaction?" before adding it. Interactivity solves the problem of "static text can't teach this well enough", not the problem of "this page looks too plain". Never add features to show off; always add them because you thought hard about what the teaching goal demands.
 
 ### When to use interactivity
 
@@ -134,7 +134,7 @@ Teaching a language? Use spaced repetition flashcards and pronunciation exercise
 | Sequential/ordered knowledge (pipeline stages, protocol steps) | **Medium** | Drag-to-sort exercises, step animation |
 | Vocabulary/terminology (signal names, HTTP methods) | **Medium** | Predict-reveal, drag-to-match, flashcards |
 | Hands-on practice (write a pipeline, debug a script) | **High** | Simulated terminal/playground, sandbox |
-| Historical/philosophical (Unix philosophy, tech evolution) | **Low-Medium** | Scrollytelling, timeline, light quiz |
+| Historical/philosophical (Unix philosophy, tech evolution) | **Low-Medium** | Scrollytelling, timeline, a light exercise |
 | Algorithm/mathematical (sorting, searching, recursion) | **High** | p5.js visualization, step animation, code playground |
 
 If the user explicitly asks for more or less interactivity, respect that and record it in `NOTES.md`.
@@ -143,15 +143,27 @@ If the user explicitly asks for more or less interactivity, respect that and rec
 
 This is the **full catalog of available interaction patterns**. Not all are needed for every workspace — Phase 1 selects what fits the topic.
 
-### Tier 1: Core (universally useful)
+**Read the two tables below differently.** The first names files that already exist in the
+workspace: the scaffold installed them, so use them, never rewrite them. Everything after it
+names a pattern and a *suggested* filename — nothing is there until you build it.
+
+### Tier 1: Core — ships with the plugin, already in `assets/`
 
 | Pattern | Files | CDN deps | When to use |
 |---------|-------|----------|-------------|
-| **Shared styles** | `style.css` | None | Always |
-| **Quiz** | `quiz.js` + `quiz.css` | None | Fact checking, concept testing |
-| **Predict-Reveal** | `predict-reveal.js` + `predict-reveal.css` | None | **Most powerful tool.** Anything where intuition can be wrong |
-| **Step Animation** | `step-animation.js` + `step-animation.css` | GSAP (optional) | Multi-stage processes |
-| **Drag Exercises** | `drag-exercise.js` + `drag-exercise.css` | SortableJS | Ordering steps, matching concepts |
+| **Shared styles** | `assets/style.css` | None | Always — every page links it from `<head>` |
+| **Exercise** | `assets/exercise.js` + `assets/exercise.css` | None | Checking a concept the moment it is taught |
+| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | None | **Most powerful tool.** Anything where intuition can be wrong |
+| **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | None | Multi-stage processes |
+| **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | None | Sequences where order is the knowledge |
+
+These five do not vary by subject, so they are the plugin's, not the workspace's. Each file's
+head comment holds the markup its author writes — **read that before using one**, and do not
+re-derive the markup from this table. All four Components degrade to plain text with scripting
+off, and none of them touch the network, so a Lesson works opened from `file://` on a plane.
+
+`style.css` owns the design tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them
+and defines none, so re-theming a workspace means editing that one file.
 
 ### Tier 2: Visualization (topic-dependent)
 
@@ -229,14 +241,25 @@ When the topic needs a tool not in the catalog:
 4. **Document**: API comment at file top, declare CDN deps needed
 5. **Update `TECH-STACK.md`** with the new tool and rationale
 
+Model it on a shipped one — `assets/exercise.js` is the plainest example of the shape — so
+that a component written for one subject still reads like the rest of the workspace.
+
 ### Component Quality Rules
 
 1. **Reuse over reinvention** — always read `assets/` before creating a new component
-2. **Each component declares its CDN deps** in a file-top comment
-3. **Progressive enhancement** — lessons should be readable as plain text if JS fails
-4. **Retina-aware** — canvas-based components use `devicePixelRatio`
-5. **Mobile-friendly** — touch support, responsive layout
-6. **file:// compatible by default** — use UMD/IIFE scripts, not ES modules
+2. **Each component declares its dependencies** in a `Deps:` line at the file head, alongside
+   the markup its author is expected to write. That comment is the component's documentation;
+   there is nowhere else to look.
+3. **Progressive enhancement** — a lesson must read as plain text with scripting off. A
+   component hides things only *after* mounting, by marking its own root `is-live` and scoping
+   every hiding rule to that class. A stylesheet that hides content outright hides it from the
+   learner whose scripts never ran.
+4. **Every interaction has a keyboard and a touch path.** Drag-only is unusable on a phone and
+   invisible to a keyboard; the shipped drag component pairs dragging with move buttons.
+5. **Retina-aware** — canvas-based components use `devicePixelRatio`
+6. **Mobile-friendly** — touch support, responsive layout
+7. **file:// compatible by default** — use UMD/IIFE scripts, not ES modules
+8. **Read the tokens, define none** — colours, spacing and fonts come from `style.css`
 
 ### Lesson HTML Template
 
@@ -248,19 +271,24 @@ When the topic needs a tool not in the catalog:
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson NN: Title</title>
   <link rel="stylesheet" href="../assets/style.css">
-  <!-- Only the component CSS this lesson uses -->
+  <!-- Only the component CSS this lesson uses, e.g.: -->
+  <link rel="stylesheet" href="../assets/predict-reveal.css">
 </head>
 <body>
   <!-- Content using 1-3 interaction patterns -->
 
   <!-- CDN deps (only what's needed) -->
-  <!-- Component JS for the patterns this lesson uses -->
+  <!-- Component JS for the patterns this lesson uses, e.g.: -->
+  <script src="../assets/predict-reveal.js"></script>
 
   <!-- Infrastructure: nav + tutor + manifest. Never list these individually. -->
   <script src="../assets/lesson-boot.js" data-unit="NNNN"></script>
 </body>
 </html>
 ```
+
+`style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
+lesson has to be styled whether or not a script ever runs.
 
 ## Lessons
 

@@ -1,0 +1,85 @@
+/* exercise.css — in-Lesson check, judged the instant it is answered.
+   Deps: style.css (design tokens). Pairs with exercise.js.
+
+   Every rule that hides something is scoped to `.is-live`, which only
+   exercise.js adds. With scripting off the whole exercise is plain text. */
+
+.exercise {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fg-faint);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 1.8em 0;
+}
+
+.exercise-prompt {
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 .9em;
+}
+
+.exercise-options { margin: 0; }
+
+.exercise.is-live .exercise-options {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.exercise-option {
+  margin: 0;
+  padding: 9px 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.exercise-option:hover { color: var(--fg); border-color: var(--border-hi); }
+.exercise-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.exercise.is-answered .exercise-option { cursor: default; }
+.exercise.is-answered .exercise-option:hover { color: var(--fg-dim); border-color: var(--border); }
+
+/* ---------- verdict ---------- */
+
+.exercise-option.is-chosen { color: var(--fg); }
+
+.exercise-option.is-correct,
+.exercise-option.is-answer {
+  border-color: var(--accent-good);
+  color: var(--accent-good);
+}
+.exercise-option.is-wrong {
+  border-color: var(--accent-bad);
+  color: var(--accent-bad);
+}
+
+/* The right answer, when they did not pick it: named, but quieter than their
+   own mistake — the mistake is the thing worth looking at. */
+.exercise-option.is-answer:not(.is-chosen) {
+  border-style: dashed;
+  opacity: .85;
+}
+
+.exercise-verdict {
+  margin: .9em 0 0;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.exercise.is-correct > .exercise-verdict { color: var(--accent-good); }
+.exercise.is-wrong > .exercise-verdict { color: var(--accent-bad); }
+
+.exercise.is-correct { border-left-color: var(--accent-good); }
+.exercise.is-wrong { border-left-color: var(--accent-bad); }
+
+.exercise-why {
+  margin: .8em 0 0;
+  padding-top: .8em;
+  border-top: 1px solid var(--border);
+  color: var(--fg-dim);
+  font-size: 15px;
+}
