@@ -18,11 +18,12 @@ Victor, Nicky Case, and Bartosz Ciechanowski.
 
 ```
 mkdir learn-rust && cd learn-rust
-/explorable-teach:init        # scaffold the workspace, author the curriculum with you
-/explorable-teach             # teach the next lesson
+/explorable-teach             # deliver the next unit
 ```
 
-`init` runs once per workspace. `/explorable-teach` is the loop you come back to.
+One command, every time. On the first run in an empty directory it scaffolds the workspace,
+works out what you are here for, and plans the course; on every run after that it opens by
+reading the workspace back and teaches from where you actually are.
 
 ## What a workspace looks like
 
@@ -33,6 +34,7 @@ RESOURCES.md          high-trust primary sources
 NOTES.md              how you want to be taught (the tutor treats this as binding)
 TECH-STACK.md         which interaction patterns this subject actually needs
 lessons/              0001-slug.html — the lessons themselves
+assignments/          the ones that earn an assignment, with the rubric inside
 reference/            compressed cheat-sheets you will actually revisit
 learning-records/     what you demonstrably know; drives what gets taught next
   questions.jsonl     every question you asked the tutor
@@ -41,14 +43,29 @@ tutor/                the in-page tutor service
 .claude/agents/       the tutor subagent
 ```
 
-## Two ideas hold the whole thing together
+## Three ideas hold the whole thing together
+
+### The unit is what a session delivers
+
+A unit is one teaching increment: a lesson, its exercises, optionally a checkpoint and an
+assignment, plus the learning record and progress marker they produce. *Lesson* names the body
+alone — the HTML file you read. Everything else hangs off the unit rather than off a pile of
+loose files: components build it, three assessment instruments verify it, the tutor serves you
+inside it, and the session boundary is its lifecycle.
+
+The three instruments differ by when they fire, who judges them, and what they measure — an
+**exercise** is judged by the page the instant you answer it; a **checkpoint** is judged by the
+page at the unit's end and decides whether the unit closes; an **assignment** is done in your
+real environment one to three units later and judged by a grader against a stored rubric. Most
+units earn exercises and nothing more.
 
 ### Sessions are disposable; the workspace is the memory
 
 A long learning path must not be one long conversation — quality decays inside a session in a
-way that no amount of note-taking fixes. So teach one lesson per session and stop deliberately.
-Every session starts by reading `MISSION.md` → `CURRICULUM.md` → recent learning records →
-`questions.jsonl` → `NOTES.md`, and only then proposes what is next.
+way that no amount of note-taking fixes. So deliver one unit per session and stop deliberately.
+Every session starts by scaffolding whatever is missing, then reading `MISSION.md` →
+`CURRICULUM.md` → recent learning records → `questions.jsonl` → `NOTES.md`, and only then
+proposes what is next.
 
 This is why the state files are not bookkeeping. They are the handoff.
 
@@ -60,8 +77,8 @@ diagrams, network graphs, drag exercises, simulated terminals, and 3D — but th
 without this interaction?* If there is no answer, plain prose and one good question beat a
 WebGL scene.
 
-`init` picks the stack per subject. A philosophy course and an algorithms course should not end
-up with the same tooling.
+The stack is picked per subject, on the first run. A philosophy course and an algorithms course
+should not end up with the same tooling.
 
 Five things do not vary by subject, so they ship with the plugin and land in `assets/` when you
 scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
@@ -121,7 +138,7 @@ but a plugin-level agent registers **globally**, and subagents have no `disable-
 equivalent, so it would be auto-routable in every unrelated project you open.
 
 It also would not want to be. A tutor for Shell and a tutor for music theory are not the same
-role. `init` installs a generic `ROLE.md` and then tunes it for your subject.
+role. The scaffold installs a generic `ROLE.md`, and the skill tunes it for your subject.
 
 Project scoping is the only invocation control a subagent has. This spends it where it counts.
 
@@ -143,8 +160,9 @@ npm test
 Node's built-in test runner, no dependencies and no install step. The suite checks that the
 plugin's documents and scripts still describe reality: every pointer in an agent-facing
 document resolves, every `assets/…` path a document names exists in a scaffolded workspace,
-the scaffold is safe to re-run against a workspace you have already put work into, and the
-lesson bootstrap tag lands exactly once. The shipped components are mounted in a hand-written
+the scaffold is safe to re-run against a workspace you have already put work into, the
+lesson bootstrap tag lands exactly once, and the skill still opens on the boot sequence
+rather than on reference material. The shipped components are mounted in a hand-written
 DOM and actually driven — answered, stepped, reordered — rather than merely read.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 

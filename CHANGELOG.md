@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+### Changed
+
+- **The skill opens on the Boot sequence, and hangs everything off the Unit.** `SKILL.md` used
+  to open on a two-phase workflow and reach the Boot sequence four hundred lines later, behind
+  a Component catalog and a Tutor runbook — reference material standing in front of the one
+  thing every session does first. The Boot sequence is now the opening material, and its first
+  step scaffolds a bare workspace by invoking `scripts/init-workspace.sh` rather than
+  describing what that script installs. The **Unit** — a lesson, its exercises, optionally a
+  checkpoint and an assignment, plus the learning record and progress marker they produce — is
+  named as the spine, so Components, the assessment ladder, the Tutor and the Session boundary
+  read as four faces of one object instead of four capabilities bolted on in turn. *Lesson* now
+  names the body alone.
+- **The assessment ladder is defined.** Exercise, checkpoint and assignment are separated by
+  when each fires, who judges it and what it measures — not by difficulty. Checkpoint had been
+  rendered by the navigation bar and the unit manifest since they were written and defined
+  nowhere, so the slot had nothing behind it; it now has a definition, and the choice between
+  the three instruments is judged rather than guessed.
+
+### Removed
+
+- **The standalone setup command.** Its whole payload had become a scaffold invocation plus a
+  seed file and a report; it could be skipped with no consequence, and its documentation had
+  drifted into contradicting its own behaviour. Scaffolding is now the first step of the Boot
+  sequence, and `/explorable-teach` is the only name to remember. A workspace that is already
+  set up notices and moves on.
+
 ### Added
 
 - **The core Components now ship with the plugin.** Shared styles, plus Exercise,

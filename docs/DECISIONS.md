@@ -133,6 +133,9 @@ the nav bar — which guards on `document.body` — worked fine.
 two homes free to drift apart — and it broke the boundary a command named `init` implies. `git
 init` and `npm init` set up a directory; they do not ask what your product is for.
 
+**Superseded by 17:** once the command did nothing but invoke a script, the script was the
+thing worth keeping.
+
 ## 13. Interview on evidence, not on a missing file
 
 **Decided:** interview only when the mission is genuinely underdetermined. (`f5446fd`)
@@ -202,6 +205,58 @@ nodes instead of splicing markup into the page.
 **Known limit, stated so nobody over-reads a green suite:** nothing here computes a style or
 lays anything out. The tests check that every class a Component applies is styled *somewhere*;
 whether a lesson looks right is still answered by opening it.
+
+## 16. The Unit is the spine, and the Boot sequence is the opening material
+
+**Decided:** one Unit is what one Session delivers — a Lesson, its Exercises, optionally a
+Checkpoint and an Assignment, plus the Learning Record and progress marker they produce. Lesson
+names the body alone. `SKILL.md` opens on the Boot sequence, and everything after it is written
+as a face of the Unit.
+
+**Why:** four capabilities — Components, the Tutor, Assignments, Session boundaries — had been
+designed in isolation and bolted on one at a time, so the document read as four patches with no
+object binding them. Naming the object is what lets a Teacher reason about one thing.
+
+Ordering is the other half of it, and it is a variance fix rather than tidying. What an agent
+reads first is what it attends to; a Session that had to wade through a Component catalog and an
+operations runbook to find out what to do first would sometimes not do it. The Boot sequence is
+what every Session actually does, so it goes where every Session actually looks.
+
+**Consequence:** "one lesson per session" became "one Unit per Session", which is a different
+promise — a teaching increment rather than a file.
+
+## 17. Scaffolding is the Boot sequence's first step, not a command
+
+**Decided:** the standalone setup command is removed. The Boot sequence opens by running
+`scripts/init-workspace.sh` when the Workspace is bare, and no document restates what that
+script installs.
+
+**Why:** after decision 12 the command's whole payload was a scaffold invocation plus a seed
+file and a report. It could be skipped with no consequence — the skill already declared itself
+able to do all of it — so it was a second name to remember for a step that runs itself. Its
+documentation had also drifted into contradicting its own behaviour, which is what a document
+does when it caches a fact it does not own.
+
+**Rejected:** keeping it as a convenience alias. Two similarly-named entry points is exactly the
+choice the learner was being asked to make and had no basis for making.
+
+**Consequence:** `skill-spine.test.js` now fails a document that names two or more of the
+scaffold's template paths. One is a reference; two is a copy of a list the document does not own.
+
+## 18. Three assessment instruments, separated by three axes
+
+**Decided:** an Exercise fires inside the Lesson and is judged by the page the instant it is
+answered; a Checkpoint fires at the Unit's end and is judged by the page before the Unit closes;
+an Assignment fires one to three Units later in the learner's real environment and is judged by
+a Grader against the stored Rubric. When, who, what — never difficulty.
+
+**Why:** Checkpoint was rendered by the navigation bar and the manifest from the day they were
+written, and defined nowhere. An undefined slot gets filled by whatever the Session felt like
+putting there, and "a harder exercise" is the obvious wrong answer: difficulty does not
+distinguish instruments, timing and judge do.
+
+**Held from decision 8:** the Assignment stays loosely specified. What is fixed is its place on
+the ladder, not its shape.
 
 ---
 

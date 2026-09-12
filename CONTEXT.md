@@ -24,6 +24,16 @@ _Avoid_: syllabus, roadmap, lesson plan
 The workspace entry point (`index.html`) — the one page from which every Unit is reachable.
 _Avoid_: index, home, cover
 
+**Learning Record**:
+What one Unit demonstrated the learner can now do, written after they engage with it. Numbered
+`0001-slug.md`. It is evidence rather than a diary, and it is what the next Session plans from.
+_Avoid_: log, journal, session notes
+
+**Progress marker**:
+The status each Unit carries in the Curriculum. Plan and progress live in one file so that a
+fresh Session reads one thing to orient itself.
+_Avoid_: status field, checkbox, tracker
+
 ### Teaching
 
 **Unit**:

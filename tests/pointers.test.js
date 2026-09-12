@@ -11,7 +11,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
-const { agentDocs, pointersIn, resolvePointer } = require('./helpers/docs.js');
+const { agentDocs, pointersIn, resolvePointer, DOC_ROOTS } = require('./helpers/docs.js');
 
 const docs = agentDocs();
 const pointers = docs.flatMap(pointersIn);
@@ -23,16 +23,21 @@ test('the documents an agent reads are all in scope', () => {
   for (const required of ['AGENTS.md', 'README.md', 'skills/explorable-teach/SKILL.md']) {
     assert.ok(scanned.includes(required), `${required} should be scanned`);
   }
-  assert.ok(
-    scanned.some((d) => d.startsWith('commands/')) && scanned.some((d) => d.startsWith('docs/')),
-    'the command and docs/ documents should be scanned',
-  );
+  // Every documented root that exists is represented — so a `commands/` that
+  // comes back one day comes back under the check rather than beside it.
+  for (const root of DOC_ROOTS) {
+    if (!fs.existsSync(path.join(REPO_ROOT, root))) continue;
+    assert.ok(scanned.some((d) => d.startsWith(root + path.sep)), `${root}/ should be scanned`);
+  }
 });
 
 test('pointer extraction actually finds pointers', () => {
   // A regex that matched nothing would make the check below pass for free.
   const skill = docs.find((d) => d.endsWith(`explorable-teach${path.sep}SKILL.md`));
-  assert.ok(pointersIn(skill).length >= 15, 'SKILL.md should yield its install list and more');
+  assert.ok(
+    pointersIn(skill).length >= 8,
+    'SKILL.md should yield its format specs, the scripts it runs, and more',
+  );
   assert.ok(pointers.length >= 30, `expected pointers across the documents, found ${pointers.length}`);
 });
 

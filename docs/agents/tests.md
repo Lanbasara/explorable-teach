@@ -20,6 +20,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 |-------|--------------------|
 | `tests/pointers.test.js` | Every relative pointer in an agent-facing document resolves to a file that exists |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
+| `tests/skill-spine.test.js` | The skill opens on the Boot sequence, hangs everything off the Unit, and names one entry point |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
 | `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
@@ -71,6 +72,35 @@ Lesson template says to write one, using every shipped Component. Both `assets.t
 `components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
 and its markup to that page**; every check then covers it without being told separately.
 
+## The spine check
+
+`skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
+what an agent reads first is what it attends to. Five claims, each of which was false before
+the rebuild.
+
+**The Boot sequence is the opening section**, and its first step scaffolds a bare Workspace by
+*invoking* `scripts/init-workspace.sh`. A Session that has to wade through reference material to
+find out what to do first will sometimes not do it.
+
+**No document restates what the scaffold installs.** The copy list is read out of the script
+itself; a document naming two or more of those template paths is holding a second copy of a
+list it does not own. Naming one — the way the Tutor's design rationale names
+`templates/agents/tutor.md` — is a reference, not a list.
+
+**Every script the skill tells a Session to run is named from the plugin root.** The Teacher's
+working directory is the learner's Workspace; these scripts live in the plugin, which is never
+copied into it. A bare `scripts/…` reads fine and runs nowhere, which is the worst kind of
+broken pointer — the resolver in `pointers.test.js` resolves it against the repo and is happy.
+
+**There is one entry point.** No document sends a human to a `/explorable-teach:…` command, and
+the plugin ships no command document beside the skill.
+
+**The Unit and the assessment ladder are stated where the Teacher reads them.** The Unit section
+must name the artifacts it binds; the ladder must place each of Exercise, Checkpoint and
+Assignment on all three axes — when it fires, who judges it, what it measures — with no blanks,
+because an instrument missing an axis is one the Teacher will choose by feel. The terms come
+from `CONTEXT.md`, so the glossary and the skill cannot drift apart.
+
 ## The decoupling check
 
 `SKILL.md` was once written as a diff against another author's skill: a heading naming seven
@@ -102,13 +132,14 @@ installed — before asserting anything about it.
 
 ## What counts as a pointer
 
-`pointers.test.js` scans `AGENTS.md`, `README.md`, and every `.md` under `skills/`,
-`commands/` and `docs/`. Inside those, two forms count:
+`pointers.test.js` scans `AGENTS.md`, `README.md`, and every `.md` under `skills/` and
+`docs/` — plus a `commands` directory, on the day the plugin ships one again. Inside those,
+two forms count:
 
 - a Markdown link with a relative target, resolved from the document's own folder;
-- a path rooted at a directory this repo owns — `scripts/`, `templates/`, `commands/`,
-  `docs/`, `skills/`, `tests/` — anywhere in the text, prose or code block. That last part
-  is what puts the file list in `SKILL.md`'s "Installing it" block under the check.
+- a path rooted at a directory this repo owns — `scripts/`, `templates/`, `docs/`, `skills/`,
+  `tests/`, `commands` — anywhere in the text, prose or code block. That last part is what
+  puts a script a document tells an agent to run, or a template it names, under the check.
 
 Each form resolves against **exactly one** root. Never offer a pointer a list of roots to
 try: a pointer that happens to exist somewhere the agent would never look would pass while
@@ -137,9 +168,19 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   that it looks right. Judging a lesson's appearance still means opening it.
 - **`file://` is inferred, not observed.** `assets.test.js` reads the Components for `fetch`,
   `XMLHttpRequest`, module syntax and URLs; nothing here actually opens a page from disk.
-- **The decoupling check stops at the skill directory.** `commands/` is agent-facing too and
-  is not scanned. It is clean today, and issue #5 removes the one document in it; if anything
-  else lands there, widen the scan rather than trusting that.
+- **The decoupling check stops at the skill directory.** That is the boundary that matters —
+  an agent *running* the skill can open nothing else. `AGENTS.md` and `docs/` are read by
+  agents working on this repo instead, and `README.md` is checked for the opposite thing. If a
+  document an agent runs from ever lands outside `skills/`, widen the scan rather than
+  trusting that.
+- **The restatement check reads one spelling.** It matches the `templates/…` paths the
+  scaffold copies *from*. The same list spelled as destinations — `tutor/server.js`,
+  `.claude/agents/tutor.md` — would pass. That spelling cannot simply be added: a document
+  naming `assets/exercise.js` is making a promise rather than keeping a copy, and
+  `assets.test.js` already holds that promise. Nothing holds the `tutor/` subset.
+- **`docs/DECISIONS.md` is exempt from the one-entry-point check.** It records the removal of
+  the setup command, and a record that may not name what it removed is not a record. Every
+  other document naming a `/explorable-teach:…` is instructing someone.
 - **`docs/adr/` is exempt.** `docs/agents/domain.md` names it as the convention this repo
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
 - **The tutor server is not exercised.** `run()` runs a command to completion; a

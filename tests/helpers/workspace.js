@@ -122,7 +122,7 @@ class Workspace {
     };
   }
 
-  /** Scaffold this Workspace, the way `/explorable-teach:init` would. */
+  /** Scaffold this Workspace, the way the Boot sequence's first step does. */
   scaffold() {
     return this.run('scripts/init-workspace.sh', [this.dir]);
   }

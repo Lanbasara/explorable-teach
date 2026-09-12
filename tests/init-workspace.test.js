@@ -2,7 +2,7 @@
 
 // The scaffold is documented as "never overwrites, so it is also the repair
 // tool for a workspace that lost a file." That promise is what makes it safe
-// for `/explorable-teach:init` to be run against a Workspace already holding a
+// for the scaffold to be run against a Workspace already holding a
 // learner's work. These tests hold it to that.
 //
 // Note what is deliberately absent: a list of the files the scaffold installs.

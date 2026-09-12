@@ -64,7 +64,7 @@ const OUR_OWN = [
   'Teach a topic through interactive, explorable HTML lessons.',
   'The `explorable-teach` skill owns the pedagogy.',
   'window.TEACH_UNITS.forEach(render)',
-  '`/explorable-teach:init` scaffolds the workspace.',
+  '`/explorable-teach` scaffolds the workspace on its first run.',
 ];
 
 function filesUnder(dir) {

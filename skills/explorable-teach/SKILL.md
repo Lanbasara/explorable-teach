@@ -5,28 +5,101 @@ disable-model-invocation: true
 argument-hint: "What would you like to learn about?"
 ---
 
-The user has asked you to teach them something using explorable, interactive lessons — **rich interactive HTML**, not static text with questions bolted on.
+The user has asked you to teach them something using explorable, interactive Lessons — **rich
+interactive HTML**, not static text with questions bolted on.
 
-This is a stateful request. They intend to learn the subject over many sessions, and the current directory is the workspace that remembers between them.
+This is a stateful request. They intend to learn the subject over many Sessions, and the current
+directory is the Workspace that remembers between them. You are the Teacher: one Session
+delivers one Unit, and then ends.
 
-## Two-Phase Workflow
+## Boot sequence
 
-This skill operates in two phases:
+Begin every Session here, in this order, before proposing anything.
 
-### Phase 1: Research & Plan (run once when workspace is new)
+1. **Scaffold, if the Workspace is bare.** No `index.html` and no `tutor/` means nothing has
+   been set up yet — run `${CLAUDE_PLUGIN_ROOT}/scripts/init-workspace.sh`. It never
+   overwrites, so running it against a Workspace already holding work costs nothing, and it is
+   also the repair tool for a Workspace that lost a file. The script owns what a Workspace
+   contains: read its report for what it created and what it left alone, and never place any of
+   those files by hand.
 
-Before writing any lesson, do this:
+   **Both scripts are named from the plugin root**, here and everywhere below. Your working
+   directory is the learner's Workspace, and these scripts live in the plugin, which was never
+   copied into it — a bare `scripts/…` resolves to nothing from where you are standing.
+2. `MISSION.md` — why they are here.
+3. `CURRICULUM.md` — the plan, and the progress marker on each Unit.
+4. The last two or three `learning-records/` — where the learner actually is, rather than where
+   the plan says they are.
+5. `learning-records/questions.jsonl` — what confused them since you last looked. This is the
+   highest-signal feedback the Workspace produces: three questions about one paragraph means
+   that Lesson is wrong, not that the learner is slow.
+6. `NOTES.md` — how to work with this person. The prohibitions in it are binding.
 
-1. **Establish the mission.** Interview only when it is genuinely underdetermined.
+Then branch once, on what those reads told you:
 
-   **A missing file is not evidence of a missing mission.** A new workspace never has
+- No `MISSION.md`, or one that does not yet say why this person is here → [first
+  run](#first-run-research-and-plan).
+- Otherwise → propose the next Unit, and [teach it](#the-teaching-loop).
+
+## The Unit
+
+A Unit is one teaching increment, and the spine everything else hangs off: a Lesson, its
+Exercises, optionally a Checkpoint and an Assignment, plus the Learning Record and progress
+marker they produce. **One Unit is what one Session delivers.**
+
+Lesson names the body alone — the prose-and-interaction HTML file. It is not a short word for
+the whole Unit, and the difference carries weight in a sentence like "one Unit per Session":
+what you owe the learner is a teaching increment, not a file.
+
+Everything else in this document is a face of that one object:
+
+- **Components build it.** The Lesson is assembled from interaction patterns, chosen for what
+  they teach. See [Component Catalog](#component-catalog).
+- **The assessment ladder verifies it.** Exercises inside the Lesson, a Checkpoint at its end,
+  an Assignment some Units later. See [the assessment ladder](#the-assessment-ladder).
+- **The Tutor serves the learner inside it.** A question about a passage is answered without
+  leaving the page. See [The AI Tutor](#the-ai-tutor).
+- **The Session boundary is its lifecycle.** A Unit opens with the Boot sequence and closes when
+  the Workspace can carry it forward without you. See [Session
+  Boundaries](#session-boundaries).
+
+### A Unit is navigable, or it does not exist
+
+A Unit is usually more than one file: the Lesson, sometimes a Checkpoint, sometimes an
+Assignment. Left unlinked, those become artifacts the learner has to go hunting for, and a file
+nobody can find was not worth writing.
+
+Three rules, all mandatory:
+
+1. **Do not wire infrastructure by hand.** One line does it — `<script
+   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in the
+   nav bar, the Tutor, and the Unit manifest in the right order. Even that line is a safety net
+   rather than a chore: `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` injects it into any page
+   missing it, so run that after writing a Lesson and forget about it. Your attention belongs on the teaching.
+2. **`index.html` is the Dossier** — the one page every Unit is reachable from. Update it
+   whenever you add a Unit or change a progress marker. The learner should never need to open
+   `lessons/` in a file browser.
+3. **Siblings link to each other.** A Lesson points at its Checkpoint and its Assignment; they
+   point back. The learner should be able to move through a Unit without touching the address
+   bar.
+
+Keep files flat (`0001-slug.html`, `0001b-checkpoint.html`). Do not nest Units into folders — it
+buys nothing and breaks every relative asset path.
+
+## First run: research and plan
+
+Once per Workspace, before writing anything teachable.
+
+1. **Establish the Mission.** Interview only when it is genuinely underdetermined.
+
+   **A missing file is not evidence of a missing Mission.** A new Workspace never has
    `MISSION.md`, and that says nothing about whether the learner has already told you why they
    are here. Interview on what they said, not on what the directory contains.
 
    If the opening request already carries why they are learning, what they want to be able to
    do, and what they do not want, write `MISSION.md` from it and confirm in one line: *"this is
    what I think you're after — correct me."* Ask only for what is genuinely absent **and** would
-   change the plan; a question whose every answer leads to the same first lesson is not worth
+   change the plan; a question whose every answer leads to the same first Unit is not worth
    asking. Interrogating someone who just handed you a thorough brief reads as not having read
    it.
 2. **Research the topic's best interactive affordances**:
@@ -34,7 +107,7 @@ Before writing any lesson, do this:
    - Identify what existing interactive teaching does well for this topic
    - Determine which interaction patterns fit (not all topics need the same tools)
 3. **Select the tech stack** — from the Component Catalog below, pick what fits. Also search for **topic-specific tools** that may not be in the catalog (e.g., a music theory topic might benefit from Web Audio API + Tone.js)
-4. **Write `TECH-STACK.md`** at the workspace root:
+4. **Write `TECH-STACK.md`** at the Workspace root:
 
 ```md
 # Tech Stack for {topic}
@@ -56,39 +129,41 @@ Before writing any lesson, do this:
 |-----------|-------------|
 ```
 
-5. **Build the initial `assets/` component library** based on the selected stack
-6. **Tune `tutor/ROLE.md`** for this subject — see [The AI Tutor](#the-ai-tutor).
+5. **Plan the Curriculum** as an ordered list of Units in `CURRICULUM.md`, each with a progress
+   marker, ordered by dependency between ideas rather than by any book's table of contents.
+6. **Build whatever Components the first Units need** beyond the ones the scaffold installed.
+7. **Tune `tutor/ROLE.md`** for this subject — see [The AI Tutor](#the-ai-tutor).
 
-`/explorable-teach:init` normally scaffolds the plumbing before you get here. If the workspace
-is bare (no `tutor/`, no `index.html`), run `scripts/init-workspace.sh` yourself first — it is
-idempotent, so running it when it was already run costs nothing. Scaffolding is plumbing;
-everything above it is the part that needs you.
+## The teaching loop
 
-### Phase 2: Teach (ongoing)
+One Unit at a time, once the Boot sequence has told you where the learner is:
 
-The teaching loop, one lesson at a time:
-
-1. Run the [boot sequence](#boot-sequence) to find the zone of proximal development
-2. Research the next topic from `RESOURCES.md` and trusted sources
-3. **Before each lesson**: re-check `TECH-STACK.md` — does the lesson need a component not yet built? If so, build it first. Also consider: **is there a better tool for this specific lesson's concept?** If yes, search the web briefly, and if something clearly better exists, add it.
-4. Write the lesson using 1-3 interaction patterns
-5. Open the lesson for the user
-6. Write a learning record after the user engages with it
+1. Research what the next Unit teaches, from `RESOURCES.md` and trusted sources.
+2. **Before writing**: re-check `TECH-STACK.md` — does this Unit need a Component not yet built?
+   If so, build it first. Also consider: **is there a better tool for this specific concept?**
+   If yes, search the web briefly, and if something clearly better exists, add it.
+3. Write the Lesson, using 1-3 interaction patterns.
+4. Decide what verifies the Unit — see [the assessment ladder](#the-assessment-ladder). Most
+   Units earn Exercises and nothing beyond them.
+5. Run `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh`, update `index.html` and
+   `assets/units.js`, and open the Lesson for the learner.
+6. Write a Learning Record after they engage with it, and move the progress marker in
+   `CURRICULUM.md`.
 
 ## Teaching Workspace
 
 State files:
 
-- `MISSION.md`: The reason the user is learning. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md). See [The mission](#the-mission).
-- `TECH-STACK.md`: Selected interactive tools for this workspace. Written in Phase 1, updated as needed.
+- `MISSION.md`: The reason the user is learning. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md). See [The Mission](#the-mission).
+- `TECH-STACK.md`: Selected interactive tools for this Workspace. Written on first run, updated as needed.
 - `RESOURCES.md`: Curated trusted sources. Use [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md). Never trust parametric knowledge.
 - `./learning-records/*.md`: Use [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md). Numbered `0001-slug.md`.
 - `./reference/*.html`: Compressed reference documents for quick lookup. See [Reference Documents](#reference-documents).
-- `./lessons/*.html`: Interactive lessons. Numbered `0001-slug.html`.
-- `./assets/*`: Reusable interactive components.
-- `CURRICULUM.md`: The ordered plan of units **and** the progress marker on each. See [Session Boundaries](#session-boundaries).
-- `./assignments/*.md`: Optional. Task + rubric, and the learner's submission. See [Assignments](#assignments-optional-agent-judged).
-- `./tutor/server.js`: Optional. The local tutor service. See [The AI Tutor](#the-ai-tutor).
+- `./lessons/*.html`: Interactive Lessons. Numbered `0001-slug.html`.
+- `./assets/*`: Reusable interactive Components.
+- `CURRICULUM.md`: The ordered plan of Units **and** the progress marker on each. See [Session Boundaries](#session-boundaries).
+- `./assignments/*.html`: Optional. Task + Rubric, and the learner's Submission. See [the assessment ladder](#the-assessment-ladder).
+- `./tutor/server.js`: Optional. The local Tutor service. See [The AI Tutor](#the-ai-tutor).
 - `NOTES.md`: How this learner wants to be taught. See [Recorded preferences](#recorded-preferences-notesmd).
 
 ## Philosophy
@@ -100,13 +175,13 @@ Learning something deeply takes three things, and they come from three different
 - **Knowledge** is captured from high-trust sources. Draw it from `RESOURCES.md`, never from
   your own recall — parametric knowledge is exactly the kind that is confidently wrong. Until
   `RESOURCES.md` is well populated, finding good sources *is* the work.
-- **Skills** are built by doing, inside a feedback loop. That is what a lesson's exercises are
+- **Skills** are built by doing, inside a feedback loop. That is what a Lesson's Exercises are
   for: the loop must be tight, and the feedback immediate and ideally automatic.
-- **Wisdom** comes from outside the workspace entirely — from other learners and practitioners.
+- **Wisdom** comes from outside the Workspace entirely — from other learners and practitioners.
   See [Acquiring Wisdom](#acquiring-wisdom).
 
 Subjects sit at different points along that spectrum. Theoretical physics leans on knowledge;
-yoga leans on skills. Work out which one this subject is before planning the curriculum.
+yoga leans on skills. Work out which one this subject is before planning the Curriculum.
 
 **Knowledge and skills have opposite relationships with difficulty.** While the learner is
 acquiring knowledge, difficulty is the enemy — it eats the working memory they need for
@@ -133,23 +208,23 @@ to build it is **desirable difficulty**:
 - **Interleaving** — mix related-but-different material into one practice set. This is for skills
   work only; interleaving knowledge acquisition just overloads working memory.
 
-An exercise the learner can answer by scrolling up is measuring fluency and teaching nothing.
+An Exercise the learner can answer by scrolling up is measuring fluency and teaching nothing.
 When writing options, make every one the same length in words and, where you can, in characters:
-formatting that singles out the right answer turns a retrieval exercise into a spotting exercise.
+formatting that singles out the right answer turns a retrieval Exercise into a spotting exercise.
 
-### The mission
+### The Mission
 
-`MISSION.md` holds the reason this person is learning this subject, and every unit traces back
-to it. Without it, knowledge acquisition is ungrounded — lessons feel abstract, and you have no
+`MISSION.md` holds the reason this person is learning this subject, and every Unit traces back
+to it. Without it, knowledge acquisition is ungrounded — Lessons feel abstract, and you have no
 basis for judging what to teach next. Use [MISSION-FORMAT.md](./MISSION-FORMAT.md).
 
 Missions move as the learner develops, and that is normal rather than a failure of planning.
-Confirm the change with them, update `MISSION.md`, and write a learning record capturing it —
-a mission that shifted silently steers every future session from a document nobody re-read.
+Confirm the change with them, update `MISSION.md`, and write a Learning Record capturing it —
+a Mission that shifted silently steers every future Session from a document nobody re-read.
 
 ### Zone of proximal development
 
-Every lesson should leave the learner feeling challenged *just enough*. Too easy and nothing
+Every Unit should leave the learner feeling challenged *just enough*. Too easy and nothing
 sticks; too hard and their working memory goes to being lost rather than to the material.
 
 When the learner names exactly what they want next, teach that. Otherwise locate the zone
@@ -163,7 +238,7 @@ Inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
 1. **Interaction before explanation.** Don't explain, then test. Let the learner *discover* through interaction, then name what they found.
 2. **Predict → Reveal.** Before showing how something works, ask the learner to predict. Cognitive conflict (wrong prediction + real answer) is the strongest learning signal.
 3. **Show the process, not the result.** Animate *how* things happen step by step, not just *what* the outcome is.
-4. **Sandbox at the end.** Every lesson should end with a space for free exploration.
+4. **Sandbox at the end.** Every Lesson should end with a space for free exploration.
 5. **Progressive disclosure.** Introduce one concept at a time. Each interaction adds one layer of complexity.
 
 ### Dynamic tool selection
@@ -175,9 +250,9 @@ Teaching data structures? Use p5.js algorithm visualizations and network graphs.
 Teaching music theory? Use Web Audio API and interactive notation.
 Teaching a language? Use spaced repetition flashcards and pronunciation exercises.
 
-**Don't default to the full catalog.** Pick what fits. A lesson about philosophy needs good typography and scrollytelling, not a 3D engine.
+**Don't default to the full catalog.** Pick what fits. A Unit about philosophy needs good typography and scrollytelling, not a 3D engine.
 
-**Default to minimal.** If plain text + one exercise can teach the concept well, don't add a 3D terrain. Every interactive component must serve a specific teaching goal — ask "what can't the student understand without this interaction?" before adding it. Interactivity solves the problem of "static text can't teach this well enough", not the problem of "this page looks too plain". Never add features to show off; always add them because you thought hard about what the teaching goal demands.
+**Default to minimal.** If plain text + one Exercise can teach the concept well, don't add a 3D terrain. Every interactive Component must serve a specific teaching goal — ask "what can't the student understand without this interaction?" before adding it. Interactivity solves the problem of "static text can't teach this well enough", not the problem of "this page looks too plain". Never add features to show off; always add them because you thought hard about what the teaching goal demands.
 
 ### When to use interactivity
 
@@ -189,17 +264,17 @@ Teaching a language? Use spaced repetition flashcards and pronunciation exercise
 | Sequential/ordered knowledge (pipeline stages, protocol steps) | **Medium** | Drag-to-sort exercises, step animation |
 | Vocabulary/terminology (signal names, HTTP methods) | **Medium** | Predict-reveal, drag-to-match, flashcards |
 | Hands-on practice (write a pipeline, debug a script) | **High** | Simulated terminal/playground, sandbox |
-| Historical/philosophical (Unix philosophy, tech evolution) | **Low-Medium** | Scrollytelling, timeline, a light exercise |
+| Historical/philosophical (Unix philosophy, tech evolution) | **Low-Medium** | Scrollytelling, timeline, a light Exercise |
 | Algorithm/mathematical (sorting, searching, recursion) | **High** | p5.js visualization, step animation, code playground |
 
 If the user explicitly asks for more or less interactivity, respect that and record it in `NOTES.md`.
 
 ## Component Catalog
 
-This is the **full catalog of available interaction patterns**. Not all are needed for every workspace — Phase 1 selects what fits the topic.
+This is the **full catalog of available interaction patterns**. Not all are needed for every Workspace — the first run selects what fits the topic.
 
 **Read the two tables below differently.** The first names files that already exist in the
-workspace: the scaffold installed them, so use them, never rewrite them. Everything after it
+Workspace: the scaffold installed them, so use them, never rewrite them. Everything after it
 names a pattern and a *suggested* filename — nothing is there until you build it.
 
 ### Tier 1: Core — ships with the plugin, already in `assets/`
@@ -212,13 +287,13 @@ names a pattern and a *suggested* filename — nothing is there until you build 
 | **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | None | Multi-stage processes |
 | **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | None | Sequences where order is the knowledge |
 
-These five do not vary by subject, so they are the plugin's, not the workspace's. Each file's
+These five do not vary by subject, so they are the plugin's, not the Workspace's. Each file's
 head comment holds the markup its author writes — **read that before using one**, and do not
 re-derive the markup from this table. All four Components degrade to plain text with scripting
 off, and none of them touch the network, so a Lesson works opened from `file://` on a plane.
 
 `style.css` owns the design tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them
-and defines none, so re-theming a workspace means editing that one file.
+and defines none, so re-theming a Workspace means editing that one file.
 
 ### Tier 2: Visualization (topic-dependent)
 
@@ -243,7 +318,7 @@ and defines none, so re-theming a workspace means editing that one file.
 | Pattern | Files | CDN deps | When to use |
 |---------|-------|----------|-------------|
 | **Flashcards + SR** | `flashcard.js` + `flashcard.css` | None (SM-2 self-impl, localStorage) | Long-term memorization |
-| **Sandbox Mode** | (expanded terminal or playground) | Varies | End of every lesson |
+| **Sandbox Mode** | (expanded terminal or playground) | Varies | End of every Lesson |
 
 ### Tier 5: Advanced/Niche (add on demand)
 
@@ -292,28 +367,28 @@ When the topic needs a tool not in the catalog:
 
 1. **Search the web** for lightweight, CDN-available, file://-compatible JS libraries
 2. **Evaluate**: UMD format? Under 500kB? Good documentation? AI-friendly API?
-3. **Wrap it**: Create a high-level component in `assets/` that hides the library's complexity
+3. **Wrap it**: Create a high-level Component in `assets/` that hides the library's complexity
 4. **Document**: API comment at file top, declare CDN deps needed
 5. **Update `TECH-STACK.md`** with the new tool and rationale
 
 Model it on a shipped one — `assets/exercise.js` is the plainest example of the shape — so
-that a component written for one subject still reads like the rest of the workspace.
+that a Component written for one subject still reads like the rest of the Workspace.
 
 ### Component Quality Rules
 
-1. **Reuse over reinvention** — always read `assets/` before creating a new component
-2. **Each component declares its dependencies** in a `Deps:` line at the file head, alongside
-   the markup its author is expected to write. That comment is the component's documentation;
+1. **Reuse over reinvention** — always read `assets/` before creating a new Component
+2. **Each Component declares its dependencies** in a `Deps:` line at the file head, alongside
+   the markup its author is expected to write. That comment is the Component's documentation;
    there is nowhere else to look.
-3. **Progressive enhancement** — a lesson must read as plain text with scripting off. A
-   component hides things only *after* mounting: it marks its own root `is-live`, and every
+3. **Progressive enhancement** — a Lesson must read as plain text with scripting off. A
+   Component hides things only *after* mounting: it marks its own root `is-live`, and every
    hiding rule it writes is scoped to a class only its own script ever sets. A stylesheet that
    hides content outright hides it from the learner whose scripts never ran — and so does
    `hidden` written into the markup by hand, so **never author a `hidden` attribute in a
-   lesson**. Let the component set it.
+   Lesson**. Let the Component set it.
 4. **Every interaction has a keyboard and a touch path.** Drag-only is unusable on a phone and
-   invisible to a keyboard; the shipped drag component pairs dragging with move buttons.
-5. **Retina-aware** — canvas-based components use `devicePixelRatio`
+   invisible to a keyboard; the shipped drag Component pairs dragging with move buttons.
+5. **Retina-aware** — canvas-based Components use `devicePixelRatio`
 6. **Mobile-friendly** — touch support, responsive layout
 7. **file:// compatible by default** — use UMD/IIFE scripts, not ES modules
 8. **Read the tokens, define none** — colours, spacing and fonts come from `style.css`
@@ -345,75 +420,121 @@ that a component written for one subject still reads like the rest of the worksp
 ```
 
 `style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
-lesson has to be styled whether or not a script ever runs.
+Lesson has to be styled whether or not a script ever runs.
 
 ## Lessons
 
-A lesson is one self-contained HTML file in `./lessons/`, numbered `0001-slug.html`. It is the
-thing you actually produce — where knowledge and skills reach the learner.
+A Lesson is one self-contained HTML file in `./lessons/`, numbered `0001-slug.html`. It is the
+body of the Unit — where knowledge and skills reach the learner.
 
-**Keep it short.** Working memory is small, and a lesson that overruns it teaches nothing past
-the point where it overran. Aim for one tangible win per lesson: tied to the mission, sitting in
-the zone of proximal development, completable quickly, and something the next lesson can build
+**Keep it short.** Working memory is small, and a Lesson that overruns it teaches nothing past
+the point where it overran. Aim for one tangible win per Unit: tied to the Mission, sitting in
+the zone of proximal development, completable quickly, and something the next Unit can build
 on.
 
 **Make it beautiful.** Clean readable typography, generous space, nothing decorative that is not
 carrying meaning — think Tufte. The learner will come back to these to review.
 
-Every lesson:
+Every Lesson:
 
 - uses **1-3 interaction patterns** — pick what fits, don't use everything;
 - leads with interaction rather than explanation: hook them with the question, not the answer;
 - cites its sources inline, and recommends **one primary source** — the highest-trust thing you
   found — for the learner to go and read or watch;
-- links by HTML anchor to the reference documents and the neighbouring lessons it builds on;
+- links by HTML anchor to the reference documents and the neighbouring Units it builds on;
 - ends with a sandbox or an open challenge;
 - reads as plain text with scripting off;
-- reminds the learner they can ask the tutor about anything that did not land.
+- reminds the learner they can ask the Tutor about anything that did not land.
 
-Open the lesson file for the learner once you have written it.
+Open the Lesson file for the learner once you have written it.
 
-### A unit is navigable, or it does not exist
+## The assessment ladder
 
-A teaching unit is usually more than one file: the lesson, sometimes a checkpoint, sometimes an
-assignment. Left unlinked, those become artifacts the learner has to go hunting for, and a file
-nobody can find was not worth writing.
+Three instruments verify a Unit, and they are separated by *when* each fires, *who* judges it,
+and *what* it measures. Choose between them on those three axes, never on difficulty:
 
-Three rules, all mandatory:
+| Instrument | When it fires | Who judges | What it measures |
+|------------|---------------|------------|------------------|
+| **Exercise** | inside the Lesson, the moment the idea lands | the page, instantly | whether understanding happened just now |
+| **Checkpoint** | at the end of the Unit | the page, before the Unit closes | whether the Unit can be closed |
+| **Assignment** | one to three Units later, in the learner's real environment | a Grader, against the stored Rubric | transfer |
 
-1. **Do not wire infrastructure by hand.** One line does it — `<script
-   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in the
-   nav bar, the tutor, and the unit manifest in the right order. Even that line is a safety net
-   rather than a chore: `scripts/wire-lessons.sh` injects it into any page missing it, so run
-   that after writing a lesson and forget about it. Your attention belongs on the teaching.
-2. **`index.html` is the dossier** — the one page every unit is reachable from. Update it whenever you add a unit or
-   change a progress marker. The learner should never need to open `lessons/` in a file browser.
-3. **Siblings link to each other.** A lesson points at its checkpoint and assignment; they point
-   back. The learner should be able to move through a unit without touching the address bar.
+Read the ladder as three different questions, not three difficulties. An Exercise asks *did that
+land?*; a Checkpoint asks *may we move on?*; an Assignment asks *does it survive contact with
+your real work?* A hard question inside a Lesson is still an Exercise, and a trivial task done at
+work is still an Assignment.
 
-Keep files flat (`0001-slug.html`, `0001b-checkpoint.html`). Do not nest units into folders —
-it buys nothing and breaks every relative asset path.
+Every Unit earns Exercises. A Checkpoint is worth writing when a later Unit depends on this one
+and a wrong answer now would compound. Most Units warrant no Assignment at all — see below
+before inventing one.
 
-Assignments are HTML for the same reason: a `.md` file is invisible from the browser the learner
-is already in. Keep the rubric inside that same HTML in a non-rendered block, so the task and its
-grading criteria never drift apart.
+### Exercises
+
+The tight loop the Lesson is built around: the learner answers, the page judges, and they find
+out they misunderstood while the material is still in front of them. They are the reason a
+Lesson is interactive rather than a page of prose, and nothing added later may dilute them.
+
+Write them for storage strength, not fluency — see [Fluency and storage
+strength](#fluency-and-storage-strength). Judging happens in the page, so an Exercise never
+needs a Tutor, a server, or a network.
+
+### Checkpoints
+
+The gate at the end of a Unit: a small set of retrieval questions covering what the Unit
+claimed to teach, in its own page, judged there the same way an Exercise is. It answers one
+question — *may the learner move on?* — and the answer belongs in the Learning Record, because
+the next Session plans from it.
+
+A Checkpoint the learner passes by scrolling back into the Lesson has measured nothing.
+
+### Assignments
+
+In-Lesson Exercises test **fluency**: immediate, scaffolded, inside the teaching environment.
+Assignments test **transfer**: delayed, unscaffolded, in the learner's real environment.
+
+**Most Units should not have one.** Decide per Unit by asking: did this Unit teach a *model* or
+a *skill*? Models are served by a reflection prompt, or by the next Unit building on them.
+Skills need exercising somewhere real. If you cannot name what the learner would **do
+differently at work** afterwards, do not invent an Assignment.
+
+Shape, difficulty, and verification are yours to design per Assignment — there is no standard
+form and there should not be one. Shapes that have worked: a task with an objective pass/fail
+check; an artifact to review; a Feynman-style "explain this in your own words"; "find an instance
+of this in your own codebase". Treat that as inspiration rather than a menu, and invent better
+ones when the material suggests them.
+
+Two things are worth being strict about:
+
+1. **The Rubric travels with the Assignment.** Write the task, what counts as done, and the
+   likely failure modes into the same file. A future Session holding none of your context must be
+   able to grade it. This is what lets Assignments survive Session boundaries.
+2. **Space and interleave them.** An Assignment from Unit 2 is often best given after Unit 4,
+   and one task forcing two Units together is worth more than two separate tasks.
+
+Assignments are HTML for the same reason Lessons are: a `.md` file is invisible from the browser
+the learner is already in. Keep the Rubric inside that same HTML in a non-rendered block, so the
+task and its grading criteria never drift apart.
+
+Grading is done by a **fresh Grader** reading the stored Rubric, never by recalling the Session
+that wrote the Assignment. Mechanically it is the Tutor with a different role file — add
+`tutor/ROLE-grader.md` and one entry in the server's `ROLES` map.
 
 ## The AI Tutor
 
 Lessons are static HTML, and the learner will hit sentences that don't land. The fix is an
-in-page tutor — but it must not be *the session that wrote the lesson*. That session carries
+in-page Tutor — but it must not be *the Session that wrote the Lesson*. That Session carries
 curriculum-planning state that shouldn't leak into an explanation, and it decays as it grows.
 
-**The tutor holds no process state.** Each question spawns a fresh headless Claude whose working
-directory is the workspace, with read-only tools. Never `--resume` or `--continue` — a resumed
+**The Tutor holds no process state.** Each question spawns a fresh headless Claude whose working
+directory is the Workspace, with read-only tools. Never `--resume` or `--continue` — a resumed
 session would drag back exactly the rot this design exists to avoid.
 
 Follow-up questions still work, because the client replays the last few turns **inside the
 request**, capped. That is bounded replay, not a session: state lives in the payload and dies
-with it. The learner gets a real back-and-forth; the tutor gets a clean context every time.
+with it. The learner gets a real back-and-forth; the Tutor gets a clean context every time.
 
 Context is acquired **progressively**. The server inlines what is always needed (`NOTES.md`,
-`MISSION.md`, the selected passage, recent turns); the tutor goes and reads the lesson,
+`MISSION.md`, the selected passage, recent turns); the Tutor goes and reads the Lesson,
 `CURRICULUM.md`, or `learning-records/` when the question actually demands it. Resist the urge
 to tune this toward "read less for lower latency" — a question containing 这段 or "the part
 above" cannot be answered from the selection alone, and a wrong answer costs far more than two
@@ -425,57 +546,50 @@ Artifacts persist across conversations. Processes belong to the learner, not to 
 but that cuts both ways: a process you start must *outlive* you, and you must be able to *see*
 it.
 
-- **Do** write the tutor files into the workspace, exactly as you write `assets/*.js`.
+- **Do** let the scaffold write the Tutor files, exactly as it writes `assets/*.js`.
 - **Do not** start the server as a side effect of teaching. No silent daemons.
-- **Do** start, restart, or stop it when the learner asks, or when they report the tutor is not
+- **Do** start, restart, or stop it when the learner asks, or when they report the Tutor is not
   responding. Always start it detached (see below) so it survives the end of this conversation.
   Its lifetime is the learner's study session, not your session.
-- **Never** write a lesson that depends on the server being up. The page must be fully readable,
+- **Never** write a Lesson that depends on the server being up. The page must be fully readable,
   and the widget must degrade to a clipboard prompt when `/api/health` is unreachable — which is
   a normal state, not a failure.
 
 ### Installing it
 
-Run `scripts/init-workspace.sh` (or `/explorable-teach:init`). It copies from
-[`templates/`](./templates/) — never rewrite these from this description:
-
-```
-templates/tutor/server.js   → <workspace>/tutor/server.js
-templates/tutor/tutorctl.sh → <workspace>/tutor/tutorctl.sh   (chmod +x)
-templates/tutor/ROLE.md     → <workspace>/tutor/ROLE.md
-templates/tutor/README.md   → <workspace>/tutor/README.md
-templates/assets/tutor.js   → <workspace>/assets/tutor.js
-templates/assets/tutor.css  → <workspace>/assets/tutor.css
-templates/agents/tutor.md   → <workspace>/.claude/agents/tutor.md
-```
+The first step of the [Boot sequence](#boot-sequence) installs it, along with everything else
+that does not vary by subject. There is nothing to place by hand, and nothing here to copy: the
+only Tutor file this skill authors is `tutor/ROLE.md`, which it tunes for the subject.
 
 `server.js` carries security-sensitive code — path-traversal guards, argv `spawn` with no shell,
-input caps, loopback-only bind, idle auto-shutdown. Re-deriving that from prose risks silently
-dropping a guard. Copy it, then adapt only if the topic genuinely demands it.
+input caps, loopback-only bind, idle auto-shutdown. That is exactly why the scaffold copies it
+rather than any Session writing it: re-deriving that from prose risks silently dropping a guard.
+Adapt it only if the topic genuinely demands it, and say so when you do.
 
-The server is zero-dependency Node. It serves the lessons over http (which also lifts the
+The server is zero-dependency Node. It serves the Lessons over http (which also lifts the
 `file://` restrictions that gate Pyodide, sql.js, and ES modules) and exposes `POST /api/ask`,
 which runs headless Claude with `--restricted` and read-only tools.
 
-### Why the tutor ships as a workspace template, not a plugin agent
+### Why the Tutor ships as a workspace template, not a plugin agent
 
 Claude Code discovers subagents only in `.claude/agents/` (project) and `~/.claude/agents/`
 (user) — never inside a skill directory. So the skill carries an inert
-`templates/agents/tutor.md` and copies it into the workspace, where it registers project-scoped.
+`templates/agents/tutor.md` and the scaffold copies it into the Workspace, where it registers
+project-scoped.
 
 That indirection is deliberate. A plugin *can* bundle an `agents/` directory, and that would be
 the tidier distribution — but a plugin-level agent registers **globally**, and subagents have no
 `disable-model-invocation` equivalent, so it would be auto-routable in every unrelated project.
-It would also be one fixed definition, when the whole point is that each workspace tunes its own
+It would also be one fixed definition, when the whole point is that each Workspace tunes its own
 `ROLE.md` for its own subject.
 
 Project scoping is the only invocation control a subagent has. Spend it here.
 
 If you package this skill as a plugin for distribution, put the **skill** under the plugin's
-`skills/` and leave the tutor as a template the skill materialises. Do not promote it to a
+`skills/` and leave the Tutor as a template the scaffold materialises. Do not promote it to a
 plugin-level agent.
 
-### Two ways to reach the same tutor
+### Two ways to reach the same Tutor
 
 Both read the same `tutor/ROLE.md`, so neither is a downgrade:
 
@@ -486,7 +600,7 @@ Both read the same `tutor/ROLE.md`, so neither is a downgrade:
 
 ### Operating it
 
-When the learner says the tutor is broken, silent, or slow, probe before theorising:
+When the learner says the Tutor is broken, silent, or slow, probe before theorising:
 
 ```
 ./tutor/tutorctl.sh status     # up? which port, pid, uptime, idle time
@@ -506,113 +620,73 @@ point where the learner has to think about restarts; that is the opposite of the
 
 ### Writing the role prompt
 
-`ROLE.md` should instruct the tutor to *read the workspace* rather than hardcoding facts about
+`ROLE.md` should instruct the Tutor to *read the Workspace* rather than hardcoding facts about
 the learner — that keeps it reusable and always current. The server inlines the small
-always-needed files (`NOTES.md`, `MISSION.md`) into the payload; the tutor reads
-`CURRICULUM.md`, the lesson HTML, and `learning-records/` only when the question needs them.
+always-needed files (`NOTES.md`, `MISSION.md`) into the payload; the Tutor reads
+`CURRICULUM.md`, the Lesson HTML, and `learning-records/` only when the question needs them.
 
 Do not assume questions are about vocabulary — most need surrounding context to answer well. The
-tutor must **disclose progressively**: answer the question actually asked, bridge from what the
+Tutor must **disclose progressively**: answer the question actually asked, bridge from what the
 learner already knows, and check whether a prerequisite is present rather than silently teaching
 it. It must obey the hard prohibitions in `NOTES.md`.
 
-**Every question is logged to `learning-records/questions.jsonl`.** This is the highest-signal
-feedback the workspace produces: three questions about one paragraph means that lesson is wrong,
-not that the learner is slow. Read it during the boot sequence.
-
-Adding a grader is one more role file — see [Assignments](#assignments-optional-agent-judged).
+**Every question is logged to `learning-records/questions.jsonl`**, which the Boot sequence
+reads. Adding a Grader is one more role file — see [the assessment
+ladder](#the-assessment-ladder).
 
 ## Session Boundaries
 
-A long learning path must not be one long session. Two distinct failures hide here: context
-*loss* between sessions, which the workspace files already solve, and quality *decay* inside a
-session, which they do not. Only ending sessions solves the second.
+A long learning path must not be one long Session. Two distinct failures hide here: context
+*loss* between Sessions, which the Workspace files already solve, and quality *decay* inside a
+Session, which they do not. Only ending Sessions solves the second.
 
-**Teach one lesson per session — two or three at most — then stop deliberately.** The workspace
-is the memory; the session is disposable. A handoff is only as good as what you wrote down
+**Deliver one Unit per Session — two or three at most — then stop deliberately.** The Workspace
+is the memory; the Session is disposable. A Handoff is only as good as what you wrote down
 before ending it.
 
-### Boot sequence
-
-Begin every session by reading, in this order, before proposing anything:
-
-1. `MISSION.md` — why they are here
-2. `CURRICULUM.md` — the plan, and the progress markers on it
-3. The last two or three `learning-records/` — where they actually are, not where the plan says
-4. `learning-records/questions.jsonl` — what confused them since you last looked
-5. `NOTES.md` — how to work with this person
-
-Only then propose the next lesson.
+Every Session opens with the [Boot sequence](#boot-sequence), which is what makes ending one
+cheap: the next Session re-reads the Workspace rather than your conversation.
 
 ### Progress lives in CURRICULUM.md
 
-Keep a status marker per planned lesson and update it as you go. Plan and progress belong in one
-file so that a fresh session reads one thing to orient itself.
+Keep a status marker per planned Unit and update it as you go. Plan and progress belong in one
+file so that a fresh Session reads one thing to orient itself.
 
 ### Consolidate periodically
 
-Every few lessons, teach one that is purely interleaved retrieval across earlier material. It
-fights forgetting, and it is the only reliable way to discover whether the learning records are
+Every few Units, deliver one that is purely interleaved retrieval across earlier material. It
+fights forgetting, and it is the only reliable way to discover whether the Learning Records are
 accurate or merely optimistic.
-
-## Assignments (optional, agent-judged)
-
-In-lesson exercises test **fluency**: immediate, scaffolded, inside the teaching environment.
-Assignments test **transfer**: delayed, unscaffolded, in the learner's real environment. They are
-different instruments, and adding assignments must never dilute in-lesson practice.
-
-**Most lessons should not have one.** Decide per lesson by asking: did this lesson teach a
-*model* or a *skill*? Models are served by a reflection prompt, or by the next lesson building on
-them. Skills need exercising somewhere real. If you cannot name what the learner would **do
-differently at work** afterwards, do not invent an assignment.
-
-Shape, difficulty, and verification are yours to design per assignment — there is no standard
-form and there should not be one. Shapes that have worked: a task with an objective pass/fail
-check; an artifact to review; a Feynman-style "explain this in your own words"; "find an instance
-of this in your own codebase". Treat that as inspiration rather than a menu, and invent better
-ones when the material suggests them.
-
-Two things are worth being strict about:
-
-1. **The rubric travels with the assignment.** Write the task, what counts as done, and the
-   likely failure modes into the same file. A future session holding none of your context must be
-   able to grade it. This is what lets assignments survive session boundaries.
-2. **Space and interleave them.** An assignment from lesson 2 is often best given after lesson 4,
-   and one task forcing two lessons together is worth more than two separate tasks.
-
-Grading is done by a **fresh grader** reading the stored rubric, never by recalling the session
-that wrote the assignment. Mechanically it is the tutor with a different role file — add
-`tutor/ROLE-grader.md` and one entry in the server's `ROLES` map.
 
 ## Reference Documents
 
 Lessons are rarely revisited. Reference documents are — so write them as you go, into
-`./reference/`, and link to them from the lessons they came out of.
+`./reference/`, and link to them from the Units they came out of.
 
-A reference document is the compressed essence of what a lesson taught, in a shape built for
+A reference document is the compressed essence of what a Unit taught, in a shape built for
 lookup rather than for reading: syntax and snippets for a programming language, an algorithm or a
 flowchart for a process, poses and sequences for yoga, routines for fitness. They are the raw
-units of knowledge that outlive the lesson that introduced them, so make them beautiful and make
+units of knowledge that outlive the Lesson that introduced them, so make them beautiful and make
 them print well.
 
 **A glossary is the reference document almost every subject earns**, and it is the one with the
-longest reach: once the workspace has one, every lesson adheres to its terms. Use
+longest reach: once the Workspace has one, every Lesson adheres to its terms. Use
 [GLOSSARY-FORMAT.md](./GLOSSARY-FORMAT.md).
 
 ## Recorded preferences (`NOTES.md`)
 
 The learner will tell you how they want to be taught — pace, language, analogies that land,
 things they never want to see again. `NOTES.md` is where those go, and it is where you look
-before designing a lesson or opening a session.
+before designing a Unit or opening a Session.
 
 Record a preference the moment it is stated, in their framing rather than your summary of it.
-Hard prohibitions are binding, and they bind beyond this conversation — the tutor is held to
+Hard prohibitions are binding, and they bind beyond this conversation — the Tutor is held to
 them too, so a prohibition written here reaches every agent the learner talks to. See
 [Writing the role prompt](#writing-the-role-prompt).
 
 ## Acquiring Wisdom
 
-Wisdom is the part no lesson can deliver. It comes from testing a skill outside the learning
+Wisdom is the part no Lesson can deliver. It comes from testing a skill outside the learning
 environment, against people who have already done the thing.
 
 When a question turns on real-world experience rather than on knowledge, your default posture is
@@ -622,4 +696,4 @@ can afford, a local group. Find high-reputation ones and record them under
 `## Wisdom (Communities)` in `RESOURCES.md`.
 
 If the learner says they do not want to join a community, respect it, and note it in `NOTES.md`
-so that no future session proposes one again.
+so that no future Session proposes one again.

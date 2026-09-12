@@ -37,6 +37,9 @@ const { REPO_ROOT } = require('./workspace.js');
 /** Directories this repo owns, so a path starting with one is ours to check. */
 const OWNED_ROOTS = ['scripts', 'templates', 'commands', 'docs', 'skills', 'tests'];
 
+/** Directories holding documents an agent reads. Scanned when they exist. */
+const DOC_ROOTS = ['skills', 'commands', 'docs'];
+
 /**
  * `docs/agents/domain.md` names `docs/adr/` as the convention this repo
  * deliberately rejects in favour of one narrative `docs/DECISIONS.md`. It is
@@ -87,6 +90,10 @@ function agentDocs() {
   const docs = [path.join(REPO_ROOT, 'AGENTS.md'), path.join(REPO_ROOT, 'README.md')];
 
   const walk = (dir) => {
+    // `commands/` is optional: the plugin ships one entry point, the skill, and
+    // a directory that holds no command is absent rather than empty.
+    if (!fs.existsSync(dir)) return;
+
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
       if (entry.isDirectory() && entry.name !== 'templates') walk(abs);
@@ -94,9 +101,7 @@ function agentDocs() {
     }
   };
 
-  walk(path.join(REPO_ROOT, 'skills'));
-  walk(path.join(REPO_ROOT, 'commands'));
-  walk(path.join(REPO_ROOT, 'docs'));
+  for (const dir of DOC_ROOTS) walk(path.join(REPO_ROOT, dir));
 
   return docs.sort();
 }
@@ -145,4 +150,4 @@ function resolvePointer(pointer) {
   return fs.existsSync(abs) ? abs : null;
 }
 
-module.exports = { agentDocs, pointersIn, resolvePointer, SKILL_DIR };
+module.exports = { agentDocs, pointersIn, resolvePointer, DOC_ROOTS, SKILL_DIR };

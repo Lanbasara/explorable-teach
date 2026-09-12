@@ -3,8 +3,12 @@
 #
 # This half is deliberately dumb: it only copies files that are the same for
 # every subject. Everything subject-specific (MISSION, CURRICULUM, RESOURCES,
-# TECH-STACK, the tutor's ROLE) is authored by the AI in /explorable-teach:init,
+# TECH-STACK, the tutor's ROLE) is authored by the Teacher on its first run,
 # because that part needs to understand the learner.
+#
+# The boot sequence of the explorable-teach skill runs this as its first step,
+# so this script — not any document — is the source of truth for what a
+# workspace contains.
 #
 #   scripts/init-workspace.sh [target-dir]     # default: current directory
 #
