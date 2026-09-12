@@ -195,28 +195,32 @@ test('exactly two Tutor facts stay inline, and both are teaching facts', () => {
   const SIGNPOST = 90;
   const inProse = (text) => /tutor/i.test(text.replace(/\]\([^)]*\)/g, '').replace(/TUTOR\.md/g, ''));
 
-  assert.ok(
-    inProse('- **The Tutor serves the learner inside it.** See [TUTOR.md](./TUTOR.md).'),
-    'this check cannot see the Tutor named outside a link',
-  );
-  assert.ok(
-    !inProse('Standing one up is one more role file — see [TUTOR.md](./TUTOR.md).'),
-    'this check mistakes a link for a mention',
-  );
+  // Guard the observer, on both sides. These are written to be obviously
+  // synthetic: copying a real line from `SKILL.md` would leave the guard
+  // testing text that no longer exists the moment that line is reworded.
+  assert.ok(inProse('The Tutor does a thing. See [TUTOR.md](./TUTOR.md).'), 'named outside a link');
+  assert.ok(!inProse('Something unrelated — see [TUTOR.md](./TUTOR.md).'), 'a link is not a mention');
 
-  const claims = mentions
+  const named = mentions.filter((m) => inProse(m.text));
+
+  const claims = named
     .filter((m) => !FACTS.some((f) => f.re.test(m.text)))
-    .filter((m) => inProse(m.text) && m.text.trim().length > SIGNPOST)
+    .filter((m) => m.text.trim().length > SIGNPOST)
     .map(show);
 
   assert.deepEqual(claims, [], `these name the Tutor at more length than a signpost needs`);
 
-  // And a budget on top, so the Tutor cannot return by accumulating signposts.
-  // Raising this number is a decision to argue, not a way to go green.
+  // A budget on top, so the Tutor cannot return by accumulating signposts. It
+  // counts only lines that name the Tutor in their own prose — a line that
+  // merely links out while discussing grading or recorded prohibitions is not
+  // Tutor material and should not be spending Tutor budget.
+  //
+  // Two facts and two signposts is the whole of it, so there is no headroom by
+  // design. Raising this is a decision to argue, not a way to go green.
   assert.ok(
-    mentions.length <= 6,
-    `the Tutor is named on ${mentions.length} lines of the skill; the budget is 6:\n` +
-      mentions.map(show).join('\n'),
+    named.length <= 4,
+    `the Tutor is named in the prose of ${named.length} lines; the budget is 4:\n` +
+      named.map(show).join('\n'),
   );
 });
 

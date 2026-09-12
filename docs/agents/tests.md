@@ -154,8 +154,11 @@ was measured, not assumed.
   a link to `TUTOR.md` — must fit in 90 characters, which is room to point and no room to claim.
   A line that merely links out while discussing something else, like grading or recorded
   prohibitions, is exempt: its length is about its own subject.
-- **At most six lines may name the Tutor at all**, so it cannot return by accumulating
-  signposts. Raising that number is a decision to argue, not a way to make a red suite green.
+- **At most four lines may name the Tutor in their own prose**, so it cannot return by
+  accumulating signposts. A line that merely links out while discussing something else does not
+  spend that budget — it is not Tutor material. Two facts and two signposts is the whole of it,
+  so there is no headroom by design: raising the number is a decision to argue, not a way to
+  make a red suite green.
 
 **The rationale the skill no longer carries is in the decisions record.** Why the Tutor is a
 Workspace template rather than a plugin-level agent is a maintainer's reasoning, so it left the
