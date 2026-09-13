@@ -106,9 +106,9 @@ sentence becomes two claims, a hard-wrapped `idle timeout` stops being findable,
 a paragraph breaks a check that has nothing to do with wrapping.
 
 **Slugging replaces each space, never a run of them.** Dropping the `—` in
-`Tier 1: Core — ships…` leaves *two* spaces, and GitHub hyphenates both, so the real anchor is
-`tier-1-core--ships…`. Collapsing them — which this did until review caught it — inverts the
-check: the correct link fails and the broken one passes.
+`Shipped Components — already…` leaves *two* spaces, and GitHub hyphenates both, so the real
+anchor is `shipped-components--already…`. Collapsing them — which this did until review caught
+it — inverts the check: the correct link fails and the broken one passes.
 
 ## The disclosure check
 
@@ -130,10 +130,15 @@ by pointer rather than by in-document anchor — the branch is the only route th
 one place the pointer has to be.
 
 **Unit authoring is not in the main document.** `UNIT.md` holds the forms, the page conventions,
-the Component catalog and the navigation rules, and the check reads `SKILL.md` for the vocabulary
-only an authoring reference uses — markup, asset filenames, CDN hosts, `is-live`, a Lesson's
-numbering. Same shape as the runbook check below it, and guarded the same way: every pattern must
-be found in `UNIT.md`, or the check is describing no authoring material.
+the Component selection guide and the navigation rules, and the check reads `SKILL.md` for the
+vocabulary only an authoring reference uses — markup, asset filenames, CDN hosts, `is-live`, a
+Component's `Deps:` declaration, a Lesson's numbering. Same shape as the runbook check below it,
+and guarded the same way: every pattern must be found in `UNIT.md`, or the check is describing no
+authoring material.
+
+That vocabulary tracks the document, not the reverse: it read `Tier N` until the catalog stopped
+being tiered, and the guard failed on the spot rather than going on passing while looking for
+words nobody writes.
 
 **The skill root is the main document and the documents it points at.** Every `.md` beside
 `SKILL.md` must be one of the disclosed documents, which are already required to exist, carry
@@ -297,10 +302,14 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
 - **`templates/` is not scanned as a document.** It is material copied into a Workspace, so
   its relative paths resolve *there*. `assets.test.js` covers the part that matters — every
   `assets/…` path a template names must exist in a scaffolded Workspace.
-- **The Component catalog's later tiers are not checked**, on purpose. A row written as a
-  bare filename (`scrolly.js`) is a pattern to build on demand, not a promise. A row written
-  as a path (`assets/exercise.js`) *is* a promise, and `assets.test.js` holds it. Writing a
-  catalog row with an `assets/` prefix is therefore how you opt a Component into the check.
+- **The Components the Teacher builds are not checked**, because there is nothing there to
+  check. Every file the selection guide names is one the plugin ships — the four Components, the
+  shared stylesheet, the bootstrap — and every other row names a teaching act and what to reach
+  for, which resolves to no file at all. The underlying rule is unchanged and still enforced: an
+  `assets/…` path in any shipped document is a promise that the scaffold installs it, so writing
+  a row with that prefix is how a Component opts into `assets.test.js`. Nothing stops a future
+  row naming `scrolly.js` as a bare filename — that would be invisible here, and it is also what
+  the guide was rewritten to stop doing.
 - **No browser runs any of this.** The fixture DOM dispatches events and mutates the tree; it
   computes no styles and lays nothing out. `components.test.js` checks that every class a
   Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,

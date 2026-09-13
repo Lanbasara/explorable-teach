@@ -57,9 +57,9 @@ function headings(markdown) {
  * That last step is one character of regex and was wrong here until review
  * caught it. Collapsing runs of whitespace instead (`/\s+/g`) disagrees with
  * GitHub on any heading whose punctuation sits between spaces — dropping the
- * `—` in `Tier 1: Core — ships…` leaves *two* spaces, so the real anchor is
- * `tier-1-core--ships…`. A checker that collapsed them rejected the correct
- * link and accepted the broken one.
+ * `—` in `Shipped Components — already…` leaves *two* spaces, so the real
+ * anchor is `shipped-components--already…`. A checker that collapsed them
+ * rejected the correct link and accepted the broken one.
  */
 function anchorFor(heading) {
   return heading

@@ -27,7 +27,7 @@ you a thorough brief reads as not having read it.
 
 - Search the web: "best interactive {subject} tutorial", "explorable explanation {subject}"
 - Identify what existing interactive teaching does well for this subject
-- Determine which interaction patterns fit — not all subjects need the same tools
+- Determine which teaching acts this subject is made of — not all subjects need the same tools
 
 Record the sources worth returning to in `RESOURCES.md`, using
 [the Resources format](./formats/resources.md). Until it is well populated, finding good sources
@@ -35,12 +35,14 @@ Record the sources worth returning to in `RESOURCES.md`, using
 
 ## 3. Select the tech stack
 
-Pick from the [Component Catalog](./UNIT.md#component-catalog) what fits this subject, and
-search for **subject-specific tools** that are not in it — music theory might want the Web Audio
-API; algorithms might want p5.js.
+Walk [the selection guide](./UNIT.md#choosing-a-component) by teaching act and settle which
+Components this subject actually earns. Four of them are already installed; every other teaching
+act on that list is one you build here, and a subject-specific tool — the Web Audio API for music
+theory, a step-by-step visualiser for algorithms — is found by searching for it now rather than
+by expecting it to be there.
 
-The catalog is a menu, not a manifest. A philosophy course and an algorithms course should not
-end up with the same tooling.
+Settle this by subject, not by appetite. A philosophy course and an algorithms course should not
+end up with the same tooling, and most subjects earn fewer tools than the first plan gives them.
 
 ## 4. Write `TECH-STACK.md`
 
@@ -53,17 +55,17 @@ At the Workspace root:
 {Why these tools were chosen for this specific subject}
 
 ## Selected Components
-| Component | Library | Why |
-|-----------|---------|-----|
-| ... | ... | ... |
+| Teaching act | Component | Shipped, or built here | Why this one |
+|--------------|-----------|-----------------------|--------------|
+| ... | ... | ... | ... |
 
 ## Subject-Specific Tools (if any)
-| Tool | CDN | Purpose |
-|------|-----|---------|
+| Tool | Pinned version | What it is wrapped as |
+|------|----------------|-----------------------|
 
-## Deferred (available but not needed now)
-| Component | When to add |
-|-----------|-------------|
+## Deferred (not needed yet)
+| Teaching act | When it would earn a Component |
+|--------------|-------------------------------|
 ```
 
 ## 5. Plan the Curriculum

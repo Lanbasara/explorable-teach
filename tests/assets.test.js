@@ -6,8 +6,9 @@
 //
 // So the rule here is a promise about promises: **naming an `assets/…` path in
 // a shipped document or template is a promise that the scaffold installs it.**
-// A Component that exists only in the catalog is written as a bare filename;
-// one written as a path has to be real.
+// The selection guide in `UNIT.md` now writes a path only for a Component the
+// plugin ships, and names every other one by the teaching act it performs — so
+// what reaches this check is exactly what the guide promised.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

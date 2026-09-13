@@ -4,6 +4,17 @@
 
 ### Changed
 
+- **The component catalog is now a selection guide, indexed by teaching act.** It was indexed by
+  underlying library and stacked into five tiers, so a teacher arriving from "I need to show how
+  `fork` works" met a shelf of tools and had to work backwards to its own question. It now reads
+  from the left: a column of teaching acts, each routed to what to reach for and to whether it is
+  shipped or built for this subject. Sixteen of the twenty old rows named a file that does not
+  exist — `scrolly.js`, `flashcard.js`, `network-graph.js` — on a convention that a bare filename
+  meant "build this on demand"; a teacher that believes a file exists does not write it, so no
+  row names a file the plugin does not ship any more. The CDN quick reference went with the
+  library index, leaving the rule it was there to serve: pin the version, wrap the library behind
+  the teaching act, declare what it needs in the component's `Deps:` line, and write the content
+  into the markup so the lesson reads before the script runs.
 - **Unit authoring moved out of the skill, and the format specifications were consolidated.**
   How to write a Unit — the forms a lesson, an exercise, a checkpoint and an assignment take,
   the page conventions, the component catalog and the navigation rules — is now `UNIT.md`,

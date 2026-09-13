@@ -374,6 +374,39 @@ audit, and the criterion catches whatever the floor did not anticipate.
 and fails a Session-end section whose floor does not name the Learning Record, the Curriculum
 marker, `NOTES.md` and the Dossier.
 
+## 22. The catalog is indexed by teaching act, and promises only what ships
+
+**Decided:** the Component catalog becomes a selection guide read from the left: a column of
+teaching acts — *confront an intuition*, *walk one process through its stages*, *let the learner
+run the thing being taught* — each routed to what to reach for and to whether it is shipped or
+built here. The four shipped Components keep a table of their own, with their file paths. Nothing
+the plugin does not ship is named as a file.
+
+**Why:** the catalog was indexed by underlying library and stacked into five tiers, so a Teacher
+arriving from "I need to show how `fork` works" had to read a shelf of tools — GSAP, Rough.js,
+vis-network, Pyodide, sql.js, p5.js, Three.js — and work backwards to its own question. Selection
+by library is selection by appetite, which is the failure decision 3 exists to resist.
+
+**Why the filenames had to go with it.** Sixteen of the twenty rows named a file — `scrolly.js`,
+`flashcard.js`, `network-graph.js` — and none of those files exist. Decision 14 made the bare
+filename a *convention* meaning "build this on demand", but a convention that has to be explained
+is not what an agent reads: it reads a filename, and a Teacher that believes a file exists does
+not write it. A row now names the teaching act and says who provides it, so there is nothing left
+to misread.
+
+**Rejected:** keeping the tiers as an interactivity budget. Tier order read as escalation — higher
+tier, more impressive — which is the opposite pull from the one the guide should exert. What the
+tiers were carrying that was worth keeping, *subjects differ in how much of this they earn*, is
+one sentence under the table.
+
+**Rejected:** keeping the CDN quick reference. It was the library index in another form, and the
+one version it pinned was `roughjs@latest`, which is a Lesson that breaks on a day nobody chose.
+What survives is the rule: pin the version, and wrap the library behind the teaching act.
+
+**Consequence:** `disclosure.test.js` looks for a Component's `Deps:` declaration where it used to
+look for `Tier N` — the authoring vocabulary tracks the document, and a pattern the document no
+longer uses fails the guard rather than quietly matching nothing.
+
 ---
 
 ## Where the full record lives

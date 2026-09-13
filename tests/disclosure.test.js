@@ -73,9 +73,15 @@ const RUNBOOK = [
 
 /**
  * Unit authoring, as the vocabulary only an authoring reference uses: markup,
- * the asset filenames a page links, CDN hosts, the numbering of a Lesson file.
- * A word here sitting in `SKILL.md` means the authoring material came back —
- * whatever heading it came back under.
+ * the asset filenames a page links, CDN hosts, a Component's `Deps:`
+ * declaration, the numbering of a Lesson file. A word here sitting in
+ * `SKILL.md` means the authoring material came back — whatever heading it came
+ * back under.
+ *
+ * The list tracks the document rather than the reverse. It read `Tier \d` until
+ * the Component catalog stopped being tiered, and the guard below failed on the
+ * spot — which is the point: the alternative is a check that goes on passing
+ * while looking for words nobody writes.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -86,7 +92,7 @@ const AUTHORING = [
   /devicePixelRatio/,
   /is-live/,
   /0001-slug/,
-  /Tier \d/,
+  /Deps:/,
 ];
 
 /** Where the four format specifications live now that they live together. */

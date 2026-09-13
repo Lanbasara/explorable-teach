@@ -32,7 +32,7 @@ MISSION.md            why you are learning this — every lesson traces back her
 CURRICULUM.md         the plan, and progress markers on it
 RESOURCES.md          high-trust primary sources
 NOTES.md              how you want to be taught (the tutor treats this as binding)
-TECH-STACK.md         which interaction patterns this subject actually needs
+TECH-STACK.md         which components this subject actually needs
 lessons/              0001-slug.html — the lessons themselves
 assignments/          the ones that earn an assignment, with the rubric inside
 reference/            compressed cheat-sheets you will actually revisit
@@ -74,11 +74,12 @@ This is why the state files are not bookkeeping. They are the handoff.
 
 ### Interactivity is a tool, not a decoration
 
-The component catalog spans predict-reveal, step animations, scrollytelling, hand-drawn
-diagrams, network graphs, drag exercises, simulated terminals, and 3D — but the rule is
-**default to minimal**. Before adding anything, answer: *what can the learner not understand
-without this interaction?* If there is no answer, plain prose and one good question beat a
-WebGL scene.
+The catalog is a list of teaching acts rather than a shelf of libraries — *confront an intuition
+before explaining it*, *walk one process through its stages*, *teach an order that is the
+knowledge*, *let the learner run the thing being taught* — so you pick the row you are actually
+in. The rule on top of it is **default to minimal**: before adding anything, answer *what can the
+learner not understand without this interaction?* If there is no answer, plain prose and one good
+question beat a WebGL scene.
 
 The stack is picked per subject, on the first run. A philosophy course and an algorithms course
 should not end up with the same tooling.
@@ -88,7 +89,8 @@ scaffold: the shared stylesheet, and components for **exercises** (judged the in
 answer), **predict-reveal**, **step animations**, and **drag-to-order**. None of them loads a
 library, so a lesson works from `file://` with no network; each one degrades to plain readable
 text with scripting off; and every interaction has a keyboard and a touch path, not just a drag.
-Everything further down the catalog is built on demand, for the subject that needs it.
+Every other teaching act on the list is built on demand, for the subject that needs it, so the
+catalog names no file the plugin does not ship.
 
 ## The tutor
 

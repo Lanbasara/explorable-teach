@@ -116,17 +116,24 @@ test('mentions come back with the line number that locates them', () => {
 });
 
 test('a heading slugs to the anchor GitHub would give it', () => {
-  // Every one of these is a heading this repo actually writes. The pairs with
-  // punctuation *between spaces* are the ones that matter: dropping the `—`
-  // leaves two spaces, and GitHub replaces each of them, so the anchor carries
-  // a double hyphen. Collapsing them instead — which this did until review
-  // caught it — rejects the correct link and accepts the broken one.
+  // Every one of these is a heading this repo writes — in its own documents, or
+  // in the `TECH-STACK.md` skeleton it hands the Teacher.
+  //
+  // The pair with punctuation *between spaces* is the one that matters:
+  // dropping the `—` leaves two spaces, and GitHub replaces each of them, so
+  // the anchor carries a double hyphen. Collapsing them instead — which this
+  // did until review caught it — rejects the correct link and accepts the
+  // broken one.
   const cases = [
     ['Knowledge, skills, wisdom', 'knowledge-skills-wisdom'],
-    ['Recorded preferences (`NOTES.md`)', 'recorded-preferences-notesmd'],
-    ['Tier 1: Core — ships with the plugin, already in `assets/`', 'tier-1-core--ships-with-the-plugin-already-in-assets'],
-    ['Tier 3: Simulation & Practice (when hands-on matters)', 'tier-3-simulation--practice-when-hands-on-matters'],
-    ['Tier 4: Retention & Review', 'tier-4-retention--review'],
+    ['4. Write `TECH-STACK.md`', '4-write-tech-stackmd'],
+    ['Subject-Specific Tools (if any)', 'subject-specific-tools-if-any'],
+    ['Shipped Components — already in every Workspace', 'shipped-components--already-in-every-workspace'],
+    ['Building a Component for this subject', 'building-a-component-for-this-subject'],
+    // Synthetic, and deliberately so: no heading here carries an `&`, and the
+    // three that did left with the Component catalog's tiers. Writing one into
+    // a document to keep this case real would be the tail wagging the dog.
+    ['Retention & Review', 'retention--review'],
   ];
 
   for (const [heading, anchor] of cases) {
