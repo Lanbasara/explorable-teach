@@ -26,6 +26,8 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
 | `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
+| `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
+| `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
 | `tests/markdown-helper.test.js` | The Markdown reader below sees the document structure a reader sees |
@@ -49,7 +51,8 @@ so "running this twice changed nothing" is a real claim rather than a timestamp 
 `run(script, args)` executes any repo script with the Workspace as its working directory,
 directly rather than through `sh`, so the shebang and the executable bit are under test too.
 It waits for the command to exit, with a timeout as a backstop — a script that hangs should
-fail one test rather than wedge the suite.
+fail one test rather than wedge the suite. A server does not exit, so it gets its own fixture
+below.
 
 ## The fixture DOM
 
@@ -109,6 +112,47 @@ a paragraph breaks a check that has nothing to do with wrapping.
 `Shipped Components — already…` leaves *two* spaces, and GitHub hyphenates both, so the real
 anchor is `shipped-components--already…`. Collapsing them — which this did until review caught
 it — inverts the check: the correct link fails and the broken one passes.
+
+## The running Tutor service
+
+`tests/helpers/tutor.js` starts the service installed in a scaffolded Workspace and hands back
+something to ask questions of. `Workspace.run()` waits for a command to exit; this is the method
+it says it does not have.
+
+```js
+const service = await TutorService.start(t, ws, { agent: [agentSays.result('好。')] });
+const health = await service.get('/api/health');
+const answer = await service.ask({ question: '这是什么？', selection: 'fork() 返回两次' });
+assert.deepEqual(answer.sequence(), ['open', 'done']);
+service.agentFlag('-p');                 // the payload the agent was actually handed
+```
+
+`server.js` carries the security-sensitive code in this plugin, and `TUTOR.md` says the scaffold
+copies it rather than any Session writing it *because* re-deriving it from prose risks silently
+dropping a guard. Nothing noticed if one had been. So the service is held at arm's length: it runs
+as its own process on a port of its own, and a test touches only a socket, the Workspace on disk,
+and the stub agent. No function in it is called directly, and no line of it was changed to make
+that possible.
+
+**The agent is a stub binary first on `PATH`.** `PATH` is set to *only* the directory holding it,
+so the real `claude` cannot be reached even on a machine that has one. The stub records its argv
+and working directory — which is the only window onto the payload the service built, and therefore
+the only way to see history trimming from outside — and then replays a fixed transcript. `agentSays`
+spells the stream shapes the service documents: a text delta, a thinking delta, a tool use, a
+result, a failure.
+
+**The stub writes in three awkward slices, cut mid-line and never mid-character.** The service
+reassembles NDJSON across chunk boundaries; a stub that wrote one tidy chunk would leave that
+untested while every assertion went on passing. That is the one part of this fixture the suite
+above does not cross-guard, so `tutor-helper.test.js` pins it — from the stub's own record of
+where it cut, not from the chunks that came back. Where the stub cut is the stub's to promise;
+whether a reader sees those cuts as separate chunks is the pipe's, and a reader that stalls long
+enough gets the lot in one.
+
+**Each test gets its own service**, because the stub's transcript is fixed when the process
+starts. A port is picked by asking the OS for a free one — which makes it free a moment ago rather
+than reserved — so the fixture checks that the pid answering `/api/health` is the child it
+started, and retries on a different port rather than quietly driving somebody else's Workspace.
 
 ## The disclosure check
 
@@ -332,8 +376,30 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   other document naming a `/explorable-teach:…` is instructing someone.
 - **`docs/adr/` is exempt.** `docs/agents/domain.md` names it as the convention this repo
   rejects in favour of one narrative `docs/DECISIONS.md`. It is supposed to be absent.
-- **The tutor server is not exercised.** `run()` runs a command to completion; a
-  long-running server needs a method this helper does not have yet.
+- **Whether the pieces arrive as pieces is the pipe's decision.** The stub cuts its transcript
+  mid-line and that much is asserted, but a reader busy enough to let three writes coalesce
+  receives one chunk — measured: a reader stalled 80ms got the lot in one, every time. When that
+  happens the service's line reassembly is not exercised and nothing says so.
+- **The real agent never runs.** The stub emits the shapes `server.js` documents and nothing
+  else. What the service does with a shape the real `claude` emits and this fixture does not is
+  unknown, and a stream format change would be invisible here.
+- **Neither traversal guard is pinned on its own.** Removing normalisation leaves the suite
+  green, because `path.resolve` re-expands the escape and the containment check catches it;
+  removing the containment check leaves it green, because normalisation collapsed the escape
+  first. Removing both fails. So the suite holds the *behaviour* — traversal is refused — rather
+  than either line, and this is defence in depth by measurement rather than by assertion.
+- **The traversal claim is about paths, not about what they point at.** Paths are resolved
+  lexically, so a symlink inside the Workspace is followed wherever it goes — measured, not
+  inferred. Putting one there takes write access to the Workspace, which is the learner, so this
+  is a limit on what the check above proves rather than a way in.
+- **Neither timeout is exercised.** The 120-second answer timeout and a client that disconnects
+  mid-answer are both real paths; only the idle shutdown is driven, and that one only in the
+  direction that matters — a status probe must not keep an abandoned service alive.
+- **The in-page drawer is under no test.** `assets/tutor.js` consumes this stream, falls back to
+  the clipboard when the service is down, and renders what comes back; none of that is covered
+  here. The Tutor suite ends at the socket.
+- **The 4000-character cap on inlined `NOTES.md` and `MISSION.md` is not covered**, only the
+  history caps beside it.
 - **The "exactly two Tutor facts" check cannot read a sentence.** Length is a proxy for whether
   a line claims or points, and a short claim would pass — "the Tutor is stateless" is 24
   characters. What the checks really hold is that the *runbook* cannot come back and that the

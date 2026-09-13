@@ -101,8 +101,8 @@ class Workspace {
    *
    * The timeout is a backstop, not a tuning knob: a script that hangs should
    * fail one test rather than wedge the whole suite. This runs a command that
-   * exits — starting the tutor server, which does not, needs a different
-   * method than this one.
+   * exits — the tutor server, which does not, has its own fixture in
+   * tests/helpers/tutor.js.
    */
   run(script, args = [], { timeout = 30_000 } = {}) {
     const bin = path.isAbsolute(script) ? script : path.join(REPO_ROOT, script);

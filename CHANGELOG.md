@@ -72,6 +72,20 @@
 
 ### Added
 
+- **The tutor server is now driven over HTTP.** It holds the security-sensitive code in this
+  plugin — path-traversal guards, an extension allowlist, argv `spawn` with no shell, input
+  caps, a loopback bind, an idle shutdown — and `TUTOR.md` says the scaffold copies it rather
+  than any session writing it *because* re-deriving that from prose risks silently dropping a
+  guard. Nothing would have noticed if one had been dropped. The service now runs as its own
+  process on its own port against a fixture workspace, and every claim is made from outside it:
+  the health shape, the extension allowlist refusing a file that is really there, traversal
+  refused in six spellings against a file that really exists outside the workspace, a root
+  request landing on the first lesson, every rejected shape of a question, the event sequence
+  reaching the client, and exactly one question-log line per answered question. History
+  trimming is read off the payload the agent was actually handed. `tests/helpers/tutor.js`
+  starts the service and puts a stub agent first on `PATH` — the real `claude` is unreachable
+  from the suite — which is what makes the streaming shapes observable at all. No line of
+  `server.js` changed to make any of it possible.
 - **Anchors are now under the integrity check.** A link at a heading — `](#the-unit)`, or
   `](./SKILL.md#boot-sequence)` — resolves against the headings of the file it lands on, not
   just against the file. This is the half a restructuring breaks: disclosing a section removes
