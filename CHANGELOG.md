@@ -95,6 +95,25 @@
   carries that shape — the title, the Evidence fields, the timestamp — so the two are held to each
   other rather than agreeing by hand. The verdict inside the record is the learner's own language,
   written by the grader, and is untouched.
+- **Both role definitions are English, and each says where the learner's language comes from.**
+  `tutor/ROLE.md` and `tutor/GRADER.md` are linked into every workspace, so the pilot learner's
+  language in them was every future learner's. They are now maintainer-facing prose like every
+  other document the plugin ships, and each opens by saying that the answer goes back in the
+  learner's language — named outright by the request over the service, and read off `NOTES.md` on
+  the subagent path, which nothing had been telling it. Both still compose with this course's
+  tuning, in that order, on both paths.
+- **A grader refuses with an ASCII token rather than with a sentence.** Finding no rubric stored in
+  an assignment, a grader is told to open with `CANNOT-GRADE:` on a line of its own and to explain
+  underneath it in the learner's language. That opening is how the service keeps a refusal out of
+  `learning-records/` — a record claiming a verdict nobody reached is worse than no record, and the
+  next boot sequence plans from these. The token is the same in every language, so a workspace in a
+  third one does not need a third pattern; the role definition owns it and the service consumes it;
+  and the drawer strips that line before rendering, so the learner reads the explanation rather
+  than a marker addressed to a service. Whitespace before the token still counts as opening with
+  it, because the definition quotes it as an indented block and a grader reproducing it exactly
+  sends that indentation. A check reads the token out of the role definition and holds both
+  readers to it — in all three shapes a refusal can arrive in — so editing one file alone turns
+  the suite red instead of breaking the contract in silence.
 
 ### Fixed
 

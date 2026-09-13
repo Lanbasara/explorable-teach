@@ -497,12 +497,25 @@ const RECORD_ATTEMPTS = 20;
  * a verdict that was never reached is worse than no record — the next boot
  * sequence plans from these.
  *
- * It is also the last thing in this file written in a particular language, and
- * the only one that may not be translated on its own: the role definition
- * mandates this opening, so the pattern and the definition have to move
- * together or refusals start landing as verdicts with nothing erroring.
+ * An ASCII token rather than a sentence, and this file is the consumer of it:
+ * GRADER.md is where it is decided, because that is the file a grader is told
+ * to reproduce it from. Everything after it is the learner's language; the
+ * token is the same in every workspace, so a workspace in a third language does
+ * not need a third pattern here. `language.test.js` reads the token out of
+ * GRADER.md and holds this against it, so the two cannot drift apart in
+ * silence — which they would, refusals landing as verdicts with nothing
+ * erroring.
+ *
+ * Whitespace before it counts as opening with it. GRADER.md sets the token off
+ * as an indented block, so a grader taking "character for character" at its
+ * word sends the indentation too, and a refusal not recognised as one is filed
+ * as a verdict — the single failure this exists to prevent. The answer this
+ * runs against is already trimmed, so here that slack is belt and braces; in
+ * the drawer, which reads a stream as it accumulates, it is load-bearing. The
+ * two are written the same way on purpose: one rule, stated identically, is
+ * what lets one check hold both to it.
  */
-const CANNOT_GRADE = /^无法判定[：:]/;
+const CANNOT_GRADE = /^\s*CANNOT-GRADE:/;
 
 /**
  * `assignments/0003-pipe-audit.html` -> `0003-pipe-audit`.

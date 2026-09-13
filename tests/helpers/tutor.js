@@ -1,7 +1,9 @@
 'use strict';
 
 /**
- * A running Tutor service, driven the way the learner's browser drives it.
+ * A running Tutor service, driven the way the learner's browser drives it —
+ * and, at the end, the one thing in `runtime/tutor/` the rest of the suite has
+ * to read rather than run: the token `GRADER.md` mandates a refusal opens with.
  *
  *   const service = await TutorService.start(t, ws);   // stopped when the test ends
  *   const health = await service.get('/api/health');
@@ -26,10 +28,44 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
+const { REPO_ROOT } = require('./workspace.js');
+
 /** The binary the service spawns, by name. The stub is placed under this name. */
 const AGENT = 'claude';
 
 const READY_TIMEOUT_MS = 15_000;
+
+/** The plugin's Grader role definition — the one file that decides how a refusal opens. */
+const GRADER_ROLE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/GRADER.md');
+
+/**
+ * The line a refusal has to open with, read out of the definition that mandates
+ * it rather than written down here.
+ *
+ * Three files hold that string and only one of them decides it: `GRADER.md`
+ * tells the Grader to write it, `server.js` recognises it to keep a refusal out
+ * of `learning-records/`, and the drawer strips it so the Learner reads the
+ * prose under it and not the marker. Restated here, this helper would be the
+ * fourth copy and the first to drift — which is the whole failure the token
+ * exists to have removed.
+ *
+ * `GRADER.md` sets the token off as the one indented block in the document,
+ * because it is the one line in it a Grader has to reproduce byte for byte.
+ * A second such line means the document grew one since, and picking between
+ * them would be this reader deciding a contract it does not own. It throws
+ * instead — `text` is a parameter so that `tutor-helper.test.js` can hold it to
+ * that, the way it holds the SSE reader to refusing a body that is not one.
+ */
+function refusalToken(text = fs.readFileSync(GRADER_ROLE, 'utf8')) {
+  const quoted = [...text.matchAll(/^ {4}(\S.*?)[ \t]*$/gm)].map((m) => m[1]);
+  if (quoted.length !== 1) {
+    throw new Error(
+      `expected GRADER.md to quote exactly one line, found ${JSON.stringify(quoted)} — ` +
+        'the refusal token is read out of that block',
+    );
+  }
+  return quoted[0];
+}
 
 /**
  * Stands in for the headless agent. It replays its transcript in three awkward
@@ -407,4 +443,13 @@ function request(port, method, urlPath, { body = null, headers = {} } = {}) {
   });
 }
 
-module.exports = { TutorService, Response, STUB_AGENT, agentSays, waitFor, request, freePort };
+module.exports = {
+  TutorService,
+  Response,
+  STUB_AGENT,
+  agentSays,
+  refusalToken,
+  waitFor,
+  request,
+  freePort,
+};

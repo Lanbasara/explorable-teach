@@ -21,11 +21,12 @@
 //   a non-ASCII scan   every script the plugin puts on a Learner's page, which
 //                      catches the other thing: one Learner's language creeping
 //                      back into shared code
-//   three contracts    every key any of them asks for has an entry, the shipped
-//                      tables agree about which keys exist, and every way the
-//                      Tutor service can fail a stream has words on the page to
-//                      be read as — all three derived from source, never listed
-//                      here
+//   four contracts     every key any of them asks for has an entry, the shipped
+//                      tables agree about which keys exist, every way the Tutor
+//                      service can fail a stream has words on the page to be
+//                      read as, and a Grader's refusal opens with the token its
+//                      role definition mandates — all four derived from source,
+//                      never listed here
 //
 // The drawer and every Component a Lesson is built from, on one mechanism. The
 // drawer is not a Component — `CONTEXT.md` keeps that word for a reusable
@@ -48,6 +49,7 @@ const {
   FIXTURE_LANG,
 } = require('./helpers/unit.js');
 const { drawerIn, event, mount, pageFor, settle } = require('./helpers/drawer.js');
+const { refusalToken } = require('./helpers/tutor.js');
 const {
   NAMESPACES,
   TABLES,
@@ -66,6 +68,7 @@ const {
 const ASSETS = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/assets');
 const DRAWER = path.join(ASSETS, 'tutor.js');
 const SERVICE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/server.js');
+const GRADER_ROLE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/GRADER.md');
 const read = (abs) => fs.readFileSync(abs, 'utf8');
 
 /**
@@ -915,7 +918,7 @@ test('the navigation bar across the top of a Unit is in the Learner\'s language 
   );
 });
 
-/* ------------------------------------------------------------ the two contracts */
+/* ----------------------------------------------------------- the four contracts */
 
 test('every key any shipped script asks for has an entry in the table it falls back to', () => {
   // Derived three times over: the scripts are found on disk, the keys are read
@@ -1050,6 +1053,71 @@ test('every table puts a Submission to the Grader by name, whatever language it 
   }
 });
 
+/**
+ * A regular expression a shipped file holds, read back out of its source.
+ *
+ * Flags travel with it. A pattern read without them is not the pattern the file
+ * runs, and the two that matter here — a refusal is case-sensitive, and it is
+ * anchored at the start rather than at every line — are both flags away from
+ * meaning something else.
+ */
+function patternIn(file, name) {
+  const literal = new RegExp(`\\b${name} = /(.+)/([a-z]*);`).exec(read(file));
+  assert.ok(literal, `${path.basename(file)} no longer holds a pattern called ${name}`);
+  return new RegExp(literal[1], literal[2]);
+}
+
+test('a refusal opens with the token its role definition mandates, and both readers know it', () => {
+  // The fourth contract, and the only one whose authority is a document rather
+  // than a script. `GRADER.md` tells a Grader to open a refusal with this line;
+  // the service reads it to keep that refusal out of `learning-records/`,
+  // because a record claiming a judgement nobody reached is worse than no
+  // record; and the drawer strips it, because it is a marker rather than
+  // something to read. Translating the definition without moving the other two
+  // breaks that silently, which is what this is written against.
+  const token = refusalToken();
+
+  // ASCII, in every Workspace. What follows it is the Learner's language and
+  // this is not: a token that had to be translated would be the same defect
+  // again in the next language.
+  assert.deepEqual(notEnglish(token), [], 'the refusal opens with something that has to be translated');
+  assert.match(token, /:$/, 'the opening has to be recognisable as the marker it is');
+
+  // Three ways the same refusal can arrive, and all three have to be one.
+  //
+  // The middle one is the sharp case: `GRADER.md` sets the token off as an
+  // indented block, so a Grader told to reproduce it "character for character"
+  // sends the indentation with it — read off the document rather than spelled
+  // here, because how the definition presents the token is the definition's to
+  // change. The third is the other half of the same question: the service reads
+  // an answer trimmed and the drawer reads a stream as it accumulates, so a
+  // reader that anchored hard would recognise a refusal the other one missed,
+  // and the Learner would meet a marker addressed to a service.
+  const asShown = read(GRADER_ROLE).split('\n').find((line) => line.trim() === token);
+  assert.ok(asShown, 'the definition no longer quotes the token on a line of its own');
+
+  const explained = '\nThe Assignment page stores no Rubric.';
+  const refusals = [token + explained, asShown + explained, '\n' + token + explained];
+  const verdict = 'Passed. You named what each stage reads.';
+
+  // The service recognises the token to keep the refusal off the record; the
+  // drawer recognises it to take it off the screen. Two files, one reading.
+  const readers = [
+    ['service', patternIn(SERVICE, 'CANNOT_GRADE')],
+    ['drawer', patternIn(DRAWER, 'REFUSAL')],
+  ];
+
+  for (const [who, pattern] of readers) {
+    for (const refusal of refusals) {
+      assert.ok(
+        pattern.test(refusal),
+        `the ${who} does not recognise a refusal arriving as ${JSON.stringify(refusal.slice(0, 24))}`,
+      );
+    }
+    assert.ok(!pattern.test(verdict), `the ${who} takes a verdict for a refusal`);
+  }
+});
+
 /* ------------------------------------------------------------ the non-ASCII scan */
 
 /**
@@ -1093,6 +1161,24 @@ test('no shipped script holds a Learner-facing string of its own', () => {
     {},
     'every one of these is linked into every Workspace, so a string here is every Learner\'s language',
   );
+});
+
+test('both role definitions are English, in every Workspace', () => {
+  // The two documents #1 names outright. They are Maintainer-facing — every
+  // Workspace links at these same bytes, so a sentence of one Learner's
+  // language here is every Learner's — and what makes an *answer* theirs is an
+  // instruction inside them rather than the language they are written in.
+  //
+  // The refusal token is the one thing in either that is neither: ASCII, read
+  // by the service, and the same in every language. It passes this scan for the
+  // same reason it was chosen.
+  const stray = {};
+  for (const role of ['ROLE.md', 'GRADER.md']) {
+    const found = foreignLines(read(path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor', role)));
+    if (found.length) stray[role] = found;
+  }
+
+  assert.deepEqual(stray, {}, 'a role definition is shared by every Workspace, so this is every Learner\'s language');
 });
 
 test('the fixture Unit is built for a language rather than in one', () => {

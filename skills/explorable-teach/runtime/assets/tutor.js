@@ -292,19 +292,44 @@
     text: function (value) { return document.createTextNode(value); }
   };
 
+  /**
+   * The opening a Grader is told to refuse with, and the one piece of an answer
+   * this drawer reads rather than renders.
+   *
+   * `tutor/GRADER.md` mandates it and `tutor/server.js` watches for it, which
+   * is how a refusal is kept out of learning-records/. It is ASCII on purpose
+   * — everything after it is the learner's language, and this is not — and it
+   * is a marker addressed to the service, so the learner is owed the sentence
+   * under it and not the marker itself. `language.test.js` reads the token out
+   * of the role definition and holds this pattern and the service's to it.
+   *
+   * Deliberately narrow: one known opening, the blank it leaves behind, and
+   * nothing else. The same text further down an answer is prose a Grader wrote,
+   * and stripping there would eat a learner's words.
+   *
+   * Whitespace before it still counts as opening with it, for two reasons that
+   * have to give the same answer: GRADER.md quotes the token as an indented
+   * block, and this reads a stream as it accumulates while the service reads
+   * the same answer trimmed. A refusal one of them recognised and the other did
+   * not is a learner reading a marker meant for a service.
+   */
+  var REFUSAL = /^\s*CANNOT-GRADE:[ \t]*\r?\n?/;
+
   // The one place an answer becomes nodes. Every path that shows one — the
   // stream, the thread restored from storage, a pinned answer read back into
   // the lesson — goes through here, so none of them is a degraded version of
-  // the others.
+  // the others, and the refusal token is stripped once rather than at each of
+  // them.
   //
   // rich-text.js is loaded by lesson-boot.js, which carries on past a script
   // that failed to load. If that happened, the answer is still shown, as the
   // text it already was: a legible answer beats no answer.
   function showRich(host, text) {
+    var prose = (text || '').replace(REFUSAL, '');
     while (host.firstChild) host.removeChild(host.firstChild);
-    if (!window.RichText) return showPlain(host, text);
+    if (!window.RichText) return showPlain(host, prose);
 
-    window.RichText.render(text, NODES).forEach(function (node) { host.appendChild(node); });
+    window.RichText.render(prose, NODES).forEach(function (node) { host.appendChild(node); });
     host.classList.add('tutor-rich');
     return host;
   }

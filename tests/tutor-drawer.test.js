@@ -22,6 +22,7 @@ const { test } = require('node:test');
 
 const { LESSON_HTML, UNIT, PAGES, FIXTURE_LANG } = require('./helpers/unit.js');
 const { say } = require('./helpers/learner-text.js');
+const { refusalToken } = require('./helpers/tutor.js');
 const {
   ANSWER,
   drawerIn,
@@ -635,6 +636,42 @@ test('with the service stopped, handing in degrades to the same clipboard fallba
   // And the Submission is not lost: it is the first turn of a thread that is
   // still there when the service comes up.
   assert.match(page.text('.tutor-msg.user'), /第二段读的是第一段的 stdout。/);
+});
+
+test('a Grader that could not judge reads as prose, not as the token the service watches for', async (t) => {
+  // The refusal the Grader is told to write opens with a line meant for the
+  // service: it is what keeps a refusal out of `learning-records/`. Read out of
+  // the role definition that mandates it rather than written here — there is
+  // one authority on what that line is, and a copy in this file would be a
+  // second one that could disagree with it in silence.
+  //
+  // The Learner is owed the sentence under it and nothing else. This is the one
+  // place the drawer interprets an answer rather than rendering it, so it is
+  // held to being exactly that narrow: one known token off the front, the rest
+  // untouched.
+  const explanation = '这份作业页里没有存评分标准,请回去找出题的老师补上。';
+  const refusal = `${refusalToken()}\n${explanation}`;
+
+  const page = assignment(t, { chunks: chunksFor(refusal) });
+  const body = await hand(page);
+
+  assert.equal(body.textContent.trim(), explanation, 'the marker reached the Learner, or the prose did not');
+  assert.ok(!page.text('.tutor-msg.tutor').includes(refusalToken()), 'and it is nowhere else in the message');
+  assert.equal(page.queryAll('.tutor-recorded').length, 0, 'a refusal is not a record, so nothing says one was written');
+
+  // The role definition quotes the token as an indented block, so a Grader told
+  // to reproduce it character for character sends the indentation too. The
+  // service still calls that a refusal — it reads the answer trimmed — so a
+  // drawer that did not would leave the Learner reading the marker.
+  const indented = assignment(t, { chunks: chunksFor(`    ${refusalToken()}\n${explanation}`) });
+  const alsoProse = await hand(indented);
+  assert.equal(alsoProse.textContent.trim(), explanation, 'an indented token reached the Learner');
+
+  // Guard the observer: an answer that merely mentions the token mid-sentence
+  // is prose, and stripping there would eat a Learner's words.
+  const mentions = assignment(t, { chunks: chunksFor(`Passed. ${refusalToken()} is what a refusal opens with.`) });
+  const kept = await hand(mentions);
+  assert.ok(kept.textContent.includes(refusalToken()), 'only the opening is a marker; the same text inside prose is prose');
 });
 
 test('a lesson question is still the Tutor\'s, and still names the Lesson it came from', async (t) => {

@@ -176,6 +176,10 @@ is written for it.
 **What it is never handed.** The Rubric. It is stored in the Assignment page, and the payload
 does no more than name that page and say what block to look for — so what the Grader judges is
 what is on disk, not what a page chose to send. A Grader that finds no Rubric there is told to
-refuse rather than to improvise.
+refuse rather than to improvise, and to open that refusal with a fixed ASCII token — that token is
+how the service tells a refusal from a verdict and keeps it out of `learning-records/`, and the
+drawer strips it so the learner reads the explanation under it rather than a marker. `tutor/GRADER.md`
+is where it is written down, and the only place it is: a tuning file must not restate or redefine
+it.
 
 Tuning the Grader is the same loop as tuning the Tutor, and takes the same restart.

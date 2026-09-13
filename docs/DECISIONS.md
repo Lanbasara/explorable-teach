@@ -923,8 +923,8 @@ own still fails.
 **Refined while building it (#19).** Four things the service taught this decision, none of which
 change what it decided. Two of them revise the **Consequence** below rather than the decision
 itself: the slug's class gained one more category, and three of the four consistency checks that
-paragraph names are in place — the fourth, the refusal token, cannot land until the role
-definition that mandates it is translated, and moves with it.
+paragraph names are in place — the fourth, the refusal token, could not land until the role
+definition that mandates it was translated, and landed with it under decision 31.
 
 The language rides the request as *one* directive, appended after whatever the role built rather
 than woven through it — both roles then get the same sentence from the same place, and a payload
@@ -992,9 +992,45 @@ refusal unambiguous and costs the whole SSE path: the answer streams today, and 
 Learner watches arrive is decision 26's three stages working. One reserved line at the top of a
 stream is parseable the instant it arrives and changes nothing else.
 
-**Consequence:** the drawer gains a rule about the first line of a Grader answer, which is the
-first time it interprets content rather than rendering it. Kept narrow deliberately — it strips
-one known token and passes everything else through untouched.
+**Refined while building it (#20).** Three things, none of which changes what was decided.
+
+The token strips as a *prefix* rather than as a whole line. A Grader told to put the explanation
+underneath will usually do that, and a Grader that writes it on the same line instead should not
+cost the Learner the explanation — so what comes off is the token and the whitespace to the end of
+that line, at most one newline.
+
+And the rule is about the first line of *any* answer, not of a Grader's. This paragraph said
+"a Grader answer" because that is the only agent that can produce one, and the drawer does not
+check: it runs where an answer becomes nodes, which is one function, and every path that shows an
+answer goes through it — the stream, a thread restored from storage, a pinned answer read back
+into the Lesson. Reaching for the thread's role there would buy nothing (the token is reserved, so
+a Tutor opening with it is a Tutor breaking the same contract) and cost the property that makes
+the seam trustworthy: that none of those three paths is a degraded version of the others.
+
+**Whitespace before the token counts as opening with it**, and review is what found that. The
+definition sets the token off as an indented block, because that is how a document quotes a line
+to be reproduced exactly — so a Grader reading "character for character" literally sends the
+indentation, and an anchored pattern would call that a verdict. The service survived it by
+accident, on a `trim()` two hundred lines from the pattern; the drawer, which reads a stream as it
+accumulates, did not. Both now allow the same slack and say so in the same words, which is what
+lets one derived check hold both to one rule rather than to two that happen to agree.
+
+The turn kept in the thread is untouched either way: a follow-up replays the refusal to the Grader
+that wrote it, and the marker is the clearest thing in that replay saying what happened.
+
+The third is what translating a role definition exposed rather than broke. Decision 30 put the
+language directive in the *payload*, which is the service's path only — as a subagent, the Tutor
+and the Grader had been answering in the Learner's language by the accident of the definition
+being written in it, and English definitions would have quietly made English the answer. Each
+definition now says where the language comes from: named outright by the request over the service,
+read off `NOTES.md` as a subagent, English where nothing records one. That is a rule about where
+to look rather than a second naming of a language, so the payload still names it once.
+
+**Consequence:** the drawer gains a rule about the first line of an answer, which is the first
+time it interprets content rather than rendering it. Kept narrow deliberately — it strips
+one known token and passes everything else through untouched. Three checks now land on an edit to
+the token in `GRADER.md` alone: the derived contract in `language.test.js`, the drawer's, and the
+service's.
 
 ---
 

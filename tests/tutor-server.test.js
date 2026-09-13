@@ -20,7 +20,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
-const { TutorService, agentSays, waitFor } = require('./helpers/tutor.js');
+const { TutorService, agentSays, refusalToken, waitFor } = require('./helpers/tutor.js');
 const { sections } = require('./helpers/markdown.js');
 const { notEnglish } = require('./helpers/learner-text.js');
 
@@ -561,16 +561,22 @@ test('the role definition is the plugin\'s, and the Workspace only tunes it', as
   assert.ok(fs.lstatSync(ws.path('tutor/ROLE.md')).isSymbolicLink(), 'the role definition should not be a copy');
   assert.ok(fs.lstatSync(ws.path('tutor/TUNING.md')).isFile(), 'the tuning is this Workspace\'s own');
 
-  ws.write('tutor/TUNING.md', '# 学科调校\n\n本课只讲 POSIX，不要提 Windows。');
+  const tuning = '# 学科调校\n\n本课只讲 POSIX，不要提 Windows。';
+  ws.write('tutor/TUNING.md', tuning);
 
   const service = await TutorService.start(t, ws, { agent: [agentSays.result('好。')] });
   await service.ask({ question: '这是什么？' });
 
+  // Both halves read off the files rather than quoted here. A sentence of the
+  // definition written into this file would be a second copy of it, and the day
+  // the definition is reworded — translated, say — it is this copy that goes
+  // stale while the claim it makes goes on passing.
+  const definition = ws.read('tutor/ROLE.md').trim();
   const prompt = service.agentFlag('--append-system-prompt');
-  assert.ok(prompt.includes('你**只读不写**'), 'the shared definition should be there');
-  assert.ok(prompt.includes('本课只讲 POSIX'), 'and this Workspace\'s tuning after it');
+  assert.ok(prompt.includes(definition), 'the shared definition should be there');
+  assert.ok(prompt.includes(tuning), 'and this Workspace\'s tuning after it');
   assert.ok(
-    prompt.indexOf('你**只读不写**') < prompt.indexOf('本课只讲 POSIX'),
+    prompt.indexOf(definition) < prompt.indexOf(tuning),
     'tuning comes after the definition it tunes, so it can override rather than be overridden',
   );
 
@@ -1119,12 +1125,17 @@ test('questioning a verdict is a conversation about a record, not a second one',
 
 test('a Grader that refuses to judge is not recorded as having judged', async (t) => {
   // GRADER.md tells it to refuse when the page stores no Rubric, opening with a
-  // fixed line. That line is a contract between two files the plugin owns — the
-  // same arrangement as the transcript heading — and it exists because the Boot
-  // sequence plans from Learning Records: a record saying a verdict was reached
-  // when none was is worse than no record at all.
+  // fixed token. That token is a contract between two files the plugin owns —
+  // the same arrangement as the transcript heading — and it exists because the
+  // Boot sequence plans from Learning Records: a record saying a verdict was
+  // reached when none was is worse than no record at all.
+  //
+  // Built from the role definition rather than written out here, so editing the
+  // token in that one file and nowhere else lands right here: the Grader would
+  // be refusing in a way this service no longer recognises, and the refusal
+  // would be filed as a verdict.
   const ws = graded(t);
-  const refusal = '无法判定：这份作业页里没有存评分标准，请回去找出题的老师补上。';
+  const refusal = `${refusalToken()}\n这份作业页里没有存评分标准,请回去找出题的老师补上。`;
   const service = await TutorService.start(t, ws, { agent: [agentSays.result(refusal)] });
 
   const res = await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
@@ -1141,9 +1152,25 @@ test('a Grader that refuses to judge is not recorded as having judged', async (t
   await judging.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
   assert.equal(records(ws).length, 1, 'a verdict in the same Workspace is still recorded');
 
-  // The opening the service watches for is the one the role definition asks
-  // for, read out of the file rather than restated here.
-  assert.match(ws.read('tutor/GRADER.md'), /无法判定：/, 'the Grader is no longer told to say this');
+  // The same refusal as the definition shows it. `GRADER.md` quotes the token as
+  // an indented block, and a Grader reproducing it character for character sends
+  // those spaces with it. Two things keep that off the record here — the answer
+  // is trimmed before it is read, and the pattern allows leading whitespace
+  // anyway — so this asserts the outcome rather than either mechanism, and goes
+  // red if a rewrite drops both.
+  const indented = await TutorService.start(t, ws, {
+    agent: [agentSays.result(`    ${refusalToken()}\n这份作业页里没有存评分标准。`)],
+  });
+  await indented.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+  assert.equal(records(ws).length, 1, 'an indented refusal was filed as a verdict');
+
+  // And the definition this Workspace links at is the one the token was read
+  // from, so the contract holds over the file a Grader is actually given rather
+  // than over the plugin's copy of it.
+  assert.ok(
+    ws.read('tutor/GRADER.md').includes(refusalToken()),
+    'the Grader this Workspace links at is not told to open a refusal with it',
+  );
 });
 
 test('a grading that produced no verdict leaves nothing behind', async (t) => {

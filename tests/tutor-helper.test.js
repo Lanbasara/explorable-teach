@@ -23,7 +23,7 @@ const { spawn } = require('node:child_process');
 const { test } = require('node:test');
 
 const { Workspace } = require('./helpers/workspace.js');
-const { Response, STUB_AGENT, agentSays, waitFor } = require('./helpers/tutor.js');
+const { Response, STUB_AGENT, agentSays, refusalToken, waitFor } = require('./helpers/tutor.js');
 
 /** Run the stub agent on its own, outside any service, and collect what it wrote. */
 function runStub(t, transcript, env = {}) {
@@ -125,6 +125,25 @@ test('a response that is not an event stream is refused, not read as an empty on
 
   const empty = new Response(200, {}, Buffer.from('', 'utf8'));
   assert.deepEqual(empty.events(), [], 'an empty body is the one body with no frames in it');
+});
+
+test('the refusal token is read out of the role definition, and a second quoted line is refused', () => {
+  // Three suites build a refusal out of this reader, so one that picked a line
+  // out of two would hand all three a token the Grader was never told to write,
+  // and every claim they make would go on passing against it.
+  //
+  // Driven against a made-up document on purpose: what the real token *is* is
+  // `GRADER.md`'s to say and `language.test.js`'s to check, and a copy of it
+  // written here would be the fourth home the token exists to not have.
+  assert.equal(refusalToken('Open with this line:\n\n    MADE-UP:\n\nThen say why.\n'), 'MADE-UP:');
+
+  assert.throws(() => refusalToken('    ONE:\n\n    TWO:\n'), /exactly one line/);
+  assert.throws(() => refusalToken('no block here at all\n'), /exactly one line/);
+
+  // And the document it falls back to is the real one, which is the reading
+  // every other suite gets: a `GRADER.md` that quoted twice would throw here
+  // rather than leave three suites agreeing about the wrong line.
+  assert.match(refusalToken(), /^[\x21-\x7e]+$/, 'the token read off the definition is not a bare ASCII line');
 });
 
 test('waiting for something that never happens says what it was waiting for', async () => {

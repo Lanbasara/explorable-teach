@@ -30,9 +30,9 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
-| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, and every way the Tutor service can fail has words on the page to be read as |
+| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, and both role definitions are English down to the token a Grader refuses with |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
-| `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
+| `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives, and the reader that finds the Grader's refusal token refuses to guess at it |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
 | `tests/markdown-helper.test.js` | The Markdown reader below sees the document structure a reader sees |
@@ -248,6 +248,13 @@ afterwards, where a verdict has become a numbered Learning Record. That last one
 `waitFor`: the record is written before `done` is sent, which is the ordering that lets the page
 name where it landed.
 
+**One thing in that file is not a service at all.** `refusalToken()` reads the token a refusal has
+to open with out of `tutor/GRADER.md`, which is the file that decides it — the service watches for
+it, the drawer strips it, and three suites build a refusal out of this one reading rather than out
+of three copies. It lives beside the service fixture because everything in `runtime/tutor/` is
+driven from here, and it is held to refusing a `GRADER.md` that quotes more than one line: picking
+between two would be a fixture deciding a contract it does not own.
+
 **Each test gets its own service**, because the stub's transcript is fixed when the process
 starts. A port is picked by asking the OS for a free one — which makes it free a moment ago rather
 than reserved — so the fixture checks that the pid answering `/api/health` is the child it
@@ -372,10 +379,19 @@ live in: scanned whole, every line of `zh-CN` would be a finding, so its bootstr
 and its table half is not. A Component's own header comment shows the markup an author writes,
 which makes that comment Maintainer-facing and therefore English like every other one.
 
-**Three consistency contracts here, all derived rather than listed**, and one more still to
-come: the Grader's refusal token, read out of the role definition that mandates it, which arrives
-with the ticket that translates the role definitions. Decision 30 describes all four as one set
-because they are one argument.
+**Four consistency contracts here, all derived rather than listed.** Decision 30 describes them
+as one set because they are one argument: a fact with one home, and every other place that needs
+it reading it from there rather than keeping a copy.
+
+The fourth is the only one whose authority is a document. `tutor/GRADER.md` tells a Grader to open
+a refusal with a fixed ASCII token; `server.js` recognises that token to keep the refusal out of
+`learning-records/`, and the drawer strips it so the Learner reads the explanation under it rather
+than a marker addressed to a service. The check reads the token out of the role definition — the
+one indented block in it — and holds both patterns to it, so editing the definition alone goes
+red here rather than breaking the contract in silence. It is asserted to be ASCII too: what
+follows it is the Learner's language and the token is not, which is the whole reason it is a token.
+Two more checks land on the same edit — the drawer's, in `tutor-drawer.test.js`, and the service's
+own, in `tutor-server.test.js`, both building their refusal out of the same reading.
 
 The third is the service's. A stream can fail in ways that are the *service's* to name — the
 agent never started, the agent never finished — and it sends a code for those rather than a
