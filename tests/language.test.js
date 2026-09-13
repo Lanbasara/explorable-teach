@@ -21,9 +21,11 @@
 //   a non-ASCII scan   every script the plugin puts on a Learner's page, which
 //                      catches the other thing: one Learner's language creeping
 //                      back into shared code
-//   two contracts      every key any of them asks for has an entry, and the
-//                      shipped tables agree about which keys exist — both
-//                      derived from source, never listed here
+//   three contracts    every key any of them asks for has an entry, the shipped
+//                      tables agree about which keys exist, and every way the
+//                      Tutor service can fail a stream has words on the page to
+//                      be read as — all three derived from source, never listed
+//                      here
 //
 // The drawer and every Component a Lesson is built from, on one mechanism. The
 // drawer is not a Component — `CONTEXT.md` keeps that word for a reusable
@@ -54,6 +56,7 @@ const {
   lookupSource,
   bootstrapSource,
   keysAskedBy,
+  notEnglish,
   pseudoTable,
   sentinel,
   SENTINEL,
@@ -62,6 +65,7 @@ const {
 
 const ASSETS = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/assets');
 const DRAWER = path.join(ASSETS, 'tutor.js');
+const SERVICE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/server.js');
 const read = (abs) => fs.readFileSync(abs, 'utf8');
 
 /**
@@ -306,6 +310,35 @@ test('a page that declares its own language keeps it', (t) => {
     'ja',
     'the page is the authority, and the tooling may only fill a gap',
   );
+});
+
+test('the language the page declares rides the request', async (t) => {
+  // The service produces exactly one Learner-facing thing — the answer — and
+  // nothing on its side of the socket can see a page. So the page names the
+  // language, out of the same `<html lang>` every label on it is looked up
+  // against; what a request naming none means is then the service's to decide
+  // rather than the drawer's to guess.
+  const declared = drawerIn(t, lessonHtml('pt-BR'));
+  await settle();
+  declared.click(declared.query('.tutor-fab'));
+  declared.type(declared.query('.tutor-input'), 'what does this mean');
+  declared.click(declared.query('.tutor-send'));
+  await settle();
+
+  assert.equal(declared.asked.length, 1, 'the drawer never asked anything, so nothing here is a claim');
+  assert.equal(declared.asked[0].lang, 'pt-BR');
+
+  const silent = drawerIn(
+    t,
+    '<!DOCTYPE html>\n<html>\n<head></head>\n<body><div class="lesson"></div></body>\n</html>\n',
+  );
+  await settle();
+  silent.click(silent.query('.tutor-fab'));
+  silent.type(silent.query('.tutor-input'), 'what does this mean');
+  silent.click(silent.query('.tutor-send'));
+  await settle();
+
+  assert.equal(silent.asked[0].lang, '', 'a page declaring no language should invent none');
 });
 
 /* ----------------------------------------------------------------- the lookup */
@@ -632,6 +665,39 @@ test('the same holds for the drawer with no service to reach', async (t) => {
   assert.deepEqual(foreign, [], 'the offline drawer is holding these strings itself');
 });
 
+test('a failure the service names is read out of the table as well', async (t) => {
+  // The service holds no Learner-facing string, so a failure of its own arrives
+  // as a code and this is where a code becomes words. Fed as an event rather
+  // than by breaking the transport: what is under test is the drawer reading
+  // the code, and a request that never connected is the other failure, which
+  // the check above already drives.
+  const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
+  const page = drawerIn(t, lessonHtml(PSEUDO), {
+    strings,
+    chunks: [
+      event('open', { role: 'tutor' }),
+      event('error', { code: 'timeout', durationMs: 120_000 }),
+    ],
+  });
+
+  await settle();
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), sentinel('what does this mean'));
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  const shown = drawerText(page);
+  assert.ok(
+    shown.some((text) => text.includes(sentinel('tutor.fail.timeout'))),
+    `the code was never read out of the table: ${shown.slice(0, 8).join(' | ')}`,
+  );
+  assert.deepEqual(
+    shown.filter((text) => !SENTINEL.test(text)),
+    [],
+    'the failed request is holding these strings itself rather than looking them up',
+  );
+});
+
 test('the prompt handed to a Learner with no service is in their language', async (t) => {
   const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
   const page = drawerIn(t, lessonHtml(PSEUDO), { strings, health: () => false });
@@ -885,6 +951,61 @@ test('every key any shipped script asks for has an entry in the table it falls b
   assert.deepEqual(missing, {}, 'these are asked for, and a Learner would get the raw key');
 });
 
+/**
+ * Every way the service can fail a stream, read out of the service.
+ *
+ * It sends a code rather than a sentence, because it holds no Learner-facing
+ * string: a sentence there would be in one language, in a file every Workspace
+ * runs. Read off the emission sites rather than off a list, for the reason
+ * every other derivation here is — a code added without an entry is exactly the
+ * mistake this is written against, and a list would have to be edited by the
+ * same person making it.
+ */
+function failureCodes() {
+  return [...new Set([...read(SERVICE).matchAll(/\bcode: '([a-z0-9-]+)'/g)].map((m) => m[1]))].sort();
+}
+
+/** How the drawer turns one of those codes into a key, read out of the drawer. */
+function failureKeys() {
+  const map = /var FAILED = \{([^}]*)\}/.exec(read(DRAWER));
+  assert.ok(map, 'the drawer no longer says which key a failure code is read as');
+
+  const entries = {};
+  for (const [, code, key] of map[1].matchAll(/'([a-z0-9-]+)':\s*'([a-z0-9.]+)'/g)) entries[code] = key;
+  return entries;
+}
+
+test('every failure the service can name has words on the page to be read as', () => {
+  const codes = failureCodes();
+  const keys = failureKeys();
+
+  // Guard the observer from both sides: a regex that found nothing would pass
+  // this for free, and an entry the service can never send is a word nobody
+  // will ever read — the shape a code being renamed on one side leaves behind.
+  assert.ok(codes.length >= 2, `expected the service's failure codes, found ${codes}`);
+  assert.deepEqual(
+    Object.keys(keys).filter((code) => !codes.includes(code)),
+    [],
+    'the page reads these as words, and the service cannot send them',
+  );
+
+  const unreadable = codes.filter(
+    (code) => !keys[code] || !Object.prototype.hasOwnProperty.call(TABLES.en, keys[code]),
+  );
+  assert.deepEqual(unreadable, [], 'the service can fail this way, and the Learner would be told nothing');
+
+  // The floor of the derivation, named and then held to. A code is read here as
+  // a literal at the point it is sent, so one sent by way of a variable would be
+  // invisible to everything above — which is the one way this check could pass
+  // while a Learner met a failure with no words behind it.
+  const sent = [...read(SERVICE).matchAll(/code:\s*([^,}\n]+)/g)].map((m) => m[1].trim());
+  assert.deepEqual(
+    sent.filter((value) => !/^'[a-z0-9-]+'$/.test(value)),
+    [],
+    'a failure code has to be written where it is sent, because that is what this check can read',
+  );
+});
+
 test('the shipped tables agree about which keys exist', () => {
   const shipped = Object.keys(TABLES);
   assert.ok(shipped.length >= 2, `expected more than one shipped table, found ${shipped}`);
@@ -932,16 +1053,16 @@ test('every table puts a Submission to the Grader by name, whatever language it 
 /* ------------------------------------------------------------ the non-ASCII scan */
 
 /**
- * Characters a Maintainer-facing file may carry beyond ASCII: the typographic
- * punctuation this repo's English prose is written with. Everything else —
- * a letter, a digit, an emoji — is a string that belongs in a table.
+ * Every line of `text` holding a character no English comment would.
+ *
+ * What counts as "still English" is `notEnglish` in the helper, because the
+ * service's suite reads the payload it builds and the record it writes with the
+ * same question — and two answers to it would let a string that fails one check
+ * pass the other.
  */
-const ENGLISH_PUNCTUATION = new Set([...'—–…‘’“”']);
-
-/** Every line of `text` holding a character no English comment would. */
 function foreignLines(text) {
   return text.split('\n').flatMap((line, index) => {
-    const stray = [...line].filter((c) => c.charCodeAt(0) > 0x7f && !ENGLISH_PUNCTUATION.has(c));
+    const stray = notEnglish(line);
     return stray.length ? [`${index + 1}: ${line.trim()}`] : [];
   });
 }

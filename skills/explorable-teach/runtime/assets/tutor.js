@@ -82,7 +82,37 @@
       brief: 'tutor.role.grader.brief'
     }
   };
+
+  // How a failure the *service* reports becomes words the learner can read. It
+  // sends a code rather than a sentence — it holds no learner-facing string of
+  // its own — and this is the one place a code turns into a key. A failure the
+  // *agent* reported carries its own text instead, which is evidence about that
+  // run rather than a string anybody chose, and is shown as it arrived.
+  //
+  // Key literals, like every other lookup in this file: the suite reads the
+  // codes out of the service and these out of here, and holds the table to
+  // having an entry for each.
+  var FAILED = {
+    'timeout': 'tutor.fail.timeout',
+    'agent-missing': 'tutor.fail.agent.missing'
+  };
+
   var START_CMD = 'node tutor/server.js';
+
+  /**
+   * The language this page declares, which is the same authority every label on
+   * it is looked up against.
+   *
+   * It rides the request because the answer is the one learner-facing thing the
+   * service produces, and nothing on that side of the socket can see a page.
+   * Read off the document rather than kept in a variable so that it is the same
+   * answer the lookup gets, from the same place, every time.
+   */
+  function pageLang() {
+    var root = document.documentElement;
+    var declared = root && root.getAttribute ? root.getAttribute('lang') : '';
+    return (declared || '').trim();
+  }
 
   var lessonPath = (function () {
     var m = location.pathname.match(/[^/]+$/);
@@ -912,6 +942,7 @@
       body: JSON.stringify({
         role: convo.role,
         threadId: convo.id,
+        lang: pageLang(),
         lesson: pagePath,
         selection: asked.selection,
         question: asked.question,
@@ -1009,9 +1040,24 @@
       } else if (name === 'error') {
         // The service is plainly up — it answered — so this is the Tutor
         // failing, and the widget stays online.
-        fail(say('tutor.fail.answer'), data.message);
+        fail(say('tutor.fail.answer'), failureWhy(data));
       }
     }
+  }
+
+  /**
+   * Why a request ended with no answer: in the learner's language when the
+   * service named a failure of its own, and in the agent's own words when the
+   * agent is what failed. A code nothing has an entry for says nothing at all,
+   * which leaves the headline — the same as a failure that came with no detail.
+   *
+   * `hasOwnProperty` rather than a truth test, so a code of `__proto__` finds
+   * nothing rather than reaching up an inherited chain.
+   */
+  function failureWhy(data) {
+    var code = data && typeof data.code === 'string' ? data.code : '';
+    if (code && Object.prototype.hasOwnProperty.call(FAILED, code)) return say(FAILED[code]);
+    return (data && data.message) || '';
   }
 
   /**

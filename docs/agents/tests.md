@@ -27,10 +27,10 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
-| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — and grades in a role composed from the Grader's own two files, never the Tutor's |
+| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
-| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, and nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded, in any language |
+| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, and every way the Tutor service can fail has words on the page to be read as |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
@@ -372,11 +372,19 @@ live in: scanned whole, every line of `zh-CN` would be a finding, so its bootstr
 and its table half is not. A Component's own header comment shows the markup an author writes,
 which makes that comment Maintainer-facing and therefore English like every other one.
 
-**Two consistency contracts here, both derived rather than listed**, and two more that arrive
-with the Tutor service: the Grader's refusal token, read out of the role definition that mandates
-it, and the service's stream-failure codes, read out of the service. Decision 30 describes all
-four as one set because they are one argument; only the two that need no service are in this
-suite yet.
+**Three consistency contracts here, all derived rather than listed**, and one more still to
+come: the Grader's refusal token, read out of the role definition that mandates it, which arrives
+with the ticket that translates the role definitions. Decision 30 describes all four as one set
+because they are one argument.
+
+The third is the service's. A stream can fail in ways that are the *service's* to name — the
+agent never started, the agent never finished — and it sends a code for those rather than a
+sentence, because a sentence there would be in one language, in a file every Workspace runs. So
+the codes are read out of `server.js`, the key each one is read as is read out of the drawer, and
+the entry behind that key out of the table. Its observer runs both ways: a code the service can
+send with no words behind it is a Learner told nothing, and an entry the service can never send
+is what a code renamed on one side leaves behind. Nothing about it needs a running service, which
+is why it sits here rather than in the service's own suite.
 
 Every key a Component asks for is read out of the Component's own source — the keys are written
 as literals under a namespace, and no source builds one by concatenation, which is what makes
@@ -413,6 +421,14 @@ Unit's prose, the Rubric it stores, the questions the drawer tests ask and the a
 receive are all non-English on purpose. They are the only coverage the pipeline has of handling
 bytes that are not ASCII — which is exactly the class of defect the verdict slug's hardcoded
 character range was. Anything added here should widen that rather than narrow it.
+
+**And one of them is deliberately neither Latin nor CJK.** `tutor-server.test.js` hands in two
+Assignments named in Cyrillic and in Devanagari, because those are the scripts the old slug threw
+away entirely: a character class written with two alphabets in it passes everything written in
+those two. The Devanagari one carries combining marks, which is the second half of the same
+lesson — a check that only ever sees scripts where a letter is one code point will not notice a
+pipeline dropping the parts of a letter. Widening the inputs means reaching for a script nothing
+here handles yet, not another sentence in one it already does.
 
 ## The navigation check
 

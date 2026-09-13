@@ -75,11 +75,61 @@ const MAX_HISTORY_CONTENT = 2000;
 const MAX_HISTORY_TOTAL = 6000;
 const MAX_THREAD_ID = 64;
 const MAX_BODY_BYTES = 128 * 1024;
-const CLAUDE_TIMEOUT_MS = 120_000;
+// How long an answer may take before the request is failed. Overridable for the
+// same reason the idle timeout is — a machine, or a suite, that needs a
+// different number should not have to edit this file to get one.
+const ANSWER_TIMEOUT_MS = Number(process.env.ANSWER_TIMEOUT_MS) || 120_000;
 const IDLE_TIMEOUT_MS = Number(process.env.IDLE_TIMEOUT_MS) || 8 * 60 * 60_000;
 
 const RECORDS_DIR = path.join(WORKSPACE_ROOT, 'learning-records');
 const QUESTION_LOG = path.join(RECORDS_DIR, 'questions.jsonl');
+
+// ---------------------------------------------------------------- language
+
+/**
+ * The one thing about a request the page decides, and the only Learner-facing
+ * consequence this file has.
+ *
+ * Everything else here is server-authoritative on purpose — a Rubric riding the
+ * request would change what a verdict *is*, which is why it does not. A
+ * language changes only which words the answer comes back in, so a page that
+ * lied about it would mistranslate its own screen and corrupt nothing. Decision
+ * 30 in docs/DECISIONS.md argues that difference. The page is also the only
+ * thing that knows: `<html lang>` is the single authority every label on it is
+ * looked up against, and nothing on this side of the socket can see it.
+ *
+ * Absent or malformed, English — the same floor the page's own lookup falls to.
+ */
+const DEFAULT_LANG = 'en';
+const MAX_LANG = 35;
+
+/**
+ * A BCP-47 tag, as narrowly as this file needs to read one: subtags of letters
+ * and digits, joined by hyphens. It is bounded rather than merely trimmed
+ * because it is interpolated into a prompt — anything a tag may not hold is a
+ * sentence somebody else wrote reaching the agent as an instruction.
+ */
+const LANG_TAG = /^[A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*$/;
+
+function languageOf(raw) {
+  const tag = typeof raw === 'string' ? raw.trim() : '';
+  return tag.length <= MAX_LANG && LANG_TAG.test(tag) ? tag : DEFAULT_LANG;
+}
+
+/**
+ * The single directive that names the language an answer must be in.
+ *
+ * It says so explicitly rather than letting the prompt's own language imply it,
+ * because everything around it is English and is going to stay English: what
+ * makes an answer the Learner's is an instruction the agent is given, not the
+ * language the scaffolding around it happens to be written in.
+ */
+function answerIn(lang) {
+  return (
+    `Answer in the language tagged ${lang} (BCP-47). That is the language the learner reads; `
+    + 'the language of this prompt says nothing about which one to answer in.'
+  );
+}
 
 // ---------------------------------------------------------------- roles
 
@@ -103,15 +153,15 @@ const ROLES = {
   tutor: {
     roleFile: 'ROLE.md',
     tuningFile: path.join('tutor', 'TUNING.md'),
-    replyLabel: '助教：',
+    replyLabel: 'Tutor: ',
     buildPayload({ page, selection, question, inlined, history }) {
       const parts = [];
       if (inlined) parts.push(inlined);
-      if (page) parts.push(`学生正在读这一课：${page}`);
-      if (selection) parts.push(`他选中了这段原文：\n"""\n${selection}\n"""`);
+      if (page) parts.push(`The learner is reading this lesson: ${page}`);
+      if (selection) parts.push(`They selected this passage:\n"""\n${selection}\n"""`);
       const transcript = renderHistory(history, this.replyLabel);
       if (transcript) parts.push(transcript);
-      parts.push(`他的问题：${question}`);
+      parts.push(`Their question: ${question}`);
       return parts.join('\n\n');
     },
   },
@@ -127,30 +177,32 @@ const ROLES = {
   grader: {
     roleFile: 'GRADER.md',
     tuningFile: path.join('tutor', 'GRADER-TUNING.md'),
-    replyLabel: '评分：',
+    replyLabel: 'Grader: ',
     records: true,
     buildPayload({ page, selection, question, inlined, history }) {
       const parts = [];
       if (inlined) parts.push(inlined);
       if (page) {
         parts.push(
-          `这份作业的页面是：${page}\n` +
-            '先把它读掉。里面有一段不渲染的 <script type="application/x-rubric"> 块，那就是这次要用的' +
-            '评分标准；页面上看不到它，学生也没见过。',
+          `The page this assignment is on: ${page}\n` +
+            'Read it first. It holds a <script type="application/x-rubric"> block, which is not ' +
+            'rendered: that block is the rubric to grade against. It is not on the page, and the ' +
+            'learner has never seen it.',
         );
       }
-      if (selection) parts.push(`他指着作业里的这一段：\n"""\n${selection}\n"""`);
+      if (selection) parts.push(`They are pointing at this part of the assignment:\n"""\n${selection}\n"""`);
       const transcript = renderHistory(history, this.replyLabel);
       if (transcript) parts.push(transcript);
 
       // A thread's first turn is the submission; everything after it is the
       // learner arguing with a verdict that is already on the record.
-      if (history && history.length) parts.push(`他对你刚才的判定还有话问：${question}`);
+      if (history && history.length) parts.push(`They have a question about the verdict you just gave: ${question}`);
       else {
         parts.push(
-          `这是他交上来的作业：\n"""\n${question}\n"""\n\n` +
-            '按页面里存着的 Rubric 判，别凭印象。提交里提到工作区里的文件或目录，自己去读——' +
-            '大件的成果通常在 submissions/ 底下。',
+          `This is what they handed in:\n"""\n${question}\n"""\n\n` +
+            'Judge it against the rubric stored in the page, not against an impression. If the ' +
+            'submission names a file or a directory in the workspace, go and read it — anything ' +
+            'too large for the box is usually under submissions/.',
         );
       }
       return parts.join('\n\n');
@@ -181,11 +233,22 @@ function sanitizeHistory(raw) {
   return turns;
 }
 
-/** Heading must match what the role definitions promise they will receive. */
+/**
+ * The replayed turns, under the heading the role definitions promise the agent
+ * it will receive them under. A short contract between two of the plugin's own
+ * files — this one and the role definition beside it — the same shape as the
+ * opening a refusal has to use.
+ *
+ * The role definitions are still written in the pilot Learner's language, so
+ * for the width of one ticket they name this heading in that language while
+ * this file writes it in English. Both say "the earlier turns of this
+ * conversation" to a reader that understands either; translating the
+ * definitions is what puts the two back into the same words.
+ */
 function renderHistory(history, replyLabel) {
   if (!history || !history.length) return '';
-  const lines = history.map((t) => (t.role === 'user' ? '学生：' : replyLabel) + t.content);
-  return `## 本次对话的前几轮\n\n${lines.join('\n\n')}`;
+  const lines = history.map((t) => (t.role === 'user' ? 'Learner: ' : replyLabel) + t.content);
+  return `## Earlier turns in this conversation\n\n${lines.join('\n\n')}`;
 }
 
 /** Read every role prompt at startup so a missing file fails loudly, not mid-question. */
@@ -226,8 +289,8 @@ function loadRolePrompts() {
  * Inlining them cuts several seconds off every single question.
  */
 const ALWAYS_INLINE = [
-  { file: 'NOTES.md', heading: '学生偏好与硬性禁忌（NOTES.md，已为你读好）' },
-  { file: 'MISSION.md', heading: '他为什么学这个（MISSION.md，已为你读好）' },
+  { file: 'NOTES.md', heading: 'What the learner prefers, and what is off limits (NOTES.md, read for you)' },
+  { file: 'MISSION.md', heading: 'Why they are learning this (MISSION.md, read for you)' },
 ];
 const MAX_INLINE_CHARS = 4000;
 
@@ -244,7 +307,7 @@ async function buildInlinedContext() {
     text = text.trim();
     if (!text) continue;
     if (text.length > MAX_INLINE_CHARS) {
-      text = text.slice(0, MAX_INLINE_CHARS) + '\n…（已截断，需要完整内容请自行读取该文件）';
+      text = text.slice(0, MAX_INLINE_CHARS) + '\n... (truncated — read the file itself for the whole of it)';
     }
     blocks.push(`## ${heading}\n\n${text}`);
   }
@@ -433,13 +496,31 @@ const RECORD_ATTEMPTS = 20;
  * a refusal is not evidence about the learner, and a learning record claiming
  * a verdict that was never reached is worse than no record — the next boot
  * sequence plans from these.
+ *
+ * It is also the last thing in this file written in a particular language, and
+ * the only one that may not be translated on its own: the role definition
+ * mandates this opening, so the pattern and the definition have to move
+ * together or refusals start landing as verdicts with nothing erroring.
  */
 const CANNOT_GRADE = /^无法判定[：:]/;
 
-/** `assignments/0003-pipe-audit.html` -> `0003-pipe-audit`. */
+/**
+ * `assignments/0003-pipe-audit.html` -> `0003-pipe-audit`.
+ *
+ * Any letter and any digit, in any script — `\p{L}\p{N}` rather than a range
+ * with two alphabets written into it. The range was the same defect a hardcoded
+ * string is, without being a string: a Cyrillic, Arabic or Devanagari name lost
+ * every character it had, so the slug collapsed to the fallback below and every
+ * verdict in such a workspace contended for one filename, with nothing erroring.
+ *
+ * Combining marks are kept with the letters they belong to. In Devanagari,
+ * Arabic or Thai a vowel sign is not decoration — dropping it rewrites the word
+ * and can make two different names into one slug, which is the same collision
+ * one rung quieter.
+ */
 function slugOf(page) {
   const base = path.basename(String(page || '')).replace(/\.[^.]*$/, '');
-  const slug = base.toLowerCase().replace(/[^a-z0-9一-鿿-]+/g, '-').replace(/^-+|-+$/g, '');
+  const slug = base.toLowerCase().replace(/[^\p{L}\p{N}\p{M}-]+/gu, '-').replace(/^-+|-+$/g, '');
   return slug || 'assignment';
 }
 
@@ -476,19 +557,25 @@ async function writeLearningRecord({ page, question, answer }) {
   try {
     const slug = slugOf(page);
     const excerpt = question.length > MAX_RECORD_EXCERPT
-      ? question.slice(0, MAX_RECORD_EXCERPT) + '…（已截断）'
+      ? question.slice(0, MAX_RECORD_EXCERPT) + '... (truncated)'
       : question;
 
-    // Provenance, not a claim about what was applied. The verdict itself is the
-    // body; this says only where it came from, so a record never asserts a
-    // rubric was used on the strength of the grader having answered.
+    // The shape formats/learning-record.md documents, with ASCII field keys:
+    // this file is read by the next boot sequence and by whoever writes a record
+    // by hand, not by the learner. The one thing in it that is theirs is the
+    // verdict, which the grader wrote in their language and which nothing here
+    // touches.
+    //
+    // Evidence is provenance, not a claim about what was applied. It says only
+    // where the verdict came from, so a record never asserts a rubric was used
+    // on the strength of the grader having answered.
     const body =
-      `# 作业判定：${slug}\n\n` +
+      `# Assignment verdict: ${slug}\n\n` +
       `${answer}\n\n` +
       '## Evidence\n\n' +
-      `- 作业：${page || '（提交时没有说是哪一份）'}\n` +
-      `- 提交：\n\n${excerpt.split('\n').map((line) => `  > ${line}`).join('\n')}\n\n` +
-      `- 判定：Grader 给出，${new Date().toISOString()}\n`;
+      `- Assignment: ${page || '(the hand-in did not say which one)'}\n` +
+      `- Submission:\n\n${excerpt.split('\n').map((line) => `  > ${line}`).join('\n')}\n\n` +
+      `- Verdict: reached by the Grader, ${new Date().toISOString()}\n`;
 
     await fsp.mkdir(RECORDS_DIR, { recursive: true });
     let n = await nextRecordNumber();
@@ -526,6 +613,7 @@ async function handleAsk(req, res) {
   if (body.threadId != null && typeof body.threadId !== 'string')
     return send(res, 400, 'application/json', JSON.stringify({ error: 'threadId must be a string' }));
 
+  const lang = languageOf(body.lang);
   const threadId = (body.threadId || '').slice(0, MAX_THREAD_ID).replace(/[^\w.:-]/g, '');
   const history = sanitizeHistory(body.history);
   // Counted before capping so the turn index stays true deep into a thread.
@@ -543,7 +631,13 @@ async function handleAsk(req, res) {
   // `lesson` on the wire and in the log, because that is what a tutor request
   // has always called it; `page` to the role, because a grader is handed an
   // assignment rather than a lesson and the field means "what is open".
-  const payload = spec.buildPayload({ page: lesson, selection, question, inlined, history });
+  //
+  // The language closes the payload rather than being woven through it: one
+  // directive, in one place, whichever role built everything above it.
+  const payload = [
+    spec.buildPayload({ page: lesson, selection, question, inlined, history }),
+    answerIn(lang),
+  ].join('\n\n');
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -576,7 +670,7 @@ async function handleAsk(req, res) {
   let finalText = '';
   let stderrBuf = '';
 
-  const finish = (status, extra) => {
+  const finish = (status, failure) => {
     if (finished) return;
     finished = true;
     clearTimeout(timer);
@@ -589,7 +683,7 @@ async function handleAsk(req, res) {
     };
 
     if (status !== 'done') {
-      sse(res, 'error', { message: extra || 'tutor failed', durationMs });
+      sse(res, 'error', { ...(failure || {}), durationMs });
       return close();
     }
 
@@ -620,7 +714,40 @@ async function handleAsk(req, res) {
     recording.then(deliver);
   };
 
-  const timer = setTimeout(() => finish('error', '老师思考超时（120 秒）'), CLAUDE_TIMEOUT_MS);
+  /**
+   * How a stream fails, from here: a `code` the page turns into words, or the
+   * agent's own text as `message`.
+   *
+   * A code because this file holds no learner-facing string — a sentence here
+   * would be in one language, and the page already has a table for every other
+   * thing a learner reads. The two codes are the two failures that are the
+   * *service's* to name: the agent never started, and it never finished.
+   *
+   * What the agent says when it fails is different in kind. It is evidence
+   * about that run rather than a string anybody chose, so it rides as `message`
+   * and the page shows it under the headline it looked up. When the agent says
+   * nothing at all there is nothing to show: the detail is the server's log,
+   * which is where a maintainer reads, and the learner is told the same thing
+   * either way.
+   *
+   * tests/language.test.js reads these codes out of this file and holds the
+   * page to having an entry for each, so a code added here without one is red.
+   */
+  const timer = setTimeout(() => finish('error', { code: 'timeout' }), ANSWER_TIMEOUT_MS);
+
+  /**
+   * A failure the agent reported, as the failure the page is sent.
+   *
+   * Its own words when it said any — bounded, because they are put in front of
+   * the learner — and nothing at all when it said none. `silence` is what goes
+   * in the server's log in that case: this file has no sentence of its own to
+   * offer, and inventing one would be writing a Learner-facing string here.
+   */
+  const whatTheAgentSaid = (text, silence) => {
+    const said = (typeof text === 'string' ? text : '').trim().slice(0, 400);
+    if (!said) console.error(`[tutor] ${silence}`);
+    return said ? { message: said } : {};
+  };
 
   // ---- NDJSON parsing. Verified event shapes:
   //   {"type":"stream_event","event":{"type":"content_block_delta",
@@ -660,7 +787,7 @@ async function handleAsk(req, res) {
         }
       } else if (obj.type === 'result') {
         if (obj.is_error) {
-          finish('error', obj.result || 'claude reported an error');
+          finish('error', whatTheAgentSaid(obj.result, 'claude reported an error and said nothing about it'));
           return;
         }
         if (typeof obj.result === 'string') finalText = obj.result;
@@ -671,12 +798,16 @@ async function handleAsk(req, res) {
   child.stderr.on('data', (c) => { stderrBuf += c.toString('utf8'); });
 
   child.on('error', (err) => {
-    finish('error', err.code === 'ENOENT' ? '找不到 claude 命令，请确认它在 PATH 中' : err.message);
+    if (err.code === 'ENOENT') return finish('error', { code: 'agent-missing' });
+    // Nothing the agent said: it never ran. The reason belongs to the platform,
+    // so it goes to the log, and the page is told only that no answer came.
+    console.error(`[tutor] could not run claude: ${err.message}`);
+    finish('error', {});
   });
 
   child.on('close', (code) => {
-    if (code === 0) finish('done');
-    else finish('error', stderrBuf.trim().slice(0, 400) || `claude exited with code ${code}`);
+    if (code === 0) return finish('done');
+    finish('error', whatTheAgentSaid(stderrBuf, `claude exited with code ${code} and wrote nothing to stderr`));
   });
 
   req.on('close', () => {

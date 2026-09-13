@@ -123,6 +123,8 @@
       'tutor.tool.bare': '📖 {name}',
       'tutor.fail.connect': 'Could not reach the tutor service.',
       'tutor.fail.answer': 'The tutor could not answer this one.',
+      'tutor.fail.timeout': 'It was still thinking when the time ran out.',
+      'tutor.fail.agent.missing': 'The claude command was not found — check that it is on your PATH.',
       'tutor.recorded': 'The verdict went into {record}; your teacher will read it next session.',
 
       /* answers pinned into the lesson */
@@ -288,6 +290,8 @@
       'tutor.tool.bare': '📖 {name}',
       'tutor.fail.connect': '没能连上老师服务。',
       'tutor.fail.answer': '老师这次没能答上来。',
+      'tutor.fail.timeout': '想得太久，超时了。',
+      'tutor.fail.agent.missing': '找不到 claude 命令，确认它在 PATH 里。',
       'tutor.recorded': '判定已记进 {record}，下次上课老师会读到。',
 
       'tutor.notes.heading': '📌 我钉住的问答',

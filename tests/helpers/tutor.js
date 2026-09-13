@@ -81,6 +81,10 @@ process.exitCode = Number(process.env.STUB_EXIT || 0);
   const slice = slices.shift();
   if (!slice) {
     if (process.env.STUB_STDERR) process.stderr.write(process.env.STUB_STDERR);
+    // An agent that never finishes, which is the only way to reach the
+    // service's own timeout from outside it. Held open by a timer rather than
+    // by a sleep, so the service killing it still ends the process at once.
+    if (process.env.STUB_HANG) setInterval(() => {}, 1000);
     return;
   }
   process.stdout.write(slice, () => setTimeout(next, SLICE_GAP_MS));
@@ -164,9 +168,16 @@ class TutorService {
    *           `null` installs no stub at all, leaving `claude` unfindable.
    *   exit    exit code for the stub (default 0)
    *   stderr  what the stub writes to stderr before exiting
+   *   hangs   the stub never exits, so the service's own answer timeout is the
+   *           only thing that can end the request
    *   idleTimeoutMs  how long the service tolerates having no requests
+   *   answerTimeoutMs  how long the service waits for an answer
    */
-  static async start(t, ws, { agent = [], exit = 0, stderr = '', idleTimeoutMs } = {}) {
+  static async start(
+    t,
+    ws,
+    { agent = [], exit = 0, stderr = '', hangs = false, idleTimeoutMs, answerTimeoutMs } = {},
+  ) {
     if (!ws.exists('tutor/server.js')) {
       throw new Error('TutorService.start: nothing installed at tutor/server.js — scaffold the Workspace first');
     }
@@ -191,8 +202,10 @@ class TutorService {
       STUB_TRANSCRIPT: transcriptFile,
       STUB_EXIT: String(exit),
       STUB_STDERR: stderr,
+      STUB_HANG: hangs ? '1' : '',
     };
     if (idleTimeoutMs != null) env.IDLE_TIMEOUT_MS = String(idleTimeoutMs);
+    if (answerTimeoutMs != null) env.ANSWER_TIMEOUT_MS = String(answerTimeoutMs);
 
     // A port is free until something else takes it, so losing the race is a
     // possibility rather than a defect. Try again on a different one.

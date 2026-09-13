@@ -23,6 +23,40 @@ Only include these when they add genuine value. Most records won't need them.
 - **Implications** — what this unlocks or rules out for future sessions. Worth recording when non-obvious.
 - **Handoff** — what they struggled with, which analogy actually landed, the next ZPD step, and any thread left open. Write this whenever a session ends mid-topic: it is what a fresh session reads to resume without re-interviewing the learner.
 
+## The record a verdict writes
+
+One record is written by a machine rather than by a session: when an assignment is handed in and
+the grader reaches a verdict, the tutor service writes that verdict into `learning-records/`
+before the page is told the answer. The session that set the assignment has ended by then, and
+the session that would have written this record has not started — see
+[TUTOR.md](../TUTOR.md#the-grader).
+
+It uses the template above, with the optional **Evidence** section filled in, because a verdict is
+a claim that may be revisited:
+
+```md
+# Assignment verdict: {the assignment page's name, as a slug}
+
+{the grader's verdict, in the learner's language, exactly as it was given}
+
+## Evidence
+
+- Assignment: assignments/0003-pipe-audit.html
+- Submission:
+
+  > what the learner handed in, quoted
+
+- Verdict: reached by the Grader, 2026-05-04T09:12:33.104Z
+```
+
+The title, the field keys and the timestamp are English and ASCII, because the reader of those is
+the next boot sequence and whoever maintains this — not the learner. The verdict between them is
+the learner's own language and is never touched.
+
+Evidence says where the verdict came from and not which criteria were applied: nothing at that
+point can check the latter. A refusal — a grader that found no rubric to judge against — writes no
+record at all.
+
 ## Numbering
 
 Scan `./learning-records/` for the highest existing number and increment by one.

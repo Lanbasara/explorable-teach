@@ -352,6 +352,42 @@ test('a failure offers a retry and the clipboard fallback, not a raw error strin
   assert.deepEqual(page.asked.map((a) => a.question), ['这段什么意思？', '这段什么意思？']);
 });
 
+test('a failure the service names is read out of the table, and one the agent names is not', async (t) => {
+  // Two different kinds of why, told apart by who said it. A failure the
+  // *service* reports arrives as a code, because the service holds no
+  // Learner-facing string — the words come from the table, like every other
+  // thing on this page. A failure the *agent* reported arrives as its own text,
+  // which is evidence about that run rather than a string anybody chose.
+  const failing = (data) => () =>
+    Promise.resolve({ ok: true, body: { getReader: () => readerFor([event('error', data)]) } });
+
+  const named = lesson(t, { reply: failing({ code: 'timeout', durationMs: 120_000 }) });
+  await ask(named);
+
+  assert.equal(named.text('.tutor-recover-say'), drawerSays('tutor.fail.answer'));
+  assert.equal(
+    named.text('.tutor-recover-why'),
+    drawerSays('tutor.fail.timeout'),
+    'a code the service sent should have been looked up',
+  );
+
+  const reported = lesson(t, { reply: failing({ message: 'rate limited', durationMs: 12 }) });
+  await ask(reported);
+  assert.equal(reported.text('.tutor-recover-why'), 'rate limited', 'what the agent said is shown as it said it');
+
+  // A code nothing has an entry for leaves the headline and no detail, which is
+  // what a failure with nothing to say about itself already looks like.
+  const unknown = lesson(t, { reply: failing({ code: 'something-later', durationMs: 12 }) });
+  await ask(unknown);
+  assert.equal(unknown.text('.tutor-recover-say'), drawerSays('tutor.fail.answer'));
+  assert.equal(unknown.queryAll('.tutor-recover-why').length, 0);
+
+  for (const page of [named, reported, unknown]) {
+    assert.ok(page.query('.tutor-retry'), 'every failure still offers the two ways onward');
+    assert.ok(page.query('.tutor-copyprompt'));
+  }
+});
+
 test('an answer can be copied and regenerated, alongside pinning it', async (t) => {
   const SECOND = '换个说法：`fork()` 把当前进程复制了一份。';
   const page = lesson(t, {

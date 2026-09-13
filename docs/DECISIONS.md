@@ -920,6 +920,37 @@ pseudolocale check draws that line by subtracting what the page said before anyt
 never has to name a selector, and a Component that replaced an authored sentence with one of its
 own still fails.
 
+**Refined while building it (#19).** Four things the service taught this decision, none of which
+change what it decided. Two of them revise the **Consequence** below rather than the decision
+itself: the slug's class gained one more category, and three of the four consistency checks that
+paragraph names are in place — the fourth, the refusal token, cannot land until the role
+definition that mandates it is translated, and moves with it.
+
+The language rides the request as *one* directive, appended after whatever the role built rather
+than woven through it — both roles then get the same sentence from the same place, and a payload
+naming the language twice is a payload with two things to keep in step. The tag is bounded to
+what BCP-47 may hold before it is interpolated: it is the one field on the request a page decides,
+and it reaches a prompt.
+
+A failure divides in two, and only one half is the service's to name. The agent never starting and
+the agent never finishing are the service's, and they arrive as `timeout` and `agent-missing` for
+the page to render out of the table. What the agent *said* when it failed is evidence about that
+run rather than a string anybody chose, so it rides as `message` and is shown as it arrived. Where
+the agent says nothing the service used to invent a sentence — `claude exited with code 3` — and
+now writes that to its own log instead, because the log is where a maintainer reads and the
+learner is told the same thing either way.
+
+`\p{L}\p{N}` — the class the consequence below names — was not enough for the slug on its own. A
+Devanagari name kept its consonants and lost
+every vowel sign, because those are marks rather than letters — the same collision one rung
+quieter, since two names differing only in their matras would land on one slug. Combining marks
+are kept with the letters they belong to.
+
+And "matches the documented Learning Record format" had nothing to match: the format document
+described records a Session writes and said nothing about the one the service writes. It now
+carries that shape — the title, the Evidence field keys, the timestamp — so the check reads the
+document rather than a copy of the record made in a test.
+
 **Consequence:** the server keeps no Learner-facing string. Its stream errors carry a `code` the
 drawer renders; the record it writes for a verdict uses ASCII field keys, because the Boot
 sequence reads it. `slugOf`'s character class — `[^a-z0-9\u4e00-\u9fff-]` — was the same defect

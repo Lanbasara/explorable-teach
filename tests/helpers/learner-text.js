@@ -150,6 +150,26 @@ function sentinel(text) {
   return text.replace(/[\x21-\x7e]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
 }
 
+/**
+ * Characters a Maintainer-facing string may carry beyond ASCII: the typographic
+ * punctuation this repo's English prose is written with. Everything else — a
+ * letter, a digit, an emoji — is a string that belongs in a table, or a
+ * Learner's language reaching somewhere only a Maintainer reads.
+ */
+const ENGLISH_PUNCTUATION = new Set([...'—–…‘’“”']);
+
+/**
+ * Every character of `text` that no English sentence would carry.
+ *
+ * Two suites read this differently and both need the same answer: one scans the
+ * scripts the plugin puts on a page, the other reads the payload the service
+ * builds and the record it writes. What counts as "still English" has to be one
+ * answer, or a string that fails one check passes the other.
+ */
+function notEnglish(text) {
+  return [...text].filter((c) => c.charCodeAt(0) > 0x7f && !ENGLISH_PUNCTUATION.has(c));
+}
+
 /** A whole table as sentinels, keeping each entry's `{name}` slots. */
 function pseudoTable(table) {
   const sentinels = {};
@@ -168,6 +188,7 @@ module.exports = {
   lookupSource,
   bootstrapSource,
   keysAskedBy,
+  notEnglish,
   pseudoTable,
   sentinel,
   SENTINEL,

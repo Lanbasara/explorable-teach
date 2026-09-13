@@ -75,6 +75,37 @@
   language needs no test rewritten. The drawer's fixture moved to `tests/helpers/drawer.js`, where
   the language suite can drive it too, and the fixture Unit's pages are now built *for* a language
   rather than *in* one.
+- **The tutor service holds no learner-facing string, and names the language an answer must be
+  in.** The language travels with each request — the page's own `<html lang>`, which is the same
+  authority every label on it is looked up against — and the payload closes with a single
+  directive naming it, so a tutor's answer and a grader's verdict reach the learner in their own
+  language. Everything the service itself writes is English: its logs, its comments and the
+  prompt scaffolding around the question. What makes an answer the learner's is the instruction
+  the agent is given, not the language of the scaffolding around it, and a request naming no
+  language is an English one.
+- **A stream failure carries a code rather than a sentence.** A timeout and a missing `claude`
+  binary are the two failures the service names for itself, and the page reads them out of the
+  same table everything else on it comes from. What the agent said on its way out is still shown
+  as it arrived — that is evidence about a run rather than a string anybody chose — and where the
+  agent says nothing at all the service writes that to its own log instead of inventing a sentence
+  for the learner to read. A check reads the codes out of the service, the key each is read as out
+  of the drawer, and holds the table to having words behind every one.
+- **A graded submission's record is written in the shape the format documents, with ASCII field
+  keys**, because the next boot sequence reads it and plans from it. The format document now
+  carries that shape — the title, the Evidence fields, the timestamp — so the two are held to each
+  other rather than agreeing by hand. The verdict inside the record is the learner's own language,
+  written by the grader, and is untouched.
+
+### Fixed
+
+- **A verdict's filename survives an assignment named in any script.** The slug was sanitised
+  against a character class with Latin and CJK written into it, so a Cyrillic, Arabic or
+  Devanagari name lost every character it had and collapsed to one constant: every verdict in such
+  a workspace then contended for a single filename, with nothing erroring — the same defect a
+  hardcoded string is, without being a string. It is any letter, any digit, and the combining
+  marks that belong to them, so two assignments named in scripts nobody anticipated get two
+  records. The suite hands in one Cyrillic and one Devanagari assignment, and says in
+  `docs/agents/tests.md` why those inputs are there.
 
 ## 0.3.0
 

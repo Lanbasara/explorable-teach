@@ -44,6 +44,17 @@ Anything added here follows that rule. Never assign markup, in this file or in a
 the fixture DOM the suite mounts pages in refuses `innerHTML` outright, which is where that rule
 is enforced rather than merely stated.
 
+**The answer is in the learner's language; everything around it is English.** The page sends the
+language it declares in `<html lang>` with each request, and the payload closes with one
+directive naming it — so a Tutor answer and a Grader verdict come back in the learner's language
+while the prompt scaffolding, the logs and the comments stay English for whoever maintains them.
+The service holds no string a learner could ever see: a failure that is the service's own to name
+— it could not start `claude`, or the answer never arrived — travels as a **code**, and the drawer
+reads it out of the same table every label on the page comes from. What the agent itself said on
+its way out is shown as it arrived, because that is evidence about a run rather than a string
+anybody chose. Decision 30 in `docs/DECISIONS.md` argues why the language is the one thing the
+page decides and everything else is the service's.
+
 ## The skill scaffolds it; the learner's study session owns it
 
 Artifacts persist across conversations. Processes belong to the learner, not to a conversation —
