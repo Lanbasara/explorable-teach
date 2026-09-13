@@ -371,6 +371,62 @@
   color: var(--accent-warm);
 }
 
+/* ---------- rendered answers ----------
+   A Tutor answers in Markdown and assets/rich-text.js turns it into nodes.
+   One set of rules for both places an answer appears — the drawer and the
+   pinned note in the lesson — so that saving an answer never degrades it. */
+
+.tutor-rich { white-space: normal; }
+.tutor-rich > :first-child { margin-top: 0; }
+.tutor-rich > :last-child { margin-bottom: 0; }
+
+.tutor-rich p { margin: 0 0 .7em; }
+.tutor-rich h1,
+.tutor-rich h2,
+.tutor-rich h3,
+.tutor-rich h4,
+.tutor-rich h5,
+.tutor-rich h6 {
+  margin: 1.1em 0 .45em;
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.tutor-rich ul,
+.tutor-rich ol { margin: 0 0 .7em; padding-left: 1.5em; }
+.tutor-rich li { margin: .15em 0; }
+
+.tutor-rich code {
+  font-family: var(--mono);
+  font-size: .86em;
+  background: var(--bg-card);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--accent-warm);
+}
+.tutor-rich pre {
+  margin: 0 0 .8em;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+/* A fenced block keeps its own line breaks; that is the whole point of it. */
+.tutor-rich pre code {
+  display: block;
+  padding: 0;
+  background: none;
+  color: var(--fg-dim);
+  font-size: 12.5px;
+  line-height: 1.65;
+  white-space: pre;
+}
+
+.tutor-rich strong { font-weight: 600; color: var(--fg); }
+.tutor-rich a { color: var(--accent); }
+
 /* ---------- pinned margin notes ---------- */
 
 .tutor-note {

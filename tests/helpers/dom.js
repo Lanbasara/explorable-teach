@@ -19,6 +19,11 @@
  * `innerHTML` throws on assignment, because shipped Components are required to
  * build nodes instead of splicing markup. A Component that needs something this
  * lacks should either be written in the subset or grow the subset on purpose.
+ *
+ * The one way to widen it per test is `Page.load(html, dir, { globals })`,
+ * which the Tutor's in-page drawer needs and no Component does — storage, a
+ * service to probe, a stream to read. Naming them at the call site keeps the
+ * default set bare, so a Component that starts reaching for one still throws.
  */
 
 const fs = require('node:fs');
@@ -546,11 +551,11 @@ class DomEvent {
  * so what runs is what a learner would actually be served.
  */
 class Page {
-  static load(html, assetsDir) {
-    return new Page(html, assetsDir);
+  static load(html, assetsDir, options) {
+    return new Page(html, assetsDir, options);
   }
 
-  constructor(html, assetsDir) {
+  constructor(html, assetsDir, { globals = {} } = {}) {
     this.assetsDir = assetsDir;
     this.document = parseHTML(html);
 
@@ -566,6 +571,13 @@ class Page {
       addEventListener: doc.addEventListener.bind(doc),
       removeEventListener: doc.removeEventListener.bind(doc),
       console,
+      // `globals` is how that "on purpose" is spelled. The Tutor's in-page
+      // drawer is not a Component: it stores threads, probes a service and
+      // reads a stream,
+      // so a test driving it has to supply those and say which ones it gave.
+      // Supplying one here rather than in the bare set above keeps the default
+      // honest — a Component that started reaching for storage still throws.
+      ...globals,
     };
     win.window = win;
     win.globalThis = win;

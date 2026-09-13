@@ -88,6 +88,7 @@ place "$TPL/agents/tutor.md"    ".claude/agents/tutor.md"
 
 # Page infrastructure: the widget, the nav bar, the bootstrap. The manifest is
 # the one file here that describes this course rather than any course.
+link  "$RUNTIME/assets/rich-text.js"   "assets/rich-text.js"
 link  "$RUNTIME/assets/tutor.js"       "assets/tutor.js"
 link  "$RUNTIME/assets/tutor.css"      "assets/tutor.css"
 link  "$RUNTIME/assets/nav.js"         "assets/nav.js"

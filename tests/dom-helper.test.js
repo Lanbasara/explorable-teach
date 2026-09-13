@@ -149,3 +149,20 @@ test('a throwing script fails the test rather than passing quietly', (t) => {
 
   assert.throws(() => page.script('broken.js'), /nope/);
 });
+
+test('a global reaches a script only when a test names it', (t) => {
+  const dir = assetsWith(t, 'stores.js', `
+    window.saw = typeof localStorage === 'undefined' ? 'nothing' : localStorage.getItem('k');
+  `);
+
+  // Bare by default, which is what keeps a Component honest about what it needs.
+  const bare = Page.load('<body></body>', dir);
+  bare.script('stores.js');
+  assert.equal(bare.window.saw, 'nothing');
+
+  const given = Page.load('<body></body>', dir, {
+    globals: { localStorage: { getItem: () => 'v' } },
+  });
+  given.script('stores.js');
+  assert.equal(given.window.saw, 'v');
+});

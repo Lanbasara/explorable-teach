@@ -27,6 +27,23 @@ to tune this toward "read less for lower latency" — a question containing 这�
 above" cannot be answered from the selection alone, and a wrong answer costs far more than two
 seconds.
 
+## How an answer reaches the page
+
+A Tutor writes Markdown — fenced code, bullets, inline code — so the drawer renders it as
+rich text through `assets/rich-text.js`, and renders a pinned answer through the same file, so
+saving an answer never degrades it.
+
+That renderer is the one piece of security-relevant client code on the page, and it is built to
+one rule: **an answer becomes nodes, never markup**. Every node comes from a fixed set of tags,
+every piece of the source arrives as text, and a link whose destination is not `http`, `https`
+or `mailto` stays in the answer as the text it was written as. An answer is generated text that
+has read the learner's Workspace, so a `<script>` in one is a sentence a learner reads rather
+than something the Lesson runs.
+
+Anything added here follows that rule. Never assign markup, in this file or in any Component:
+the fixture DOM the suite mounts pages in refuses `innerHTML` outright, which is where that rule
+is enforced rather than merely stated.
+
 ## The skill scaffolds it; the learner's study session owns it
 
 Artifacts persist across conversations. Processes belong to the learner, not to a conversation —

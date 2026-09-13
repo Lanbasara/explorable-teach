@@ -27,6 +27,8 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, and is safe to re-run either way |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
+| `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
+| `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer, and a pinned one, through that renderer |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
@@ -98,6 +100,11 @@ It is deliberately a subset, and it fails loudly rather than quietly when a Comp
 past that subset: an unsupported selector throws instead of matching nothing, and `innerHTML`
 throws on assignment, because a shipped Component must build nodes rather than splice markup.
 Grow the subset on purpose when a Component genuinely needs more.
+
+The window a script runs against is bare for the same reason, and `Page.load(html, dir, {
+globals })` is the one way to widen it for one test. The Tutor's in-page drawer needs storage, a
+service to probe and a stream to read; no Component needs any of them, so naming them at the call site is
+what keeps a Component that starts reaching for one throwing rather than quietly passing.
 
 `tests/helpers/lesson.js` holds the fixture Lesson — one page written the way the skill's
 Lesson template says to write one, using every shipped Component. Both `assets.test.js` and
@@ -184,6 +191,33 @@ enough gets the lot in one.
 starts. A port is picked by asking the OS for a free one — which makes it free a moment ago rather
 than reserved — so the fixture checks that the pid answering `/api/health` is the child it
 started, and retries on a different port rather than quietly driving somebody else's Workspace.
+
+## The answer renderer
+
+`assets/rich-text.js` is the one piece of security-relevant client code this plugin puts on a
+page, and it is written to be checkable: it takes a node factory and never names `document`. So
+`rich-text.test.js` loads it into a `vm` context holding nothing at all and renders through a
+factory of plain objects. A reach for a browser global throws there rather than in a learner's
+page, and the interface claim is asserted from both sides — the file is read for the names of
+browser globals, and a spy factory shows that every node came from it.
+
+Two claims, and the second is why the first is not done with a Markdown library and an
+`innerHTML` assignment. **Shape**: a heading is a heading, a fence is literal, a list is a list,
+an unterminated fence still renders — which every streamed answer is, for most of its life.
+**Inertness**: a table of sources a Tutor could be talked into writing is rendered, and the
+whole tree is walked for a tag outside the allowlist, an attribute outside it, an `on*` handler,
+or a destination a browser would run. Answers are generated text that has read the learner's
+Workspace, so "the source is trusted" is not a position available here.
+
+`tutor-drawer.test.js` holds the other half: that the drawer actually renders *through* it. It
+mounts `assets/tutor.js` in the fixture DOM against a scaffolded Workspace's `assets/`, with a
+stub that answers the health probe and streams the event shapes `server.js` emits, cut into
+chunks that fall mid-event. Then it asks a question the way a learner does — open the drawer,
+type, send — and reads the nodes back out of the thread, out of the pinned note in the Lesson,
+and out of a second mount sharing the first one's storage, which is what a reload is.
+
+That the drawer has to be *opened* before a question is asked is not ceremony: it is where the
+thread gets its id, and a test that skipped it found the thread was never persisted.
 
 ## The disclosure check
 
@@ -444,9 +478,11 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
 - **Neither timeout is exercised.** The 120-second answer timeout and a client that disconnects
   mid-answer are both real paths; only the idle shutdown is driven, and that one only in the
   direction that matters — a status probe must not keep an abandoned service alive.
-- **The in-page drawer is under no test.** `assets/tutor.js` consumes this stream, falls back to
-  the clipboard when the service is down, and renders what comes back; none of that is covered
-  here. The Tutor suite ends at the socket.
+- **The in-page drawer is covered only where it builds nodes.** `tutor-drawer.test.js` mounts
+  `assets/tutor.js` in the fixture DOM against a stub that streams the shapes `server.js` emits,
+  and holds the two paths that render an answer — the stream and a pinned answer read back. The
+  clipboard fallback when the service is down, the thread history, and the selection chip are
+  still under no test. The Tutor *service* suite still ends at the socket.
 - **The 4000-character cap on inlined `NOTES.md` and `MISSION.md` is not covered**, only the
   history caps beside it.
 - **The "exactly two Tutor facts" check cannot read a sentence.** Length is a proxy for whether

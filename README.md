@@ -113,6 +113,11 @@ inlined; the tutor goes and reads the lesson, the curriculum, or your learning r
 question actually demands it. A question containing "this bit" cannot be answered from the
 selection alone.
 
+**Answers render as rich text.** Code blocks, lists and inline code arrive as what they are
+rather than as one run of characters. The renderer builds nodes from a fixed set of tags and
+never assigns markup, so anything script-shaped in an answer reaches the page as text you read
+rather than as something the page runs.
+
 Two ways in, both reading `tutor/ROLE.md` and then `tutor/TUNING.md`, in that order, so neither
 is a downgrade:
 
@@ -136,8 +141,8 @@ clipboard prompt when it cannot reach `/api/health`, which is a normal state rat
 failure.
 
 Security: loopback-only bind, `spawn` with an argv array and no shell, path-traversal guards and
-an extension allowlist on static serving, input caps, and the tutor itself runs `--restricted`
-with only `Read`/`Glob`/`Grep`.
+an extension allowlist on static serving, input caps, answers rendered into nodes rather than
+markup, and the tutor itself runs `--restricted` with only `Read`/`Glob`/`Grep`.
 
 ### The tutor lives in the plugin; your workspace points at it
 

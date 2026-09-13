@@ -504,6 +504,44 @@ an explicit Workspace argument instead. The control script passes it; run by han
 falls back to its working directory, which is what keeps `node tutor/server.js` working from a
 Workspace root.
 
+## 25. A Tutor answer is rendered into nodes, by a renderer that takes its nodes as an argument
+
+**Decided:** the in-page drawer renders a Tutor's Markdown as rich text through
+`assets/rich-text.js`, which converts source text into a node tree and takes a node factory
+rather than reaching for `document`. Both paths that show an answer — the stream, and a pinned
+answer read back into the Lesson — go through one function in the drawer, which calls it.
+
+**Why at all:** every answer was inserted as plain text, so a code block, a list and a sentence
+arrived as one run of characters. On any subject involving code that is most of the Tutor's
+usefulness gone.
+
+**Why no library.** A Markdown library plus a sanitiser is two dependencies for a plugin that
+has none, in the one place on the page where generated text is turned into a document. The
+renderer is a few hundred lines and its whole security argument is structural: the only nodes
+that exist are the ones it builds from a fixed set of tags, so there is no markup-parsing step
+to get wrong and no sanitiser to fall behind. A link is the one place the source decides an
+attribute, and a destination that is not `http`, `https` or `mailto` stays in the answer as
+text.
+
+**Why a node factory.** This is the testability-driven interface choice: taking `{ element,
+text }` as an argument is what lets the whole renderer run in a context with no browser in it,
+which is where the inertness claims are checked. A renderer that could only be exercised in a
+page is a renderer whose guards nobody exercises. It also made the second claim cheap — every
+node came from the factory, so a spy sees all of them.
+
+**A rejected alternative:** rendering only the fenced blocks, which is the smallest change that
+answers the original complaint. It would have left lists and inline code collapsed, and would
+have needed the same "find the fence" scan; the rest is one evening and is the part a learner
+notices every answer rather than every third one.
+
+**Found while doing it:** the drawer was untestable and the suite said so — `docs/agents/tests.md`
+listed the in-page drawer as covered by nothing. The fixture DOM ran scripts against a
+deliberately bare window, which is right for a Component and wrong for a drawer that stores
+threads and reads a stream, so `Page.load` grew a `globals` option: named at the call site, so
+the default stays bare. Driving it then turned up an ordering fact worth writing down — a thread
+only gets an id when the drawer is opened, which a learner always does because the composer is
+inside it, but a test that skipped the step found the answer was never persisted.
+
 ---
 
 ## Where the full record lives

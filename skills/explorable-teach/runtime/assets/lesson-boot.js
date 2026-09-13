@@ -29,7 +29,8 @@
     document.head.appendChild(l);
   }
 
-  // Sequential: units.js defines the manifest nav.js reads, so order matters.
+  // Sequential: units.js defines the manifest nav.js reads, and tutor.js
+  // renders its answers with rich-text.js, so order matters.
   function chain(specs) {
     var spec = specs.shift();
     if (!spec) return;
@@ -47,6 +48,7 @@
   chain([
     { src: 'assets/units.js' },
     { src: 'assets/nav.js', unit: true },
+    { src: 'assets/rich-text.js' },
     { src: 'assets/tutor.js' },
   ]);
 })();

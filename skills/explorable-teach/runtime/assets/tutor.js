@@ -1,6 +1,6 @@
 /* ============================================================
    AI 问答助教 — in-page tutor widget
-   Requires: assets/tutor.css
+   Requires: assets/tutor.css, assets/rich-text.js
    Backend : tutor/server.js   ->  node tutor/server.js
    Degrades: if the server is unreachable (e.g. opened via file://),
              the send button becomes "copy a well-formed prompt".
@@ -122,6 +122,45 @@
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
+  }
+
+  // The nodes rich-text.js builds with. It never reaches for `document` itself,
+  // which is what lets it be tested without a browser.
+  var NODES = {
+    element: function (tag) { return document.createElement(tag); },
+    text: function (value) { return document.createTextNode(value); }
+  };
+
+  // The one place an answer becomes nodes. Every path that shows one — the
+  // stream, the thread restored from storage, a pinned answer read back into
+  // the lesson — goes through here, so none of them is a degraded version of
+  // the others.
+  //
+  // rich-text.js is loaded by lesson-boot.js, which carries on past a script
+  // that failed to load. If that happened, the answer is still shown, as the
+  // text it already was: a legible answer beats no answer.
+  function showRich(host, text) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    if (!window.RichText) return showPlain(host, text);
+
+    window.RichText.render(text, NODES).forEach(function (node) { host.appendChild(node); });
+    host.classList.add('tutor-rich');
+    return host;
+  }
+
+  // Everything that is not an answer: the learner's own question, an error.
+  function showPlain(host, text) {
+    host.classList.remove('tutor-rich');
+    host.textContent = text || '';
+    return host;
+  }
+
+  // The caret says the answer is still arriving, so it belongs at the end of
+  // the text rather than on a line of its own beneath it.
+  function markInFlight(host, caret) {
+    var last = host.childNodes[host.childNodes.length - 1];
+    if (last && /^(p|h[1-6])$/.test(last.localName || '')) last.appendChild(caret);
+    else host.appendChild(caret);
   }
 
   function loadNotes() {
@@ -394,7 +433,8 @@
     var wrap = el('div', 'tutor-msg ' + role);
     wrap.appendChild(el('div', 'tutor-msg-role', role === 'user' ? '你' : role === 'error' ? '出错' : '助教'));
     var body = el('div', 'tutor-msg-body');
-    body.textContent = text || '';
+    if (role === 'tutor') showRich(body, text);
+    else showPlain(body, text);
     wrap.appendChild(body);
     thread.appendChild(wrap);
     thread.scrollTop = thread.scrollHeight;
@@ -460,7 +500,7 @@
 
     var out = addMsg('tutor', '');
     var caret = el('span', 'tutor-caret');
-    out.body.appendChild(caret);
+    markInFlight(out.body, caret);
     var tools = null;
     var acc = '';
     var askedSelection = currentSelection;
@@ -498,7 +538,7 @@
     }).catch(function (err) {
       caret.remove();
       out.wrap.className = 'tutor-msg error';
-      out.body.textContent = '连接老师服务失败：' + err.message;
+      showPlain(out.body, '连接老师服务失败：' + err.message);
     }).then(function () {
       busy = false;
       sendBtn.disabled = false;
@@ -517,8 +557,12 @@
 
       if (name === 'delta') {
         acc += data.text || '';
-        out.body.textContent = acc;
-        out.body.appendChild(caret);
+        // Re-rendered whole rather than appended to: a fence, a list or a link
+        // only becomes what it is once the delta that closes it arrives. An
+        // answer is a few thousand characters, so this is tens of rebuilds of a
+        // small tree — cheap enough not to be worth a diffing scheme.
+        showRich(out.body, acc);
+        markInFlight(out.body, caret);
         thread.scrollTop = thread.scrollHeight;
       } else if (name === 'tool') {
         if (!tools) {
@@ -530,7 +574,7 @@
       } else if (name === 'done') {
         caret.remove();
         acc = data.answer || acc;
-        out.body.textContent = acc;
+        showRich(out.body, acc);
         // Recorded as a pair only on success, so history never holds a dangling turn.
         convo.turns.push({ role: 'user', content: question });
         convo.turns.push({ role: 'assistant', content: acc });
@@ -541,7 +585,7 @@
       } else if (name === 'error') {
         caret.remove();
         out.wrap.className = 'tutor-msg error';
-        out.body.textContent = data.message || '出错了';
+        showPlain(out.body, data.message || '出错了');
       }
     }
   }
@@ -596,7 +640,9 @@
       hd.appendChild(del);
       card.appendChild(hd);
       card.appendChild(el('div', 'tutor-note-q', 'Q: ' + n.q));
-      card.appendChild(el('div', 'tutor-note-a', n.a));
+      // Pinned answers render exactly as the live one did: saving an answer
+      // must not cost the learner the code blocks in it.
+      card.appendChild(showRich(el('div', 'tutor-note-a'), n.a));
       sec.appendChild(card);
     });
 

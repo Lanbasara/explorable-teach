@@ -4,6 +4,27 @@
 
 ### Changed
 
+- **The tutor's answers render as rich text.** Every answer used to be inserted as plain text, so
+  a code block, a bulleted list and a sentence all arrived as one run of characters — most of the
+  tutor's usefulness gone on any subject involving code. Headings, lists, inline code, fenced
+  code with its language, emphasis and links now render as what they are, in the drawer and in a
+  pinned answer alike, so saving an answer no longer degrades it. A half-streamed answer renders
+  too: an unterminated fence is still a code block rather than a wall of text. The renderer is
+  `assets/rich-text.js`, which the scaffold links into every workspace like any other invariant
+  file, and which is loaded before the drawer by the page bootstrap.
+- **Nothing in an answer reaches a position the page would execute.** The renderer builds nodes
+  from a fixed set of tags and never assigns markup, so `<script>` in an answer is a sentence the
+  learner reads; a link whose destination is not `http`, `https` or `mailto` stays in the answer
+  as the text it was written as, rather than quietly disappearing. No rendering or sanitising
+  dependency was added — the plugin still has none. The renderer takes a node factory rather than
+  reaching for `document`, which is what lets the whole of it, including those guards, be tested
+  in a context with no browser in it.
+- **The in-page drawer is under test for the first time.** It is mounted in the fixture DOM and
+  driven the way a learner drives it — open, type, send — against a stub that streams the event
+  shapes the server emits. The fixture DOM grew one option for it, `Page.load(html, dir, {
+  globals })`, so a drawer that needs storage or a stream can say so at the call site while the
+  window every component runs against stays bare.
+
 - **The tutor and the page infrastructure now live in the plugin, and a workspace links at
   them.** Every workspace used to hold its own copy of the server, the control script, the role
   prompt, the in-page widget, the nav bar, the page bootstrap, the shared stylesheet and the four
