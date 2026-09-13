@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 ### Changed
 
@@ -226,6 +226,21 @@
   rendered by the navigation bar and the unit manifest since they were written and defined
   nowhere, so the slot had nothing behind it; it now has a definition, and the choice between
   the three instruments is judged rather than guessed.
+- **The skill now carries the whole pedagogy in its own words, and needs nothing else
+  installed.** `SKILL.md` had been written as a diff against Matt Pocock's `teach` skill: one
+  heading named seven pedagogical topics — reference documents, the mission, the zone of proximal
+  development, knowledge, skills, wisdom, and the learner's recorded preferences — and its body
+  said only that the rules were the same as that skill's. That is the back half of the pedagogy,
+  and the teacher running this skill cannot open the document it pointed at: the pointer was a
+  path into a plugin cache, with a version number in it that changes on upgrade. It looked fine
+  because that plugin happened to be installed on the machine this was written on, so the defect
+  reproduced nowhere near the person who could fix it. All seven are now stated in the skill in
+  this project's own words, no
+  document under the skill names that project, and the notes one author had left another about
+  which passages override it are gone — a teacher that reads "this deliberately overrides X"
+  behaves exactly like one that does not. The acknowledgement stays in the README, where a human
+  reads it and nothing at runtime depends on it, and `tests/decoupling.test.js` fails any line
+  under the skill that reaches for that project again.
 
 ### Removed
 
@@ -282,6 +297,20 @@
   merely read. Naming an `assets/…` path in a document is now a promise the suite enforces:
   it must exist in a scaffolded workspace. `docs/agents/tests.md` explains how to build on
   all of it, and is explicit about what the suite does *not* cover.
+- **A glossary, and a record of why any of this works the way it does.** `CONTEXT.md` fixes the
+  words — workspace, unit, lesson, exercise, checkpoint, assignment, rubric, submission, teacher,
+  tutor, grader, session, handoff — each with the near-synonyms it is *not*, because two names for
+  one thing is how a document starts disagreeing with itself. `docs/DECISIONS.md` is the other
+  half: what was decided, what was rejected, and why, including the reasoning from before this
+  project had version control, reconstructed from the session transcript and labelled as such
+  where it is thin. It is one narrative rather than numbered decision records, because these
+  decisions are chained — later ones revise earlier ones — and splitting them would cut the chain.
+  `AGENTS.md` points at both, so an agent arriving cold finds the vocabulary before it writes in
+  it.
+- **A release check.** `tests/release.test.js` holds `.claude-plugin/plugin.json` to the
+  changelog: the version the plugin declares is the newest one the changelog records, releases
+  read newest-first and appear once, and a version heading with nothing under it fails — that is a
+  record that something shipped without a record of what.
 
 ## 0.2.1
 

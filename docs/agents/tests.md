@@ -30,6 +30,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — and grades in a role composed from the Grader's own two files, never the Tutor's |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
+| `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
@@ -427,6 +428,30 @@ sentences naming `explorable-teach` itself must still be ignored.
 The README is checked for the opposite thing. What the rebuild removed is the runtime dependency,
 not the debt — so the acknowledgement has to stay somewhere a human reads, and the check fails if
 it goes missing.
+
+## The release check
+
+`CHANGELOG.md` says what shipped and `.claude-plugin/plugin.json` says what a learner installs, and
+the two are written at different moments by different hands. `release.test.js` holds them together:
+the newest version heading in the changelog must be the version the manifest declares. Cutting a
+release heading and forgetting the bump is the ordinary way that drifts, and the result is a
+changelog describing a version nobody can install.
+
+Two smaller promises ride along. Version headings appear once and read newest-first, because a
+version written twice splits one release across two places and a list out of order stops answering
+"what is current?" from its first line. And a version heading with nothing under it fails — that is
+a record that something shipped without a record of *what*, which is the only thing the file is for.
+
+`## Unreleased` is deliberately not a release. Entries wait there between releases, so the check
+reads it as a waiting-room; the day it is mistaken for a version is the day an unbumped manifest
+starts passing. That the reader can tell the two apart is checked on a synthetic changelog holding
+one of each.
+
+**Every assertion here is over a list, so the guard goes inside each test rather than once beside
+them.** An empty list has no duplicate version, no version out of order and no empty release
+section — three of the four tests pass for free the moment the reader stops recognising a heading,
+and the first review of this file caught exactly that. `shipped()` asserts the list is non-empty
+and then returns it, so a test that reads the changelog cannot skip the guard on the way.
 
 ## Two rules for adding tests
 

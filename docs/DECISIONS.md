@@ -245,6 +245,17 @@ reads first is what it attends to; a Session that had to wade through a Componen
 operations runbook to find out what to do first would sometimes not do it. The Boot sequence is
 what every Session actually does, so it goes where every Session actually looks.
 
+**Rejected: letting Lesson go on naming both things.** It was already doing two jobs — the HTML
+file you read, and the whole increment a Session delivers — so "one lesson per session" meant
+either "one file" or "one teaching increment" depending on who read it, and the Checkpoint and
+the Assignment had nowhere to hang. The cheapest fix is to keep one word and say which job it is
+doing each time, which is the arrangement that produced the ambiguity in the first place.
+
+**Rejected: Module, Chapter, Topic.** All three are borrowed from a book's table of contents, and
+decision 1 is that a curriculum is ordered by dependency between ideas rather than by anyone's
+contents page. A name that imports the wrong ordering is not a neutral label. `CONTEXT.md` keeps
+all three on Unit's avoid-list for that reason.
+
 **Consequence:** "one lesson per session" became "one Unit per Session", which is a different
 promise — a teaching increment rather than a file.
 
@@ -263,8 +274,26 @@ does when it caches a fact it does not own.
 **Rejected:** keeping it as a convenience alias. Two similarly-named entry points is exactly the
 choice the learner was being asked to make and had no basis for making.
 
+**Rejected: keeping the command and fixing its documentation instead.** The drift was the visible
+symptom and the cheap fix was to correct the prose, which is what a maintainer reaches for first.
+It would not have held. The command's text described what the scaffold installs, and a document
+that caches a fact it does not own drifts again the next time the fact moves — the same defect
+decision 20 later removed the Workspace file map for, and the same one `skill-spine.test.js` now
+fails a document over. Deleting the second copy is what stops it recurring; correcting it only
+resets the clock.
+
+**Rejected: keeping the command and moving the scaffold out of the skill.** Splitting the other
+way — the skill teaches, the command sets up — reads tidy and reinstates the failure decision 12
+was written against: a learner who never ran the command gets a Session booting onto a Workspace
+that has no files in it. The step has to run whether or not anyone remembers it, and only the
+Boot sequence runs unconditionally.
+
 **Consequence:** `skill-spine.test.js` now fails a document that names two or more of the
 scaffold's template paths. One is a reference; two is a copy of a list the document does not own.
+
+**Amended by 23:** "when the Workspace is bare" did not survive. The scaffold now runs on *every*
+Session, because the links it re-points are how a Workspace follows the plugin across an upgrade,
+and a step gated on emptiness would have stranded every Workspace that already had files in it.
 
 ## 18. Three assessment instruments, separated by three axes
 
@@ -724,6 +753,67 @@ most likely to be pasted into is the teacher that wrote the assignment. The alte
 the prompt now names the subagent and says not to grade it yourself. Worth recording because it is
 the shape the mistake takes: the rule was enforced everywhere the code runs and then given away in
 a sentence addressed to a reader.
+
+## 29. The skill carries the whole pedagogy, rather than pointing at the skill it grew out of
+
+**Decided:** every pedagogical rule this project runs on is stated in this project's own words
+inside `skills/explorable-teach/`, and no document under that directory names the project it grew
+out of — Matt Pocock's `teach` skill. The acknowledgement moves to the README, where a human reads
+it and no agent depends on it. (`242ef11`)
+
+**Numbered here, decided earlier.** This one belongs between decisions 15 and 16 by date — it
+landed before the Unit was named — but the entries are numbered in the order they were written
+down and a dozen later entries refer to their neighbours by number, so inserting it in its
+chronological place would renumber the references that hold the chain together. The record grows
+at the end; time is what the commit hash is for.
+
+**Why:** `SKILL.md` had been written as a diff against another author's skill. One heading named
+seven pedagogical topics — reference documents, the Mission, the zone of proximal development,
+knowledge, skills, wisdom, and recorded learner preferences — and its body said, in full, that the
+rules were the same as that skill's. Those seven are the back half of the pedagogy. An agent
+running this skill has no way to open the other one: the pointer was a filesystem path into a
+plugin cache, with a version number in it that changes on upgrade.
+
+**Why it was invisible.** That plugin was installed on the machine this was written on, so the
+Teacher there could stumble into reading it and often did. The plugin therefore worked for exactly
+one person and read as though it worked for everyone — which is the same shape as decision 13,
+where correct behaviour turned out to depend on whether auto-memory happened to be populated. A
+defect that cannot reproduce where it is being worked on is the kind that ships.
+
+**Rejected: keeping the pointer and telling the Teacher to read that document if it is there.**
+This is the smallest change and it preserves the defect exactly. Behaviour that varies with what
+else the learner happens to have installed is the problem; making the variance conditional and
+explicit documents it rather than removing it.
+
+**Rejected: declaring a dependency on the other plugin.** There is no mechanism for one plugin to
+require another, and inventing one out of prose — "install this first" in a README — puts a
+teaching session's correctness on an install order nobody verifies. It would also tie this
+project's upgrades to someone else's release schedule for material that is by now edited well
+away from where it started.
+
+**Rejected: vendoring that document into this plugin.** Copying it in would have satisfied the
+letter of self-containment in an afternoon and left a second copy of someone else's document to
+drift against its original — the defect this project keeps finding under other names (decision 14,
+decision 24). Absorbing it means the passages are now *this* project's to edit, which is what the
+rest of the rebuild then did to most of them.
+
+**Also removed: the meta-commentary.** Lines like "this deliberately overrides the upstream skill"
+are behaviourally inert — a Teacher that reads one behaves exactly like a Teacher that does not,
+because the rule beside it already says what to do. They were notes from one author to another,
+sitting in a document read by neither.
+
+**This is the expand half of an expand–contract.** The document grew by absorbing what it had been
+deferring, and grew past what any one Session should read; decisions 19 and 20 are the contract
+half, and they could not have run first. What is disclosed behind a pointer has to exist in this
+repo before it can be moved.
+
+**Consequence:** `decoupling.test.js` reads every file under the skill and fails a line that names
+that project — by name, by author, by a "same rules as" deferral, or by a path into a plugin cache
+— so the decoupling is enforced rather than merely done. The check is guarded from both sides:
+every reference this repo actually carried must still be recognised, and sentences naming
+`explorable-teach` itself must still be ignored, because `teach` is a verb this repo uses in
+almost every paragraph. The README is checked for the opposite thing. What the rebuild removed is
+the runtime dependency, not the debt.
 
 ---
 

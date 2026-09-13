@@ -21,13 +21,15 @@ mkdir learn-rust && cd learn-rust
 /explorable-teach             # deliver the next unit
 ```
 
-One command, every time. On the first run in an empty directory it scaffolds the workspace,
-works out what you are here for, and plans the course; on every run after that it opens by
-reading the workspace back and teaches from where you actually are.
+One command, every time. Every run opens by scaffolding — not just the first: nothing you wrote is
+ever overwritten, and it is how a workspace already in use catches up with a newer plugin. Then it
+reads the workspace back. On the first run there is nothing there to read, so it works out what
+you are here for and plans the course; after that it teaches from where you actually are.
 
 ## What a workspace looks like
 
 ```
+index.html            the dossier — the one page every unit is reachable from
 MISSION.md            why you are learning this — every lesson traces back here
 CURRICULUM.md         the plan, and progress markers on it
 RESOURCES.md          high-trust primary sources
@@ -222,7 +224,8 @@ document resolves — including the heading it names — every `assets/…` path
 exists in a scaffolded workspace, the scaffold is safe to re-run against a workspace you have
 already put work into, the lesson bootstrap tag lands exactly once, and the skill still opens
 on the boot sequence with its reference material behind pointers rather than in front of the
-steps. The shipped components are mounted in a hand-written
+steps, and the version the plugin declares is the one the changelog most recently shipped. The
+shipped components are mounted in a hand-written
 DOM and actually driven — answered, stepped, reordered — rather than merely read, and every
 artifact of a unit is checked to be reachable from every other one.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
