@@ -24,6 +24,32 @@
   var busy = false;
   var currentSelection = '';
 
+  // How often to ask again for a service that was not there. The learner starts
+  // it by hand, usually after the Lesson is already open, so the question is
+  // "how long does a start take to notice", not "how cheap is the request".
+  var HEALTH_POLL_MS = 4000;
+
+  // The wait, in the three stages a learner can tell apart: the service has the
+  // question, the Tutor is reading the Workspace, the answer is arriving.
+  // Without them a ten-second wait and a hang look identical, which is the
+  // whole complaint.
+  //
+  // They are an order a request usually passes through, not one it is held to.
+  // A Tutor writes a sentence, goes and reads another Lesson, then writes more
+  // — the service emits that as open, delta, tool, delta — so the row reports
+  // what is happening *now* rather than how far the request has got. Mid-answer
+  // is where that earns its keep: the text stops growing, and the learner is
+  // told it went to read something rather than left to guess at a stall.
+  var STAGES = {
+    accepted: '老师已接到问题，正在启动…',
+    reading: '老师正在读教案…',
+    answering: '老师正在作答…'
+  };
+  // What the row says before the service has said anything. It is the same
+  // stage — the question is away — but the claim that the service *has* it
+  // waits for the service to say so, which is what the `open` event is.
+  var SENDING = '正在发送…';
+
   // One thread = one line of questioning. Turns ride along in each request
   // (bounded replay), so the server stays stateless and never resumes a session.
   var convo = { id: null, selection: null, turns: [] };
@@ -100,7 +126,9 @@
         addMsg('user', t.content);
       } else {
         var m = addMsg('tutor', t.content);
-        (function (q, a) { addPin(m.wrap, q, function () { return a; }); })(lastQ, t.content);
+        (function (q, a) {
+          addActions(m.wrap, askedAbout(q, convo.selection), function () { return a; });
+        })(lastQ, t.content);
       }
     });
   }
@@ -267,16 +295,45 @@
 
   // ---------------------------------------------------------------- health
 
+  // The service is started by hand, and usually after the Lesson is already
+  // open. Probing once at mount meant the widget said "start it and reload" and
+  // then stayed offline however long the learner looked at it — the one state
+  // the page could not get itself out of. So it keeps asking while it is
+  // offline, and stops the moment it is not.
+
+  var healthTimer = null;
+
   function probe() {
     if (!/^https?:$/.test(location.protocol)) return setOffline();
     fetch('/api/health', { method: 'GET' })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
       .then(function (j) { if (j && j.ok) setOnline(); else setOffline(); })
-      .catch(setOffline);
+      .catch(function () { setOffline(); });
   }
 
+  // Nothing to wait for on file:// — there is no service that could come up,
+  // so the offline state there is final rather than pending.
+  function watchHealth() {
+    if (healthTimer || !/^https?:$/.test(location.protocol)) return;
+    healthTimer = setInterval(probe, HEALTH_POLL_MS);
+  }
+
+  function unwatchHealth() {
+    if (!healthTimer) return;
+    clearInterval(healthTimer);
+    healthTimer = null;
+  }
+
+  // Both are written idempotently, because once it is polling they are called
+  // every few seconds: a header rebuilt on every probe would stomp the "✓ 已复制"
+  // the learner is still reading.
+  var shown = '';
+
   function setOnline() {
+    unwatchHealth();
     online = true;
+    if (shown === 'online') return;
+    shown = 'online';
     status.textContent = '在线';
     status.className = 'tutor-status live';
     sendBtn.textContent = '发送';
@@ -285,6 +342,9 @@
 
   function setOffline() {
     online = false;
+    watchHealth();
+    if (shown === 'offline') return;
+    shown = 'offline';
     status.textContent = '离线';
     status.className = 'tutor-status off';
     sendBtn.textContent = '📋 复制提问';
@@ -292,7 +352,7 @@
     hint.appendChild(document.createTextNode('老师服务未启动。在教案目录运行 '));
     var c = el('code', null, START_CMD);
     hint.appendChild(c);
-    hint.appendChild(document.createTextNode(' 后刷新，即可在页面内直接问答。'));
+    hint.appendChild(document.createTextNode('，启动后这里会自己连上。'));
   }
 
   // ---------------------------------------------------------------- open/close
@@ -431,7 +491,7 @@
 
   function addMsg(role, text) {
     var wrap = el('div', 'tutor-msg ' + role);
-    wrap.appendChild(el('div', 'tutor-msg-role', role === 'user' ? '你' : role === 'error' ? '出错' : '助教'));
+    wrap.appendChild(el('div', 'tutor-msg-role', role === 'user' ? '你' : '助教'));
     var body = el('div', 'tutor-msg-body');
     if (role === 'tutor') showRich(body, text);
     else showPlain(body, text);
@@ -441,8 +501,35 @@
     return { wrap: wrap, body: body };
   }
 
-  function addPin(wrap, question, getAnswer) {
-    var btn = el('button', 'tutor-pin', '📌 钉住');
+  // ---------------------------------------------------------------- actions
+  // What a learner can do with an answer once it has landed. Pinning keeps it
+  // in the Lesson, copying takes it out of the Workspace, and regenerating says
+  // the answer was understood and still did not help.
+
+  function addActions(wrap, asked, getAnswer) {
+    var row = el('div', 'tutor-actions');
+    row.appendChild(pinButton(asked.question, getAnswer));
+    // The answer as the Tutor wrote it — Markdown, not the nodes it became, so
+    // what lands in the clipboard is what any other tool can read back.
+    row.appendChild(copyButton('tutor-copy', '📋 复制', getAnswer));
+
+    var again = againButton('tutor-regen', '↻ 重答', wrap, asked, function () {
+      dropTurn(asked.question, getAnswer());
+    });
+    again.title = '让老师换一种说法重答';
+
+    // Regenerating belongs to the answer at the end of the thread and to no
+    // other: replacing one with answers already below it would leave those
+    // answering a question that is no longer above them.
+    var earlier = thread.querySelectorAll('.tutor-regen');
+    for (var i = 0; i < earlier.length; i++) earlier[i].remove();
+
+    row.appendChild(again);
+    wrap.appendChild(row);
+  }
+
+  function pinButton(question, getAnswer) {
+    var btn = el('button', 'tutor-act tutor-pin', '📌 钉住');
     btn.addEventListener('click', function () {
       if (btn.classList.contains('pinned')) return;
       var notes = loadNotes();
@@ -452,20 +539,98 @@
       btn.textContent = '✓ 已钉住';
       renderNotes();
     });
-    wrap.appendChild(btn);
+    return btn;
+  }
+
+  /**
+   * Asking the same question a second time — an answer the learner turned down,
+   * or a request that produced none. One button, because the two differ only in
+   * what they are replacing.
+   *
+   * `discard` runs last of the checks and first of the work: what is being
+   * replaced is given up only once the replacement is actually going. A service
+   * that stopped between the answer and the click would otherwise cost the
+   * learner the thing they still had — the answer, or the offline fallback
+   * sitting in the same row as this button.
+   */
+  function againButton(cls, label, wrap, asked, discard) {
+    var btn = el('button', 'tutor-act ' + cls, label);
+    btn.addEventListener('click', function () {
+      if (busy) return;
+      if (!online) return flash(btn, '服务未启动', label);
+      if (discard) discard();
+      wrap.remove();
+      ask(asked, { quiet: true });
+    });
+    return btn;
+  }
+
+  // One clipboard path for everything the drawer copies: an answer, and the
+  // well-formed prompt that both the offline composer and a failed request
+  // offer.
+  function copyButton(cls, label, getText) {
+    var btn = el('button', 'tutor-act ' + cls, label);
+    btn.addEventListener('click', function () {
+      copyText(getText(), function () { flash(btn, '✓ 已复制', label); });
+    });
+    return btn;
+  }
+
+  /** Say something on the button itself, then give it its name back. */
+  function flash(btn, say, label) {
+    btn.textContent = say;
+    setTimeout(function () { btn.textContent = label; }, 1600);
+  }
+
+  // Reached through `window` rather than named bare, so a window without it is
+  // a falsy value here rather than a ReferenceError — which is what the window
+  // the suite mounts this in deliberately is.
+  function copyText(text, done) {
+    var nav = window.navigator;
+    if (nav && nav.clipboard && nav.clipboard.writeText) {
+      nav.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  // Regenerating replaces an answer rather than adding one, so the pair it
+  // replaces leaves the thread with it — otherwise the replay riding along with
+  // the next question would carry the answer the learner just rejected.
+  function dropTurn(question, answer) {
+    var n = convo.turns.length;
+    if (n < 2) return;
+    var answered = convo.turns[n - 1];
+    var wasAsked = convo.turns[n - 2];
+    if (answered.role !== 'assistant' || answered.content !== answer) return;
+    if (wasAsked.role !== 'user' || wasAsked.content !== question) return;
+    convo.turns.length = n - 2;
+    persistConvo();
+    renderHistory();
   }
 
   // ---------------------------------------------------------------- send
 
-  function buildCopyPrompt(question) {
+  /**
+   * A question and the passage it was about. The two travel together everywhere
+   * a question can be asked a second time, because a retry has to ask about the
+   * passage the question was about rather than about whatever happens to be
+   * selected by the time it is clicked — and two bare strings side by side are
+   * two strings a caller can swap.
+   */
+  function askedAbout(question, selection) {
+    return { question: question, selection: selection || '' };
+  }
+
+  function buildCopyPrompt(asked) {
     var parts = ['我正在读这一课：lessons/' + lessonPath];
-    if (currentSelection) parts.push('选中的原文：\n"""\n' + currentSelection + '\n"""');
+    if (asked.selection) parts.push('选中的原文：\n"""\n' + asked.selection + '\n"""');
     if (convo.turns.length) {
       parts.push('我们前面已经聊过：\n' + convo.turns.slice(-SEND_LAST_TURNS).map(function (t) {
         return (t.role === 'user' ? '我：' : '助教：') + t.content;
       }).join('\n\n'));
     }
-    parts.push('我的问题：' + question);
+    parts.push('我的问题：' + asked.question);
     parts.push('（请以问答助教的身份回答：先读 NOTES.md 和 MISSION.md 了解我的偏好和目标，渐进式披露，只讲我问的这一点。）');
     return parts.join('\n\n');
   }
@@ -475,16 +640,9 @@
     if (!question || busy) return;
 
     if (!online) {
-      var prompt = buildCopyPrompt(question);
-      var done = function () {
-        sendBtn.textContent = '✓ 已复制';
-        setTimeout(function () { sendBtn.textContent = '📋 复制提问'; }, 1600);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(prompt).then(done, function () { fallbackCopy(prompt, done); });
-      } else {
-        fallbackCopy(prompt, done);
-      }
+      copyText(buildCopyPrompt(askedAbout(question, currentSelection)), function () {
+        flash(sendBtn, '✓ 已复制', '📋 复制提问');
+      });
       addMsg('user', question);
       convo.turns.push({ role: 'user', content: question });
       persistConvo();
@@ -493,17 +651,68 @@
       return;
     }
 
+    input.value = '';
+    ask(askedAbout(question, currentSelection), {});
+  }
+
+  /**
+   * One question, from the request to whatever it ends in.
+   *
+   * `quiet` is set when the same question is being asked a second time — a
+   * retry after a failure, or a regenerate. The learner asked once, so the
+   * thread says so once.
+   */
+  function ask(asked, options) {
+    var opts = options || {};
+    if (busy || !online) return;
+
     busy = true;
     sendBtn.disabled = true;
-    addMsg('user', question);
-    input.value = '';
+    if (!opts.quiet) addMsg('user', asked.question);
 
     var out = addMsg('tutor', '');
     var caret = el('span', 'tutor-caret');
     markInFlight(out.body, caret);
+
     var tools = null;
     var acc = '';
-    var askedSelection = currentSelection;
+    var settled = false;
+    var stopped = false;
+    var reader = null;
+    // Shown at once, because the click has to have an effect immediately. What
+    // it says until `open` arrives is only that the question was sent.
+    var progress = addProgress(out.wrap, out.body, stop);
+
+    // The request's hold on the drawer, given back: the clock stops, the caret
+    // goes, the composer is free again. Not "the answer arrived" — a stop and a
+    // failure both end here too.
+    function endRequest() {
+      if (settled) return;
+      settled = true;
+      progress.end();
+      if (caret.parentNode) caret.remove();
+      busy = false;
+      sendBtn.disabled = false;
+    }
+
+    // Letting the stream go is what stops the work: the service kills its agent
+    // when the request closes, so there is nothing to tell it here.
+    function stop() {
+      if (settled) return;
+      stopped = true;
+      if (reader && reader.cancel) { try { reader.cancel(); } catch (e) { /* already closed */ } }
+      endRequest();
+      out.wrap.classList.add('stopped');
+      // Whatever arrived before the stop stays: half an answer is still an answer.
+      offerRecovery(out.wrap, '已停止。', '', asked);
+    }
+
+    function fail(headline, detail) {
+      if (settled || stopped) return;
+      endRequest();
+      out.wrap.classList.add('failed');
+      offerRecovery(out.wrap, headline, detail, asked);
+    }
 
     fetch('/api/ask', {
       method: 'POST',
@@ -512,13 +721,18 @@
         role: 'tutor',
         threadId: convo.id,
         lesson: 'lessons/' + lessonPath,
-        selection: askedSelection,
-        question: question,
+        selection: asked.selection,
+        question: asked.question,
         history: convo.turns.slice(-SEND_LAST_TURNS)
       })
     }).then(function (res) {
       if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
-      var reader = res.body.getReader();
+      reader = res.body.getReader();
+      // Stopped while the response was still on its way. The reader is taken
+      // anyway, because cancelling it is what closes the connection — and that
+      // connection closing is the only thing the service is watching.
+      if (stopped) return reader.cancel();
+
       var decoder = new TextDecoder();
       var buf = '';
 
@@ -536,16 +750,20 @@
       }
       return pump();
     }).catch(function (err) {
-      caret.remove();
-      out.wrap.className = 'tutor-msg error';
-      showPlain(out.body, '连接老师服务失败：' + err.message);
-    }).then(function () {
-      busy = false;
-      sendBtn.disabled = false;
-      if (caret.parentNode) caret.remove();
-    });
+      if (stopped) return;
+      // A transport failure is evidence about the service, so ask it rather
+      // than guess: the answer is what puts the widget offline and starts it
+      // watching for the service coming back.
+      probe();
+      fail('没能连上老师服务。', err && err.message);
+    }).then(endRequest);
 
     function handleEvent(block) {
+      // Nothing more is rendered once this request has ended, whether it ended
+      // in an answer, a failure or a stop — the tail of a stream must not write
+      // over the thing the learner was left with.
+      if (settled) return;
+
       var name = '', dataLine = '';
       block.split('\n').forEach(function (line) {
         if (line.indexOf('event: ') === 0) name = line.slice(7).trim();
@@ -555,8 +773,11 @@
       var data;
       try { data = JSON.parse(dataLine || '{}'); } catch (e) { return; }
 
-      if (name === 'delta') {
+      if (name === 'open') {
+        progress.stage('accepted');
+      } else if (name === 'delta') {
         acc += data.text || '';
+        progress.stage('answering');
         // Re-rendered whole rather than appended to: a fence, a list or a link
         // only becomes what it is once the delta that closes it arrives. An
         // answer is a few thousand characters, so this is tens of rebuilds of a
@@ -565,6 +786,9 @@
         markInFlight(out.body, caret);
         thread.scrollTop = thread.scrollHeight;
       } else if (name === 'tool') {
+        // The chips were decorative; the same events now also say what the wait
+        // is for, which is the stage a learner reads as "it is working".
+        progress.stage('reading', data.target ? '老师正在读 ' + data.target : '');
         if (!tools) {
           tools = el('div', 'tutor-tools');
           out.wrap.insertBefore(tools, out.body);
@@ -572,22 +796,93 @@
         var label = data.target ? '📖 ' + data.name + ' · ' + data.target : '📖 ' + data.name;
         tools.appendChild(el('span', 'tutor-tool', label));
       } else if (name === 'done') {
-        caret.remove();
+        endRequest();
         acc = data.answer || acc;
         showRich(out.body, acc);
         // Recorded as a pair only on success, so history never holds a dangling turn.
-        convo.turns.push({ role: 'user', content: question });
+        convo.turns.push({ role: 'user', content: asked.question });
         convo.turns.push({ role: 'assistant', content: acc });
-        addPin(out.wrap, question, function () { return acc; });
+        addActions(out.wrap, asked, function () { return acc; });
         persistConvo();
         renderHistory();
         thread.scrollTop = thread.scrollHeight;
       } else if (name === 'error') {
-        caret.remove();
-        out.wrap.className = 'tutor-msg error';
-        showPlain(out.body, data.message || '出错了');
+        // The service is plainly up — it answered — so this is the Tutor
+        // failing, and the widget stays online.
+        fail('老师这次没能答上来。', data.message);
       }
     }
+  }
+
+  /**
+   * The row that reports the wait, which exists exactly as long as the request
+   * does. That is what makes it the right home for the stop button: an
+   * in-flight request always offers one, a finished one never does.
+   */
+  function addProgress(wrap, before, onStop) {
+    var row = el('div', 'tutor-progress');
+    row.setAttribute('data-stage', 'accepted');
+    // Read out as it changes: a learner who cannot see the row is the one who
+    // most needs to be told the difference between reading and answering.
+    row.setAttribute('role', 'status');
+    row.setAttribute('aria-live', 'polite');
+
+    var label = el('span', 'tutor-stage', SENDING);
+    var elapsed = el('span', 'tutor-elapsed', fmtElapsed(0));
+    var stopBtn = el('button', 'tutor-cancel', '停止');
+    stopBtn.title = '停止这次提问';
+    stopBtn.addEventListener('click', onStop);
+
+    row.appendChild(label);
+    row.appendChild(elapsed);
+    row.appendChild(stopBtn);
+    wrap.insertBefore(row, before);
+
+    var started = Date.now();
+    var tick = setInterval(function () {
+      elapsed.textContent = fmtElapsed(Date.now() - started);
+    }, 1000);
+
+    return {
+      stage: function (name, detail) {
+        row.setAttribute('data-stage', name);
+        label.textContent = detail || STAGES[name];
+      },
+      end: function () {
+        clearInterval(tick);
+        row.remove();
+      }
+    };
+  }
+
+  function fmtElapsed(ms) {
+    var s = Math.round(ms / 1000);
+    if (s < 60) return s + ' 秒';
+    return Math.floor(s / 60) + ' 分 ' + (s % 60) + ' 秒';
+  }
+
+  /**
+   * How a request that produced no answer ends. A raw error string tells a
+   * learner nothing they can act on, so a failure and a stop both end in the
+   * two things they can do: ask again, or take the question elsewhere — the
+   * same well-formed prompt the offline composer builds, since a request that
+   * just failed to connect is a service that is, from here, down.
+   */
+  function offerRecovery(wrap, headline, detail, asked) {
+    var box = el('div', 'tutor-recover');
+    box.appendChild(el('div', 'tutor-recover-say', headline));
+    // Kept, because it is the only thing that says *why* — just no longer the
+    // whole of what the learner is given.
+    if (detail) box.appendChild(el('div', 'tutor-recover-why', detail));
+
+    var row = el('div', 'tutor-actions');
+    row.appendChild(againButton('tutor-retry', '↻ 再试一次', wrap, asked, null));
+    row.appendChild(copyButton('tutor-copyprompt', '📋 复制提问', function () {
+      return buildCopyPrompt(asked);
+    }));
+
+    box.appendChild(row);
+    wrap.appendChild(box);
   }
 
   function fallbackCopy(text, cb) {
@@ -596,8 +891,11 @@
     ta.style.position = 'fixed';
     ta.style.opacity = '0';
     document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); cb(); } catch (e) { /* noop */ }
+    try {
+      ta.select();
+      document.execCommand('copy');
+      cb();
+    } catch (e) { /* no clipboard here; the prompt is still in the thread */ }
     ta.remove();
   }
 

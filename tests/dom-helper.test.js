@@ -102,6 +102,22 @@ test('textContent replaces children, and innerHTML is refused', () => {
   }, /build nodes/);
 });
 
+test('hidden and disabled are the attributes they are, not expandos', () => {
+  // Both are read back by tests as booleans. Were they plain properties, an
+  // element nothing had assigned one to would answer `undefined` — and an
+  // assertion that a button is *not* disabled would pass on a button that is.
+  const doc = parseHTML('<body><button>go</button><p hidden>gone</p></body>');
+  const button = doc.querySelector('button');
+
+  assert.equal(button.disabled, false, 'a button nobody disabled is enabled');
+  button.disabled = true;
+  assert.equal(button.getAttribute('disabled'), '');
+  button.disabled = false;
+  assert.equal(button.hasAttribute('disabled'), false, 'and false clears it, as in a browser');
+
+  assert.equal(doc.querySelector('p').hidden, true, 'the authored attribute is read back');
+});
+
 test('classList takes one token at a time', () => {
   const doc = parseHTML('<body><p class="a">x</p></body>');
   const p = doc.querySelector('p');

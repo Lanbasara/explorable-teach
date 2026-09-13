@@ -259,7 +259,6 @@
   padding: 9px 12px;
   color: var(--fg-dim);
 }
-.tutor-msg.error .tutor-msg-body { color: var(--accent-bad); }
 
 .tutor-tools {
   display: flex;
@@ -276,9 +275,15 @@
   color: var(--fg-faint);
 }
 
-.tutor-pin {
-  align-self: flex-start;
+/* ---------- what a learner can do with an answer ---------- */
+
+.tutor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 2px;
+}
+.tutor-act {
   background: none;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -286,9 +291,75 @@
   font-size: 11.5px;
   padding: 3px 10px;
   cursor: pointer;
+  white-space: nowrap;
 }
+.tutor-act:hover { color: var(--accent); border-color: var(--accent); }
 .tutor-pin:hover { color: var(--accent-warm); border-color: var(--accent-warm); }
 .tutor-pin.pinned { color: var(--accent-good); border-color: var(--accent-good); }
+
+/* ---------- the wait ----------
+   Three stages the learner can tell apart, and a clock, so that slow does not
+   look like stuck. The row lives exactly as long as the request does, which is
+   why the stop button is in it. */
+
+.tutor-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-faint);
+}
+.tutor-stage {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tutor-progress[data-stage="answering"] .tutor-stage { color: var(--accent); }
+.tutor-elapsed {
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.tutor-cancel {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg-faint);
+  font-family: inherit;
+  font-size: 10.5px;
+  padding: 2px 9px;
+  cursor: pointer;
+}
+.tutor-cancel:hover { color: var(--accent-bad); border-color: var(--accent-bad); }
+
+/* ---------- a request that produced no answer ----------
+   Both endings a learner can act on: ask again, or take the question
+   elsewhere. The reason is kept, just no longer the whole of what they get. */
+
+.tutor-recover {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-bad);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.tutor-msg.stopped .tutor-recover { border-left-color: var(--border-hi); }
+.tutor-recover-say { font-size: 13px; color: var(--fg-dim); }
+/* The body above keeps whatever arrived, so it is not coloured as a failure —
+   only the sentence saying what happened is. */
+.tutor-msg.failed .tutor-recover-say { color: var(--accent-bad); }
+.tutor-recover-why {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--fg-faint);
+  word-break: break-word;
+}
 
 .tutor-caret {
   display: inline-block;

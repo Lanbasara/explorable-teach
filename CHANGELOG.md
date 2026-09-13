@@ -4,6 +4,34 @@
 
 ### Changed
 
+- **A question in flight says what it is waiting for.** Pressing send used to produce an empty
+  bubble and a blinking caret for the several seconds the agent takes to start up and read, so a
+  slow answer and a hung one looked identical. The wait is now reported in three stages — the
+  service has the question, the tutor is reading the workspace (and which file), the answer is
+  arriving — with a clock beside it. The middle stage is not new information: the server has
+  always sent one event per workspace read, and the drawer drew them as decorative chips. Nothing
+  in the server changed.
+- **An answer in progress can be stopped.** The stop button sits in the row that reports the
+  wait, so it is there for exactly as long as the request is, and whatever had arrived before the
+  stop stays on the page. Stopping closes the connection, which is what the server watches to
+  kill the agent behind it — a wrong question no longer costs the full 120-second timeout.
+- **A failed question ends in something you can do.** It used to end in `连接老师服务失败：` and
+  whatever string came back. It now offers a retry and the same clipboard prompt the offline
+  composer builds, with the raw detail kept underneath rather than in place of them. A retry asks
+  about the passage the question was about, and the thread still shows the question once. Neither
+  retry nor regenerate gives up what it is replacing until the replacement is actually going, so
+  clicking either while the service is down leaves you with the answer, or with the fallback,
+  that you already had.
+- **An answer can be copied and regenerated, next to the pin that was already there.** Copy puts
+  the answer in the clipboard as the tutor wrote it — Markdown, so another tool can read it back.
+  Regenerate replaces the answer rather than adding one below it, and drops the rejected pair
+  from the replay, so the next question is not asked in the shadow of an answer you turned down.
+  It is offered on the newest answer only.
+- **The drawer finds the service when you start it, without a reload.** It used to probe once
+  when the page loaded and then sit in the offline state saying "start it and reload" however
+  long you looked at it — the one state the page could not get itself out of. It now keeps
+  asking while it is offline and stops the moment it is not, so starting the service is the whole
+  of the instruction.
 - **The tutor's answers render as rich text.** Every answer used to be inserted as plain text, so
   a code block, a bulleted list and a sentence all arrived as one run of characters — most of the
   tutor's usefulness gone on any subject involving code. Headings, lists, inline code, fenced

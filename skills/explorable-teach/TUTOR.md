@@ -58,6 +58,8 @@ it.
 - **Never** write a Lesson that depends on the service being up. The page must be fully readable,
   and the in-page drawer must degrade to a clipboard prompt when `/api/health` is unreachable — which is
   a normal state, not a failure.
+- **Do not tell the learner to reload after starting it.** The drawer keeps asking while it is
+  offline and connects itself, so starting the service is the whole of the instruction.
 
 ## Installing it
 
@@ -105,6 +107,9 @@ When the learner says the Tutor is broken, silent, or slow, probe before theoris
 ./tutor/tutorctl.sh log 40     # the last 40 lines of tutor/server.log
 curl -s 127.0.0.1:4173/api/health
 ```
+
+A Lesson left open picks the service up on its own within a few seconds of it starting, so
+"start it and reload" is one step too many.
 
 Common causes, in the order worth checking: the service was never started; it exited on idle
 timeout; the port is held by a stale process from an earlier session; `claude` is not on `PATH`

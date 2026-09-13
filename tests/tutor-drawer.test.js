@@ -7,10 +7,15 @@
 // arriving over the stream and an answer read back after being pinned — are
 // driven here, in the fixture DOM, against a scaffolded Workspace's `assets/`.
 //
-// What is still not covered: the service (that is `tutor-server.test.js`), the
-// clipboard fallback, and the thread history. The claim this file makes is
-// narrow on purpose — a Tutor answer reaches the page as rich text, and the
-// markup inside it reaches the page as text.
+// What the drawer does around an answer is driven here too, because all of it
+// is what a learner meets on a service that is slow, stopped, or having a bad
+// day: the three stages of the wait, the stop, the retry, the clipboard
+// fallback, and the poll that finds a service started after the page was
+// opened.
+//
+// What is still not covered: the service itself (that is `tutor-server.test.js`),
+// the `document.execCommand` end of the clipboard fallback, and the thread
+// history.
 
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
@@ -60,6 +65,55 @@ function chunksFor(answer) {
   return [stream.slice(0, cut), stream.slice(cut, cut * 2), stream.slice(cut * 2)];
 }
 
+/** A reader over a fixed transcript. `ends: false` leaves the answer in flight. */
+function readerFor(chunks, ends = true) {
+  let next = 0;
+  return {
+    read: () => {
+      if (next < chunks.length) {
+        return Promise.resolve({ done: false, value: Buffer.from(chunks[next++], 'utf8') });
+      }
+      // A stream that never ends is where a streamed answer spends most of its life.
+      return ends ? Promise.resolve({ done: true, value: undefined }) : new Promise(() => {});
+    },
+    cancel: () => Promise.resolve(),
+  };
+}
+
+/**
+ * A stream the test feeds one event at a time, which is the only way to see a
+ * stage of the wait while it is still that stage. `cancelled` is what the
+ * drawer letting go of the stream looks like from the service's end.
+ */
+function fedStream() {
+  const queued = [];
+  let waiting = null;
+  const deliver = (result) => {
+    if (waiting) {
+      const resolve = waiting;
+      waiting = null;
+      resolve(result);
+    } else {
+      queued.push(result);
+    }
+  };
+
+  const self = {
+    cancelled: false,
+    push: (text) => deliver({ done: false, value: Buffer.from(text, 'utf8') }),
+    end: () => deliver({ done: true, value: undefined }),
+    reader: () => ({
+      read: () => (queued.length ? Promise.resolve(queued.shift()) : new Promise((r) => { waiting = r; })),
+      cancel: () => {
+        self.cancelled = true;
+        deliver({ done: true, value: undefined });
+        return Promise.resolve();
+      },
+    }),
+  };
+  return self;
+}
+
 /** Storage the drawer can keep its threads and pinned answers in. */
 function storage() {
   const store = new Map();
@@ -71,44 +125,100 @@ function storage() {
 }
 
 /**
+ * Repeating work the test drives by hand. The drawer sets two things going —
+ * the clock beside an in-flight answer, and the health poll it runs while
+ * offline — and both have to stop on their own, so `live` is asserted on as
+ * much as `tick` is called.
+ */
+function timers() {
+  const live = new Map();
+  let next = 0;
+  return {
+    live,
+    setInterval(fn) {
+      live.set((next += 1), fn);
+      return next;
+    },
+    clearInterval(id) {
+      live.delete(id);
+    },
+    tick(times = 1) {
+      for (let i = 0; i < times; i++) for (const fn of [...live.values()]) fn();
+    },
+  };
+}
+
+/** A clock the test advances, so an elapsed indication can be read off it. */
+function clock() {
+  let at = Date.now();
+  class Advanced extends Date {
+    constructor(...args) {
+      super(...(args.length ? args : [at]));
+    }
+    static now() {
+      return at;
+    }
+  }
+  return { Date: Advanced, advance: (ms) => { at += ms; } };
+}
+
+/** Somewhere for a copied answer or a copied prompt to land. */
+function clipboard() {
+  const pad = { text: null };
+  pad.navigator = { clipboard: { writeText: (text) => { pad.text = text; return Promise.resolve(); } } };
+  return pad;
+}
+
+/**
  * A Lesson with the drawer mounted in it, served by a stub that answers the
- * health probe and streams `chunks` at `/api/ask`.
+ * health probe and streams an answer at `/api/ask`.
  *
  * `withRenderer: false` stages the one failure lesson-boot.js tolerates by
  * design — a component script that did not load — because a learner must still
  * be able to read the answer when that happens. `store` is passed in rather
  * than made here so that a second mount can be given the first one's storage,
- * which is what a reload is.
+ * which is what a reload is. `health` is asked per probe rather than fixed, so
+ * a test can start the service after the page is already open, and `reply`
+ * takes over `/api/ask` entirely when a test needs a second request to differ
+ * from the first.
  */
-function mount(assetsDir, { chunks = chunksFor(ANSWER), ends = true, withRenderer = true, store = storage() } = {}) {
+function mount(assetsDir, options = {}) {
+  const {
+    chunks = chunksFor(ANSWER),
+    ends = true,
+    withRenderer = true,
+    store = storage(),
+    feed = null,
+    health = () => true,
+    reply = null,
+  } = options;
+
   const asked = [];
+  const time = clock();
+  const clocks = timers();
+  const pad = clipboard();
+
   const page = Page.load(LESSON_HTML, assetsDir, {
     globals: {
       location: { protocol: 'http:', pathname: '/lessons/0003-fork-exec.html' },
       localStorage: store,
       setTimeout,
+      setInterval: clocks.setInterval,
+      clearInterval: clocks.clearInterval,
+      Date: time.Date,
+      navigator: pad.navigator,
       TextDecoder,
-      fetch(url, options) {
+      fetch(url, init) {
         if (url === '/api/health') {
-          return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) });
+          return health()
+            ? Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) })
+            : Promise.reject(new Error('service is not running'));
         }
-        asked.push(JSON.parse(options.body));
-
-        let next = 0;
+        asked.push(JSON.parse(init.body));
+        if (reply) return reply(asked.length);
         return Promise.resolve({
           ok: true,
-          body: {
-            getReader: () => ({
-              read: () => {
-                if (next < chunks.length) {
-                  return Promise.resolve({ done: false, value: Buffer.from(chunks[next++], 'utf8') });
-                }
-                // `ends: false` leaves the answer in flight, which is where a
-                // streamed answer spends most of its life.
-                return ends ? Promise.resolve({ done: true, value: undefined }) : new Promise(() => {});
-              },
-            }),
-          },
+          body: { getReader: () => (feed ? feed.reader() : readerFor(chunks, ends)) },
         });
       },
     },
@@ -119,6 +229,10 @@ function mount(assetsDir, { chunks = chunksFor(ANSWER), ends = true, withRendere
 
   page.asked = asked;
   page.store = store;
+  page.clock = time;
+  page.timers = clocks;
+  page.tick = clocks.tick;
+  page.clipboard = pad;
   return page;
 }
 
@@ -244,4 +358,264 @@ test('an answer is readable even when the renderer did not load', async (t) => {
 
   assert.equal(body.querySelectorAll('pre').length, 0, 'nothing rendered it');
   assert.match(body.textContent, /pid_t pid = fork\(\);/, 'but the answer is all there');
+});
+
+test('the wait is reported in three stages, the middle one from the service’s own events', async (t) => {
+  const feed = fedStream();
+  const page = lesson(t, { feed });
+
+  await settle();
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), '这段什么意思？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  const stage = () => page.query('.tutor-progress').getAttribute('data-stage');
+  assert.equal(stage(), 'accepted', 'the click has an effect at once');
+  assert.equal(page.text('.tutor-stage'), '正在发送…', 'but claims only what it knows');
+
+  feed.push(event('open', { role: 'tutor' }));
+  await settle();
+  assert.equal(stage(), 'accepted');
+  assert.match(page.text('.tutor-stage'), /已接到/, 'the service saying so is what makes it accepted');
+
+  // Stage two is not invented here: it is the tool event the service has
+  // always sent, which the drawer until now drew only as a decorative chip.
+  feed.push(event('tool', { name: 'Read', target: '0003-fork-exec.html' }));
+  await settle();
+  assert.equal(stage(), 'reading');
+  assert.match(page.text('.tutor-stage'), /0003-fork-exec\.html/, 'and it says what is being read');
+  assert.equal(page.queryAll('.tutor-tool').length, 1, 'the chip is still there too');
+
+  feed.push(event('delta', { text: '先说结论' }));
+  await settle();
+  assert.equal(stage(), 'answering');
+
+  // The elapsed indication is the whole difference between slow and stuck.
+  assert.equal(page.text('.tutor-elapsed'), '0 秒');
+  page.clock.advance(7000);
+  page.tick();
+  assert.equal(page.text('.tutor-elapsed'), '7 秒');
+
+  feed.push(event('done', { answer: '先说结论。', durationMs: 7000 }));
+  feed.end();
+  await settle();
+
+  assert.equal(page.queryAll('.tutor-progress').length, 0, 'the row lasts exactly as long as the request');
+  assert.equal(page.timers.live.size, 0, 'and takes its clock with it');
+});
+
+test('a read that arrives mid-answer is reported as the read it is', async (t) => {
+  // The stages are an order a request usually passes through, not one it is
+  // held to: the service's own event order, the one `tutor-server.test.js`
+  // pins, is open, delta, tool, delta, done. Mid-answer is where this matters
+  // most — the text stops growing, and the row is what says it stopped to go
+  // and read something rather than stalled.
+  const feed = fedStream();
+  const page = lesson(t, { feed });
+
+  await settle();
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), '这段什么意思？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  const stage = () => page.query('.tutor-progress').getAttribute('data-stage');
+
+  feed.push(event('open', { role: 'tutor' }));
+  feed.push(event('delta', { text: '先说结论：' }));
+  await settle();
+  assert.equal(stage(), 'answering');
+
+  feed.push(event('tool', { name: 'Read', target: '0002.html' }));
+  await settle();
+  assert.equal(stage(), 'reading', 'the pause in the text has a reason, and the row gives it');
+  assert.match(page.text('.tutor-stage'), /0002\.html/);
+
+  feed.push(event('delta', { text: 'fork 返回两次。' }));
+  await settle();
+  assert.equal(stage(), 'answering', 'and it is back to answering when the text resumes');
+  assert.match(page.text('.tutor-msg.tutor .tutor-msg-body'), /先说结论：fork 返回两次。/);
+});
+
+test('an in-flight answer can be stopped, and what arrived before the stop is kept', async (t) => {
+  const feed = fedStream();
+  const page = lesson(t, { feed });
+
+  await settle();
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), '这段什么意思？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  feed.push(event('delta', { text: '第一句已经说完了' }));
+  await settle();
+
+  page.click(page.query('.tutor-cancel'));
+  await settle();
+
+  assert.ok(feed.cancelled, 'letting the stream go is what stops the agent at the other end');
+  assert.match(page.text('.tutor-msg.tutor .tutor-msg-body'), /第一句已经说完了/, 'half an answer is still an answer');
+  assert.equal(page.queryAll('.tutor-progress').length, 0);
+  assert.equal(page.timers.live.size, 0, 'nothing is left ticking');
+  assert.equal(page.query('.tutor-send').disabled, false, 'and the composer is free again');
+  assert.ok(page.query('.tutor-retry'), 'a stop offers the same way onward a failure does');
+  assert.equal(page.store.getItem('tutor-threads::0003-fork-exec.html'), null, 'a stopped answer is not an answer');
+});
+
+test('a stop that lands before the service has answered still lets the request go', async (t) => {
+  // The window the learner is most likely to stop in is the one before anything
+  // has come back at all — and in that window there is no reader yet to let go
+  // of, so a stop that only remembered itself would leave the agent running.
+  const feed = fedStream();
+  let respond;
+  const page = lesson(t, { feed, reply: () => new Promise((resolve) => { respond = resolve; }) });
+
+  await settle();
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), '这段什么意思？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  page.click(page.query('.tutor-cancel'));
+  await settle();
+  assert.equal(page.query('.tutor-send').disabled, false, 'the composer is free at once');
+
+  respond({ ok: true, body: { getReader: () => feed.reader() } });
+  await settle();
+
+  assert.ok(feed.cancelled, 'and the response is let go when it does arrive');
+  assert.equal(page.queryAll('.tutor-progress').length, 0);
+  assert.equal(page.timers.live.size, 0);
+});
+
+test('a failure offers a retry and the clipboard fallback, not a raw error string', async (t) => {
+  const page = lesson(t, {
+    reply: (n) =>
+      n === 1
+        ? Promise.reject(new Error('Failed to fetch'))
+        : Promise.resolve({ ok: true, body: { getReader: () => readerFor(chunksFor(ANSWER)) } }),
+  });
+
+  await ask(page);
+
+  assert.match(page.text('.tutor-recover-say'), /没能连上/, 'the learner is told what happened, in words');
+  assert.match(page.text('.tutor-recover'), /Failed to fetch/, 'and the detail is kept, just not alone');
+
+  page.click(page.query('.tutor-copyprompt'));
+  await settle();
+  assert.match(page.clipboard.text, /我的问题：这段什么意思？/, 'the fallback still works with the service down');
+
+  page.click(page.query('.tutor-retry'));
+  await settle();
+
+  assert.equal(page.queryAll('.tutor-msg.user').length, 1, 'the learner asked once, so the thread says so once');
+  assert.equal(page.queryAll('.tutor-recover').length, 0, 'the failed attempt is gone');
+  assert.ok(page.query('.tutor-msg.tutor .tutor-msg-body').querySelector('pre code'), 'and the answer arrived');
+  assert.deepEqual(page.asked.map((a) => a.question), ['这段什么意思？', '这段什么意思？']);
+});
+
+test('an answer can be copied and regenerated, alongside pinning it', async (t) => {
+  const SECOND = '换个说法：`fork()` 把当前进程复制了一份。';
+  const page = lesson(t, {
+    reply: (n) =>
+      Promise.resolve({ ok: true, body: { getReader: () => readerFor(chunksFor(n === 1 ? ANSWER : SECOND)) } }),
+  });
+
+  await ask(page);
+
+  page.click(page.query('.tutor-copy'));
+  await settle();
+  assert.equal(page.clipboard.text, ANSWER, 'copied as the Tutor wrote it, not as the page rendered it');
+
+  page.click(page.query('.tutor-regen'));
+  await settle();
+
+  assert.equal(page.queryAll('.tutor-msg.tutor').length, 1, 'the answer was replaced, not added to');
+  assert.match(page.text('.tutor-msg.tutor .tutor-msg-body'), /换个说法/);
+  assert.equal(page.asked.length, 2);
+  assert.deepEqual(page.asked[1].history, [], 'the rejected answer is not replayed back at the Tutor');
+
+  const stored = JSON.parse(page.store.getItem('tutor-threads::0003-fork-exec.html'));
+  assert.deepEqual(
+    stored.threads[0].turns.map((turn) => turn.role),
+    ['user', 'assistant'],
+    'and the thread holds one pair, not two',
+  );
+  assert.match(stored.threads[0].turns[1].content, /换个说法/);
+});
+
+test('a poll does not stomp what the composer is telling the Learner', async (t) => {
+  // Once it is polling, the offline state is re-entered every few seconds. A
+  // header rebuilt each time would take the confirmation away mid-read.
+  const page = lesson(t, { health: () => false });
+  await settle();
+
+  page.click(page.query('.tutor-fab'));
+  page.type(page.query('.tutor-input'), '这段什么意思？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  assert.match(page.clipboard.text, /我的问题：这段什么意思？/, 'the fallback is what send does while offline');
+  assert.equal(page.text('.tutor-send'), '✓ 已复制');
+
+  page.tick(); // four seconds on, still nothing there
+  await settle();
+  assert.equal(page.text('.tutor-send'), '✓ 已复制', 'and the confirmation is still the Learner’s to read');
+});
+
+test('asking again while the service is down costs the Learner nothing', async (t) => {
+  // Both buttons replace something. A service that stopped between the answer
+  // and the click must not take the thing being replaced with it — the failure
+  // box holds the clipboard fallback, and the answer is the answer.
+  let up = true;
+  const page = lesson(t, {
+    health: () => up,
+    reply: (n) =>
+      n === 1
+        ? Promise.resolve({ ok: true, body: { getReader: () => readerFor(chunksFor(ANSWER)) } })
+        : Promise.reject(new Error('service is not running')),
+  });
+
+  await ask(page);
+  const before = page.store.getItem('tutor-threads::0003-fork-exec.html');
+
+  // The service goes away, and the second question is the one that finds out.
+  up = false;
+  page.type(page.query('.tutor-input'), '再说一遍？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  assert.equal(page.text('.tutor-status'), '离线', 'the failure re-probed, and the probe found nothing');
+  assert.ok(page.query('.tutor-retry'), 'the failure still offers both ways onward');
+
+  page.click(page.query('.tutor-retry'));
+  await settle();
+  assert.ok(page.query('.tutor-retry'), 'a retry that cannot run leaves the offer standing');
+  assert.ok(page.query('.tutor-copyprompt'), 'and the fallback with it');
+  assert.match(page.text('.tutor-retry'), /服务未启动/, 'saying why nothing happened');
+
+  page.click(page.query('.tutor-regen'));
+  await settle();
+  assert.match(page.text('.tutor-msg.tutor .tutor-msg-body'), /pid_t pid = fork\(\);/, 'the answer is still there');
+  assert.equal(page.store.getItem('tutor-threads::0003-fork-exec.html'), before, 'and so is the thread it came from');
+});
+
+test('the widget finds a service started after the Lesson was opened, without a reload', async (t) => {
+  let up = false;
+  const page = lesson(t, { health: () => up });
+  await settle();
+
+  assert.equal(page.text('.tutor-status'), '离线');
+  assert.equal(page.text('.tutor-send'), '📋 复制提问', 'and the composer degrades to the clipboard');
+  assert.doesNotMatch(page.text('.tutor-hint'), /刷新/, 'nothing asks the learner to reload');
+
+  up = true;
+  page.tick(); // the poll the drawer set going when it found nothing there
+  await settle();
+
+  assert.equal(page.text('.tutor-status'), '在线');
+  assert.equal(page.text('.tutor-send'), '发送');
+  assert.equal(page.text('.tutor-hint'), '', 'the instructions for starting it are gone');
+  assert.equal(page.timers.live.size, 0, 'and it stops asking');
 });

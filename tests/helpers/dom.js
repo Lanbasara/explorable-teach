@@ -265,6 +265,18 @@ class Element extends Node {
     else this.removeAttribute('hidden');
   }
 
+  /** Backed by the attribute, like `hidden`: assigning false must clear it,
+   *  and reading it before anything assigned one must be `false` rather than
+   *  the `undefined` an expando would give. */
+  get disabled() {
+    return this.hasAttribute('disabled');
+  }
+
+  set disabled(on) {
+    if (on) this.setAttribute('disabled', '');
+    else this.removeAttribute('disabled');
+  }
+
   /** Form-ish value: an authored `value=` until something assigns one. */
   get value() {
     if (this._value !== null) return this._value;

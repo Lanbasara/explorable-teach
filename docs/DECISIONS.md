@@ -93,6 +93,10 @@ outlives the conversation. Lessons must work with the server down; that is the n
 **Why:** artifacts persist across conversations, processes do not. An 8-hour idle timeout guards
 against a forgotten process lingering for days, not against one idle over lunch.
 
+**Refined by 26:** all of this stands. What did not stand is how the page said so — it told the
+learner to start the service *and reload*. The page now finds a service started under it, so
+"start it" is the whole instruction.
+
 ## 8. Assignments are specified loosely, on purpose
 
 **Decided:** whether an assignment exists, its shape, its difficulty and its rubric are all the
@@ -541,6 +545,48 @@ threads and reads a stream, so `Page.load` grew a `globals` option: named at the
 the default stays bare. Driving it then turned up an ordering fact worth writing down — a thread
 only gets an id when the drawer is opened, which a learner always does because the composer is
 inside it, but a test that skipped the step found the answer was never persisted.
+
+## 26. The wait is reported in three stages, out of events the service already sent
+
+**Decided:** an in-flight question reports *accepted*, *reading* and *answering*, with an elapsed
+clock; the middle stage is driven by the `tool` events `server.js` has always emitted. No line of
+the service changed.
+
+**Why:** pressing send produced an empty bubble and a blinking caret for the several seconds the
+agent takes to start and read. A caret says "something is happening" and nothing else, so a slow
+answer and a hung one looked identical — and the learner's only move was to wait and find out.
+
+**The events were already there.** The service emits one `tool` event per Workspace read, and the
+drawer drew them as decorative chips beside the answer. The information the learner needed was on
+the page the whole time, in a form that answered a question nobody was asking. The fix was to
+read them, not to send more.
+
+**The three are an order a request usually passes through, not one it is held to.** The events do
+not arrive in that order: a Tutor writes a sentence, goes and reads another Lesson, then writes
+more, which the service emits as `open, delta, tool, delta` — the sequence `tutor-server.test.js`
+already pinned. So the row reports what is happening now rather than how far the request has got.
+A monotonic version was written first and rejected on the case that matters most: mid-answer, the
+text stops growing, and "reading `0002.html`" is the thing that stops a pause from looking like a
+stall. The rejected version passed a test that bundled the events into one chunk, which is how it
+got as far as being rejected rather than shipped.
+
+**Why the stop button lives in that row.** The row exists exactly as long as the request does, so
+putting the stop there makes "an in-flight request can be stopped, a finished one cannot" a
+structural fact rather than a rule someone has to maintain. Stopping is just letting the stream
+go: the service already kills its agent when the request closes, so there is nothing to tell it.
+
+**Why a failure ends in two buttons.** It used to end in `连接老师服务失败：` plus whatever string
+came back, which is a dead end dressed as an explanation. It now ends in the two things a learner
+can actually do — ask again, or take the well-formed prompt to another tool, which is the offline
+fallback that already existed — with the raw detail kept underneath rather than in place of them.
+A transport failure also re-probes health, so the widget's claim about the service matches what
+just happened to it.
+
+**Superseding part of 7:** decision 7 said the service is started by hand and the page must work
+without it, and that stands. What did not stand is how the page said so: it probed once at mount
+and told the learner to start the service *and reload*. Offline was the one state the page could
+not get itself out of, which made a design decision look like a defect. It now polls while
+offline and stops the moment it is online.
 
 ---
 

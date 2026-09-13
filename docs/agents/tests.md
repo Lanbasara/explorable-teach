@@ -28,7 +28,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
-| `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer, and a pinned one, through that renderer |
+| `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, and recovers from a service that is stopped or failing |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
@@ -100,6 +100,12 @@ It is deliberately a subset, and it fails loudly rather than quietly when a Comp
 past that subset: an unsupported selector throws instead of matching nothing, and `innerHTML`
 throws on assignment, because a shipped Component must build nodes rather than splice markup.
 Grow the subset on purpose when a Component genuinely needs more.
+
+The quiet way to reach past it is a property nothing models, because assigning one silently
+succeeds: `el.disabled = true` would set an expando, and a test asserting a button is *not*
+disabled would then read `undefined` and pass on a button that is. `hidden` and `disabled` are
+both backed by the attribute for that reason, and `dom-helper.test.js` holds them to it. A
+property a test reads back as a boolean has to be modelled before it is read.
 
 The window a script runs against is bare for the same reason, and `Page.load(html, dir, {
 globals })` is the one way to widen it for one test. The Tutor's in-page drawer needs storage, a
@@ -218,6 +224,23 @@ and out of a second mount sharing the first one's storage, which is what a reloa
 
 That the drawer has to be *opened* before a question is asked is not ceremony: it is where the
 thread gets its id, and a test that skipped it found the thread was never persisted.
+
+The same file holds what the drawer does *around* an answer, because all of it is what a learner
+meets on a service that is slow, stopped, or having a bad day. Those need the stub to be driven
+rather than merely replayed, so the fixture grew four seams, each named at the call site the way
+`globals` is: `chunks`/`ends` replay a fixed transcript, which is what most of these tests want;
+`feed` hands the test the stream itself, one event at a time, so a stage of the wait can be
+observed while it is still that stage; `reply` takes over the response entirely, for a request
+that has to fail or to differ from the one before it; and `health` is asked per probe rather than
+fixed, so the service can be started — or stopped — while the page is already open. A clock and
+an interval the test advances by hand come with all of them, so an elapsed indication can be read
+off one and "nothing is left ticking" is a claim rather than a hope.
+
+Two of these tests are about a request *not* finishing, and both assert on the stub rather than
+on the page: a stop is only a stop if the stream was let go, because letting it go is what closes
+the connection the service is watching. One of them lands the stop before the response has
+arrived at all — the window a learner is most likely to press it in, and the one where there is
+no reader yet to cancel.
 
 ## The disclosure check
 
@@ -478,11 +501,11 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
 - **Neither timeout is exercised.** The 120-second answer timeout and a client that disconnects
   mid-answer are both real paths; only the idle shutdown is driven, and that one only in the
   direction that matters — a status probe must not keep an abandoned service alive.
-- **The in-page drawer is covered only where it builds nodes.** `tutor-drawer.test.js` mounts
-  `assets/tutor.js` in the fixture DOM against a stub that streams the shapes `server.js` emits,
-  and holds the two paths that render an answer — the stream and a pinned answer read back. The
-  clipboard fallback when the service is down, the thread history, and the selection chip are
-  still under no test. The Tutor *service* suite still ends at the socket.
+- **The in-page drawer is driven through the fixture DOM, so anything a browser decides is not
+  covered.** `tutor-drawer.test.js` holds the paths that render an answer, the three stages of
+  the wait, the stop, the retry and the health poll — but the clipboard lands in a stub, so the
+  `document.execCommand` half of the fallback is exercised by nothing, and the thread history and
+  the selection chip are still under no test. The Tutor *service* suite still ends at the socket.
 - **The 4000-character cap on inlined `NOTES.md` and `MISSION.md` is not covered**, only the
   history caps beside it.
 - **The "exactly two Tutor facts" check cannot read a sentence.** Length is a proxy for whether
