@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A workspace states the learner's language once, and the in-page drawer speaks it.** It used to
+  speak the pilot learner's, because that language was written into the plugin — so every future
+  learner got it too, whether or not they read it. The language now lives in one place,
+  `assets/units.js`, as `window.TEACH_COURSE.lang`. `<html lang>` is the single authority every
+  component reads; `assets/lesson-boot.js` writes the workspace's language onto any page that did
+  not declare its own, so a forgotten attribute is not a silent fall back to English, and
+  `scripts/wire-lessons.sh` fills it into the pages it already rewrites.
+- **Learner-facing text comes from a table, looked up at run time.** `assets/learner-text.js` is a
+  new linked asset holding what the plugin ships for `en` and `zh-CN`. Lookup runs the workspace's
+  own table, then the plugin's for the exact tag, then the base language, then English, then the
+  key itself — truncation and nothing else, so `zh-TW` never falls sideways to `zh-CN`. Handing
+  someone the wrong script is worse than handing them English.
+- **`assets/strings.js`, placed by the scaffold, is the workspace's own table.** It is where a
+  language the plugin has not collected is supplied, or an entry overridden. Its absence degrades
+  harmlessly, so an existing workspace needs no migration step — it simply gains the file on its
+  next scaffold run.
+- **A pseudolocale check, which fails on a hardcoded string in any language.** The drawer is
+  mounted under a made-up language whose table holds nothing but sentinels, and the rendered tree
+  is asserted to contain no character outside that alphabet. A hardcoded English `'Passed'` breaks
+  the split exactly as badly as a Chinese one, and no scan of the bytes can see it. A non-ASCII
+  scan over the drawer's source ships alongside it, because the two fail on different things.
+
+### Changed
+
+- **The drawer holds no learner-facing string at all.** Its chrome, its statuses, its history
+  panel, its failures, and the prompt it composes for you to copy when the service is not running
+  all come from the table. The prompt is the one piece of scaffolding that is deliberately in the
+  learner's language: its reader is the learner, who has to read and may edit it before sending.
+- **The dossier cover takes its language from the manifest too**, rather than declaring one of its
+  own. An existing workspace's cover is its own file and is untouched.
+- **Assertions across the suite stopped pinning words and started pinning keys**, so that adding a
+  language needs no test rewritten. The drawer's fixture moved to `tests/helpers/drawer.js`, where
+  the language suite can drive it too, and the fixture Unit's pages are now built *for* a language
+  rather than *in* one.
+
 ## 0.3.0
 
 ### Changed

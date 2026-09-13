@@ -306,6 +306,36 @@ class Element extends Node {
     this.setAttribute('title', value);
   }
 
+  /**
+   * Backed by the attribute for a third reason: a script that resolves paths
+   * relative to itself reads its own `src` off `document.currentScript`, and
+   * writes one onto each script it goes on to load. That is how the bootstrap
+   * finds `assets/` from a page in `lessons/`, so a DOM leaving `src` an
+   * expando could not mount the bootstrap at all.
+   */
+  get src() {
+    return this.getAttribute('src') || '';
+  }
+
+  set src(value) {
+    this.setAttribute('src', value);
+  }
+
+  /**
+   * Backed by the attribute for the reason `title` is: the drawer labels its
+   * composer by assigning one, and that label is Learner-facing text. A DOM
+   * leaving it an expando would report an unlabelled composer to a check
+   * reading the attribute — and the check that reads it is the one asserting
+   * no Component hardcoded a word.
+   */
+  get placeholder() {
+    return this.getAttribute('placeholder') || '';
+  }
+
+  set placeholder(value) {
+    this.setAttribute('placeholder', value);
+  }
+
   /** Form-ish value: an authored `value=` until something assigns one. */
   get value() {
     if (this._value !== null) return this._value;

@@ -90,14 +90,23 @@ place "$TPL/agents/tutor.md"    ".claude/agents/tutor.md"
 place "$TPL/agents/grader.md"   ".claude/agents/grader.md"
 
 # Page infrastructure: the widget, the nav bar, the bootstrap. The manifest is
-# the one file here that describes this course rather than any course.
-link  "$RUNTIME/assets/rich-text.js"   "assets/rich-text.js"
-link  "$RUNTIME/assets/tutor.js"       "assets/tutor.js"
-link  "$RUNTIME/assets/tutor.css"      "assets/tutor.css"
-link  "$RUNTIME/assets/nav.js"         "assets/nav.js"
-link  "$RUNTIME/assets/nav.css"        "assets/nav.css"
-link  "$RUNTIME/assets/lesson-boot.js" "assets/lesson-boot.js"
+# the one file here that describes this course rather than any course — and it
+# is where the workspace states the learner's language, once, for every page.
+#
+# Learner-facing text splits the same way everything else here does. What a
+# button is called varies by language and by nothing else, so the tables live in
+# the plugin and every workspace follows them; strings.js is this workspace's
+# own table, for a language the plugin does not ship or an entry it disagrees
+# with.
+link  "$RUNTIME/assets/rich-text.js"    "assets/rich-text.js"
+link  "$RUNTIME/assets/tutor.js"        "assets/tutor.js"
+link  "$RUNTIME/assets/tutor.css"       "assets/tutor.css"
+link  "$RUNTIME/assets/nav.js"          "assets/nav.js"
+link  "$RUNTIME/assets/nav.css"         "assets/nav.css"
+link  "$RUNTIME/assets/lesson-boot.js"  "assets/lesson-boot.js"
+link  "$RUNTIME/assets/learner-text.js" "assets/learner-text.js"
 place "$TPL/assets/units.js"       "assets/units.js"
+place "$TPL/assets/strings.js"     "assets/strings.js"
 place "$TPL/index.html"            "index.html"
 
 # Where a submission too large for the assignment page is put. Placed rather
@@ -128,7 +137,10 @@ if [ "$kept" -gt 0 ]; then summary="$summary, $kept overridden here"; fi
 echo "$summary."
 echo
 echo "Still to author (these depend on the subject and the learner):"
-echo "  (assets/units.js was installed empty — fill it in so index.html has content)"
+echo "  (assets/units.js was installed empty — fill it in so index.html has content,"
+echo "   and set its lang to the learner's language; every page takes it from there)"
+echo "  (assets/strings.js is this workspace's own table of learner-facing text — leave it"
+echo "   empty unless the plugin ships no table for that language, or one needs overriding)"
 echo "  (tutor/TUNING.md and tutor/GRADER-TUNING.md are placeholders — tune them for this subject;"
 echo "   tutor/ROLE.md and tutor/GRADER.md are the plugin's)"
 echo

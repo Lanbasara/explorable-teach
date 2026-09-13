@@ -172,6 +172,34 @@ test('a script is given the attributes its page writes on the tag', (t) => {
   assert.equal(page.window.seenUnit, '0003');
 });
 
+test('src is backed by the attribute, so a script can resolve paths from itself', () => {
+  const doc = parseHTML('<body><script src="../assets/lesson-boot.js"></script></body>');
+  const tag = doc.querySelector('script');
+
+  // The bootstrap reads its own src to find assets/ from a page in lessons/,
+  // then writes one onto each script it loads. Both ends have to be real.
+  assert.equal(tag.src, '../assets/lesson-boot.js');
+
+  const next = doc.createElement('script');
+  next.src = '../assets/units.js';
+  assert.equal(next.getAttribute('src'), '../assets/units.js');
+});
+
+test('placeholder is backed by the attribute too, being a label a Learner reads', () => {
+  const doc = parseHTML('<body><textarea></textarea></body>');
+  const box = doc.querySelector('textarea');
+
+  assert.equal(box.getAttribute('placeholder'), null);
+  assert.equal(box.placeholder, '', 'an unset attribute reads as empty, never undefined');
+
+  box.placeholder = 'Ask something…';
+
+  // The drawer labels its composer by assigning this, and that label is
+  // Learner-facing text — so the check that asserts no Component hardcoded a
+  // word reads it back off the attribute.
+  assert.equal(box.getAttribute('placeholder'), 'Ask something…');
+});
+
 test('href and title are backed by the attribute, like hidden and disabled', () => {
   const doc = parseHTML('<body><a>bare</a></body>');
   const link = doc.querySelector('a');

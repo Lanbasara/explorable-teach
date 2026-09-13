@@ -30,6 +30,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — and grades in a role composed from the Grader's own two files, never the Tutor's |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
+| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, and nothing a Learner reads is hardcoded — in any language |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
@@ -111,7 +112,10 @@ property a test reads back as a boolean has to be modelled before it is read.
 
 `href` and `title` joined them when the nav bar came under test: the bar builds every link by
 assigning both, so a DOM modelling neither would have reported a bar with no links in it while
-the bar was working. `page.script(file, attrs)` is the other half of driving it — the bar reads
+the bar was working. `placeholder` and `src` joined them with the language checks — a composer's
+placeholder is Learner-facing text the pseudolocale check has to read back, and the bootstrap
+finds `assets/` by reading its own `src` off `document.currentScript`, so a DOM leaving that an
+expando could not mount the bootstrap at all. `page.script(file, attrs)` is the other half of driving it — the bar reads
 `data-unit` off its own tag, so a test that could not write one would be driving a bar that
 never mounted.
 
@@ -120,8 +124,22 @@ globals })` is the one way to widen it for one test. The Tutor's in-page drawer 
 service to probe and a stream to read; no Component needs any of them, so naming them at the call site is
 what keeps a Component that starts reaching for one throwing rather than quietly passing.
 
+`tests/helpers/drawer.js` mounts the Tutor's in-page drawer the way a Lesson mounts it, and owns
+the seams that come with driving it — the stream, the health probe, the clock, the intervals, and
+the Workspace's own table of Learner-facing text. Two suites ask different things of it:
+`tutor-drawer.test.js` asks what the drawer does around an answer, and `language.test.js` asks
+what language it does it in.
+
+`tests/helpers/learner-text.js` runs the shipped lookup against a language and answers with what
+a page in it would say, so an assertion can name a *key* rather than a word. It also builds the
+sentinel tables the pseudolocale check mounts under.
+
 `tests/helpers/unit.js` holds the fixture Unit — the pages one Unit is made of, written the way
-the skill's authoring document says to write them, using every shipped Component. Two pages,
+the skill's authoring document says to write them, using every shipped Component. Every page is
+built *for* a language rather than *in* one: `pagesIn(lang)` and `lessonHtml(lang)` take the tag,
+and the bare `PAGES` and `LESSON_HTML` are those at the fixture's own. A fixture that hardcoded
+one could only ever mount a single audience's page, and the check that matters most is the one
+that needs a tag no Workspace has. Two pages,
 because a Unit is more than one file: the Lesson, and the Checkpoint that gates it. `PAGES` is
 what the generic checks iterate, and each page names the Components it is built from — so
 **adding a Component means adding one entry and its markup to the page it belongs on**, and
@@ -264,6 +282,62 @@ on the page: a stop is only a stop if the stream was let go, because letting it 
 the connection the service is watching. One of them lands the stop before the response has
 arrived at all — the window a learner is most likely to press it in, and the one where there is
 no reader yet to cancel.
+
+## The language checks
+
+`language.test.js` holds the split the whole project is built on: every string has exactly one
+reader, and that reader decides its language. Maintainer-facing text — role definitions, prompt
+scaffolding, comments, service logs — is English in every Workspace. Learner-facing text is
+produced at run time from `<html lang>`, against a table. Decisions 30 and 31 argue it;
+`CONTEXT.md` names the two halves.
+
+The rule for writing one of these: **assert the split, never the strings.** A check that pinned a
+particular word in a particular language would have to be rewritten the day a language was
+added, which is the defect the arrangement exists to have removed. So every assertion elsewhere
+in the suite that used to name a label now goes through `tests/helpers/learner-text.js`, which
+runs the shipped lookup and answers with what a page in that language would say.
+
+**The pseudolocale check is the one that earns its keep.** Every Component is mounted under a
+synthetic `lang` whose table holds nothing but sentinels — each key transliterated into fullwidth
+Latin, which no natural-language string carries — and the rendered tree is then asserted to hold
+no character outside that alphabet. That catches a string hardcoded in *any* language, including
+English, which no scan of the bytes can see, and it never needs rewriting when a language is
+added. Three things make it work, and all three were found the hard way:
+
+- **The content the test feeds in is in the alphabet too.** What a Learner types and what a Tutor
+  answers are theirs rather than the Component's, so they are fed as sentinels — otherwise they
+  are the one part of the tree the check cannot read, and excluding them by hand is how a real
+  string hides behind one.
+- **The tree is read at every step, not once at the end.** A label that is replaced on the way —
+  the pin button, which says something else once it is pinned — would otherwise be a string this
+  check never looked at. It passed a hardcoded one that way before review caught it.
+- **Digits are allowed and nothing else is.** A count of questions or a number of seconds is a
+  value the page computes, and the same digit in every language.
+
+Labels that are attributes rather than text are read too — `title`, `aria-label`, `placeholder` —
+because a tooltip is as Learner-facing as a button. Each of those has to be modelled in the
+fixture DOM before it can be read back, for the reason `hidden` and `disabled` are.
+
+**The non-ASCII scan ships as well, and fails on a different thing**: one Learner's language
+creeping back into a file every Workspace links at. It allows the typographic punctuation this
+repo's English prose is written with — em dashes, ellipses, curly quotes — and nothing else
+beyond ASCII, so a letter, a digit or an emoji in shared source is a finding. Its observer is
+guarded from both sides: it has to recognise the three shapes this has actually taken (a label, a
+comment, a decorative glyph) and it has to let an ordinary English sentence through.
+
+**Two consistency contracts, both derived rather than listed.** Every key a Component asks for is
+read out of the Component's own source — the keys are written as literals, and no source builds
+one by concatenation, which is what makes this derivable — and checked against the table English
+falls back to, so a missing translation fails before a Learner meets a raw key. And the shipped
+tables are checked against each other, so a typo in one is not a silent hole. Neither check names
+a key: `docs/agents/tests.md` bans a test caching a fact it does not own, and a list of keys here
+would be a second copy of the table.
+
+**Non-ASCII inputs in the suite are deliberate, and are not to be tidied away.** The fixture
+Unit's prose, the Rubric it stores, the questions the drawer tests ask and the answers they
+receive are all non-English on purpose. They are the only coverage the pipeline has of handling
+bytes that are not ASCII — which is exactly the class of defect the verdict slug's hardcoded
+character range was. Anything added here should widen that rather than narrow it.
 
 ## The navigation check
 

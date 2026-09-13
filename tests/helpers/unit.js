@@ -24,6 +24,14 @@
  * Components it is built from. Adding a Component means adding one entry and
  * its markup to the page it belongs on; every check below then covers it
  * without being told about it separately.
+ *
+ * Every page is built for a language rather than in one. `<html lang>` is what
+ * a Component reads to decide what a Learner sees, so a fixture that hardcoded
+ * a tag could only ever mount one audience's page — and the check that matters
+ * most, the pseudolocale one, is the one that needs a tag no Workspace has.
+ * `pagesIn(lang)` and `lessonHtml(lang)` take it; `PAGES` and `LESSON_HTML` are
+ * those at the fixture's own language, which is the pilot Workspace's, so that
+ * the suite keeps observing the audience the prose below is written for.
  */
 
 /**
@@ -116,8 +124,11 @@ const RUBRIC = [
   '- 只把命令抄了一遍，没说数据是怎么流的',
 ].join('\n');
 
-const LESSON_HTML = `<!DOCTYPE html>
-<html lang="zh-CN">
+/** The language the fixture Unit is authored in, when a test does not say. */
+const FIXTURE_LANG = 'zh-CN';
+
+const lessonHtml = (lang = FIXTURE_LANG) => `<!DOCTYPE html>
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -187,8 +198,8 @@ ${LESSON_COMPONENTS.map((c) => `<script src="../assets/${c.js}"></script>`).join
 </html>
 `;
 
-const CHECKPOINT_HTML = `<!DOCTYPE html>
-<html lang="zh-CN">
+const checkpointHtml = (lang = FIXTURE_LANG) => `<!DOCTYPE html>
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -250,8 +261,8 @@ const CHECKPOINT_HTML = `<!DOCTYPE html>
 </html>
 `;
 
-const ASSIGNMENT_HTML = `<!DOCTYPE html>
-<html lang="zh-CN">
+const assignmentHtml = (lang = FIXTURE_LANG) => `<!DOCTYPE html>
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -296,29 +307,33 @@ ${RUBRIC}
  * The Checkpoint runs the Exercise Component too: its questions are Exercises,
  * and what the Checkpoint adds is the verdict over them.
  */
-const PAGES = [
+const pagesIn = (lang = FIXTURE_LANG) => [
   {
     key: 'lesson',
     name: 'the fixture Lesson',
     file: UNIT.lesson,
-    html: LESSON_HTML,
+    html: lessonHtml(lang),
     components: LESSON_COMPONENTS,
   },
   {
     key: 'checkpoint',
     name: 'the fixture Checkpoint',
     file: UNIT.checkpoint,
-    html: CHECKPOINT_HTML,
+    html: checkpointHtml(lang),
     components: [EXERCISE, CHECKPOINT],
   },
   {
     key: 'assignment',
     name: 'the fixture Assignment',
     file: UNIT.assignment,
-    html: ASSIGNMENT_HTML,
+    html: assignmentHtml(lang),
     components: [ASSIGNMENT],
   },
 ];
+
+/** The fixture Unit at its own language, which is what most checks iterate. */
+const PAGES = pagesIn();
+const LESSON_HTML = lessonHtml();
 
 /**
  * Every asset a page or script points at, as a Workspace-relative path.
@@ -333,4 +348,15 @@ function assetRefs(text) {
   return [...found].sort();
 }
 
-module.exports = { ALL_COMPONENTS, SHARED_STYLES, UNIT, RUBRIC, LESSON_HTML, PAGES, assetRefs };
+module.exports = {
+  ALL_COMPONENTS,
+  SHARED_STYLES,
+  UNIT,
+  RUBRIC,
+  FIXTURE_LANG,
+  LESSON_HTML,
+  PAGES,
+  lessonHtml,
+  pagesIn,
+  assetRefs,
+};

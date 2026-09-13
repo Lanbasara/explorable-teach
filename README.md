@@ -203,6 +203,24 @@ the loop closes without you: an assignment is done between sessions, so nobody i
 it down. Questioning a verdict writes nothing — that is a conversation about a record, not another
 one.
 
+## The language you learn in is yours
+
+The project is in English. What *you* read is in your language, and you say which once:
+
+```js
+// assets/units.js
+window.TEACH_COURSE = { lang: 'zh-CN', title: '…' };
+```
+
+Every page in the workspace takes it from there — the bootstrap writes it onto any page that did
+not declare one, and `scripts/wire-lessons.sh` fills it into the pages it rewrites — so
+`<html lang>` is the one thing any component reads. The plugin ships text for `en` and `zh-CN`.
+For a language it has not collected, or an entry you disagree with, `assets/strings.js` is your
+own table; anything it does not cover falls back to the plugin's, and then to English.
+
+Your browser's setting is deliberately not consulted. What decides is the preference recorded for
+the learner, so the workspace reads the same wherever it is opened.
+
 ## `questions.jsonl` is the point
 
 Every tutor exchange is logged with a thread id. It is the highest-signal feedback the workspace
@@ -227,7 +245,10 @@ on the boot sequence with its reference material behind pointers rather than in 
 steps, and the version the plugin declares is the one the changelog most recently shipped. The
 shipped components are mounted in a hand-written
 DOM and actually driven — answered, stepped, reordered — rather than merely read, and every
-artifact of a unit is checked to be reachable from every other one.
+artifact of a unit is checked to be reachable from every other one. One of them mounts the tutor
+drawer under a made-up language whose text is nothing but sentinels, and fails if a single
+character outside that alphabet reaches the screen — which is how a string hardcoded in *any*
+language, English included, gets caught.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 
 ## Design decisions

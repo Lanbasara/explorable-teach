@@ -20,243 +20,40 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const { Workspace } = require('./helpers/workspace.js');
-const { Page } = require('./helpers/dom.js');
-const { LESSON_HTML, UNIT, PAGES } = require('./helpers/unit.js');
+const { LESSON_HTML, UNIT, PAGES, FIXTURE_LANG } = require('./helpers/unit.js');
+const { say } = require('./helpers/learner-text.js');
+const {
+  ANSWER,
+  drawerIn,
+  event,
+  chunksFor,
+  fedStream,
+  mount,
+  readerFor,
+  settle,
+} = require('./helpers/drawer.js');
 
 const ASSIGNMENT_HTML = PAGES.find((page) => page.key === 'assignment').html;
 
-/** An answer with every piece of Markdown a Tutor actually writes. */
-const ANSWER = [
-  '## fork 与 exec',
-  '',
-  '`fork()` 返回**两次**:',
-  '',
-  '- 在父进程里返回子进程的 pid',
-  '- 在子进程里返回 0',
-  '',
-  '```c',
-  'pid_t pid = fork();',
-  'if (pid == 0) exec("/bin/ls");',
-  '```',
-  '',
-  '细节见 [Unit 2](../lessons/0002.html)。',
-].join('\n');
-
-/** One server-sent event, spelled the way `server.js` spells it. */
-function event(name, data) {
-  return `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
-}
-
 /**
- * The answer as the service delivers it: a few deltas, then `done`, cut into
- * three chunks that fall mid-event. The drawer reassembles across chunk
- * boundaries, and a stub that wrote one tidy chunk would leave that untested
- * while every assertion below went on passing — the same reason the service
- * fixture cuts its transcript awkwardly.
- */
-function chunksFor(answer) {
-  const half = Math.floor(answer.length / 2);
-  const stream =
-    event('tool', { name: 'Read', target: 'lessons/0003.html' }) +
-    event('delta', { text: answer.slice(0, half) }) +
-    event('delta', { text: answer.slice(half) }) +
-    event('done', { answer, durationMs: 12 });
-
-  const cut = Math.floor(stream.length / 3);
-  return [stream.slice(0, cut), stream.slice(cut, cut * 2), stream.slice(cut * 2)];
-}
-
-/** A reader over a fixed transcript. `ends: false` leaves the answer in flight. */
-function readerFor(chunks, ends = true) {
-  let next = 0;
-  return {
-    read: () => {
-      if (next < chunks.length) {
-        return Promise.resolve({ done: false, value: Buffer.from(chunks[next++], 'utf8') });
-      }
-      // A stream that never ends is where a streamed answer spends most of its life.
-      return ends ? Promise.resolve({ done: true, value: undefined }) : new Promise(() => {});
-    },
-    cancel: () => Promise.resolve(),
-  };
-}
-
-/**
- * A stream the test feeds one event at a time, which is the only way to see a
- * stage of the wait while it is still that stage. `cancelled` is what the
- * drawer letting go of the stream looks like from the service's end.
- */
-function fedStream() {
-  const queued = [];
-  let waiting = null;
-  const deliver = (result) => {
-    if (waiting) {
-      const resolve = waiting;
-      waiting = null;
-      resolve(result);
-    } else {
-      queued.push(result);
-    }
-  };
-
-  const self = {
-    cancelled: false,
-    push: (text) => deliver({ done: false, value: Buffer.from(text, 'utf8') }),
-    end: () => deliver({ done: true, value: undefined }),
-    reader: () => ({
-      read: () => (queued.length ? Promise.resolve(queued.shift()) : new Promise((r) => { waiting = r; })),
-      cancel: () => {
-        self.cancelled = true;
-        deliver({ done: true, value: undefined });
-        return Promise.resolve();
-      },
-    }),
-  };
-  return self;
-}
-
-/** Storage the drawer can keep its threads and pinned answers in. */
-function storage() {
-  const store = new Map();
-  return {
-    getItem: (key) => (store.has(key) ? store.get(key) : null),
-    setItem: (key, value) => store.set(key, String(value)),
-    removeItem: (key) => store.delete(key),
-  };
-}
-
-/**
- * Repeating work the test drives by hand. The drawer sets two things going —
- * the clock beside an in-flight answer, and the health poll it runs while
- * offline — and both have to stop on their own, so `live` is asserted on as
- * much as `tick` is called.
- */
-function timers() {
-  const live = new Map();
-  let next = 0;
-  return {
-    live,
-    setInterval(fn) {
-      live.set((next += 1), fn);
-      return next;
-    },
-    clearInterval(id) {
-      live.delete(id);
-    },
-    tick(times = 1) {
-      for (let i = 0; i < times; i++) for (const fn of [...live.values()]) fn();
-    },
-  };
-}
-
-/** A clock the test advances, so an elapsed indication can be read off it. */
-function clock() {
-  let at = Date.now();
-  class Advanced extends Date {
-    constructor(...args) {
-      super(...(args.length ? args : [at]));
-    }
-    static now() {
-      return at;
-    }
-  }
-  return { Date: Advanced, advance: (ms) => { at += ms; } };
-}
-
-/** Somewhere for a copied answer or a copied prompt to land. */
-function clipboard() {
-  const pad = { text: null };
-  pad.navigator = { clipboard: { writeText: (text) => { pad.text = text; return Promise.resolve(); } } };
-  return pad;
-}
-
-/**
- * A Lesson with the drawer mounted in it, served by a stub that answers the
- * health probe and streams an answer at `/api/ask`.
+ * What the drawer says, in the language the fixture pages declare.
  *
- * `withRenderer: false` stages the one failure lesson-boot.js tolerates by
- * design — a component script that did not load — because a learner must still
- * be able to read the answer when that happens. `store` is passed in rather
- * than made here so that a second mount can be given the first one's storage,
- * which is what a reload is. `health` is asked per probe rather than fixed, so
- * a test can start the service after the page is already open, and `reply`
- * takes over `/api/ask` entirely when a test needs a second request to differ
- * from the first.
+ * Every assertion below about a word on screen goes through this rather than
+ * naming the word. What is under test is that the drawer asked for the right
+ * *key* — the split between what the plugin ships and what the Learner reads —
+ * and a test that pinned the word instead would have to be rewritten the day a
+ * language is added, which is the defect this whole arrangement removes.
  */
-function mount(assetsDir, options = {}) {
-  const {
-    html = LESSON_HTML,
-    at = '/lessons/0003-fork-exec.html',
-    before = [],
-    chunks = chunksFor(ANSWER),
-    ends = true,
-    withRenderer = true,
-    store = storage(),
-    feed = null,
-    health = () => true,
-    reply = null,
-  } = options;
-
-  const asked = [];
-  const time = clock();
-  const clocks = timers();
-  const pad = clipboard();
-
-  const page = Page.load(html, assetsDir, {
-    globals: {
-      location: { protocol: 'http:', pathname: at },
-      localStorage: store,
-      setTimeout,
-      setInterval: clocks.setInterval,
-      clearInterval: clocks.clearInterval,
-      Date: time.Date,
-      navigator: pad.navigator,
-      TextDecoder,
-      fetch(url, init) {
-        if (url === '/api/health') {
-          return health()
-            ? Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) })
-            : Promise.reject(new Error('service is not running'));
-        }
-        asked.push(JSON.parse(init.body));
-        if (reply) return reply(asked.length);
-        return Promise.resolve({
-          ok: true,
-          body: { getReader: () => (feed ? feed.reader() : readerFor(chunks, ends)) },
-        });
-      },
-    },
-  });
-
-  if (withRenderer) page.script('rich-text.js');
-  page.script('tutor.js');
-  // After the drawer, the way lesson-boot.js loads it: a Component that looked
-  // for `window.Tutor` at mount would find nothing on a real page either.
-  for (const file of before) page.script(file);
-
-  page.asked = asked;
-  page.store = store;
-  page.clock = time;
-  page.timers = clocks;
-  page.tick = clocks.tick;
-  page.clipboard = pad;
-  return page;
-}
+const drawerSays = (key, values) => say(FIXTURE_LANG, key, values);
 
 /** That Lesson, in a Workspace scaffolded the way a learner's is. */
 function lesson(t, options) {
-  const ws = Workspace.create(t);
-  ws.scaffold();
-  return mount(ws.path('assets'), options);
+  return drawerIn(t, LESSON_HTML, options);
 }
 
 /** The Assignment page of the same Unit, with its hand-in mounted over the drawer. */
 function assignment(t, options) {
-  const ws = Workspace.create(t);
-  ws.scaffold();
-  return mount(ws.path('assets'), {
-    html: ASSIGNMENT_HTML,
+  return drawerIn(t, ASSIGNMENT_HTML, {
     at: '/' + UNIT.assignment,
     before: ['assignment.js'],
     ...options,
@@ -272,15 +69,15 @@ async function hand(page, answer = '第二段读的是第一段的 stdout。') {
   return page.query('.tutor-msg.tutor .tutor-msg-body');
 }
 
-/** Let the drawer's promise chain run to the end of the stream. */
-async function settle(rounds = 12) {
-  for (let i = 0; i < rounds; i++) await new Promise((resolve) => setImmediate(resolve));
-}
 
 /** Ask a question the way a learner does: open the drawer, type, send. */
 async function ask(page, question = '这段什么意思？') {
   await settle(); // the health probe, which is what puts the drawer online
-  assert.equal(page.text('.tutor-status'), '在线', 'the drawer should have found the service');
+  assert.equal(
+    page.text('.tutor-status'),
+    drawerSays('tutor.status.online'),
+    'the drawer should have found the service',
+  );
 
   page.click(page.query('.tutor-fab'));
   page.type(page.query('.tutor-input'), question);
@@ -353,7 +150,7 @@ test('a pinned answer survives the reload that only the store outlives', async (
   page.click(page.query('.tutor-pin'));
 
   // Same storage, a second mount: what a learner gets by reopening the Lesson.
-  const again = mount(page.assetsDir, { store: page.store });
+  const again = mount(page.assetsDir, { html: LESSON_HTML, store: page.store });
 
   const restored = again.query('#tutor-notes .tutor-note-a');
   assert.ok(restored, 'the pinned answer should come back');
@@ -401,12 +198,16 @@ test('the wait is reported in three stages, the middle one from the service’s 
 
   const stage = () => page.query('.tutor-progress').getAttribute('data-stage');
   assert.equal(stage(), 'accepted', 'the click has an effect at once');
-  assert.equal(page.text('.tutor-stage'), '正在发送…', 'but claims only what it knows');
+  assert.equal(page.text('.tutor-stage'), drawerSays('tutor.stage.sending'), 'but claims only what it knows');
 
   feed.push(event('open', { role: 'tutor' }));
   await settle();
   assert.equal(stage(), 'accepted');
-  assert.match(page.text('.tutor-stage'), /已接到/, 'the service saying so is what makes it accepted');
+  assert.equal(
+    page.text('.tutor-stage'),
+    drawerSays('tutor.stage.accepted'),
+    'the service saying so is what makes it accepted',
+  );
 
   // Stage two is not invented here: it is the tool event the service has
   // always sent, which the drawer until now drew only as a decorative chip.
@@ -421,10 +222,10 @@ test('the wait is reported in three stages, the middle one from the service’s 
   assert.equal(stage(), 'answering');
 
   // The elapsed indication is the whole difference between slow and stuck.
-  assert.equal(page.text('.tutor-elapsed'), '0 秒');
+  assert.equal(page.text('.tutor-elapsed'), drawerSays('tutor.elapsed.seconds', { seconds: 0 }));
   page.clock.advance(7000);
   page.tick();
-  assert.equal(page.text('.tutor-elapsed'), '7 秒');
+  assert.equal(page.text('.tutor-elapsed'), drawerSays('tutor.elapsed.seconds', { seconds: 7 }));
 
   feed.push(event('done', { answer: '先说结论。', durationMs: 7000 }));
   feed.end();
@@ -528,12 +329,19 @@ test('a failure offers a retry and the clipboard fallback, not a raw error strin
 
   await ask(page);
 
-  assert.match(page.text('.tutor-recover-say'), /没能连上/, 'the learner is told what happened, in words');
+  assert.equal(
+    page.text('.tutor-recover-say'),
+    drawerSays('tutor.fail.connect'),
+    'the learner is told what happened, in words',
+  );
   assert.match(page.text('.tutor-recover'), /Failed to fetch/, 'and the detail is kept, just not alone');
 
   page.click(page.query('.tutor-copyprompt'));
   await settle();
-  assert.match(page.clipboard.text, /我的问题：这段什么意思？/, 'the fallback still works with the service down');
+  assert.ok(
+    page.clipboard.text.includes(drawerSays('tutor.copy.question', { text: '这段什么意思？' })),
+    'the fallback still works with the service down',
+  );
 
   page.click(page.query('.tutor-retry'));
   await settle();
@@ -585,12 +393,19 @@ test('a poll does not stomp what the composer is telling the Learner', async (t)
   page.click(page.query('.tutor-send'));
   await settle();
 
-  assert.match(page.clipboard.text, /我的问题：这段什么意思？/, 'the fallback is what send does while offline');
-  assert.equal(page.text('.tutor-send'), '✓ 已复制');
+  assert.ok(
+    page.clipboard.text.includes(drawerSays('tutor.copy.question', { text: '这段什么意思？' })),
+    'the fallback is what send does while offline',
+  );
+  assert.equal(page.text('.tutor-send'), drawerSays('tutor.act.copied'));
 
   page.tick(); // four seconds on, still nothing there
   await settle();
-  assert.equal(page.text('.tutor-send'), '✓ 已复制', 'and the confirmation is still the Learner’s to read');
+  assert.equal(
+    page.text('.tutor-send'),
+    drawerSays('tutor.act.copied'),
+    'and the confirmation is still the Learner’s to read',
+  );
 });
 
 test('asking again while the service is down costs the Learner nothing', async (t) => {
@@ -615,14 +430,18 @@ test('asking again while the service is down costs the Learner nothing', async (
   page.click(page.query('.tutor-send'));
   await settle();
 
-  assert.equal(page.text('.tutor-status'), '离线', 'the failure re-probed, and the probe found nothing');
+  assert.equal(
+    page.text('.tutor-status'),
+    drawerSays('tutor.status.offline'),
+    'the failure re-probed, and the probe found nothing',
+  );
   assert.ok(page.query('.tutor-retry'), 'the failure still offers both ways onward');
 
   page.click(page.query('.tutor-retry'));
   await settle();
   assert.ok(page.query('.tutor-retry'), 'a retry that cannot run leaves the offer standing');
   assert.ok(page.query('.tutor-copyprompt'), 'and the fallback with it');
-  assert.match(page.text('.tutor-retry'), /服务未启动/, 'saying why nothing happened');
+  assert.equal(page.text('.tutor-retry'), drawerSays('tutor.act.offline'), 'saying why nothing happened');
 
   page.click(page.query('.tutor-regen'));
   await settle();
@@ -635,16 +454,22 @@ test('the widget finds a service started after the Lesson was opened, without a 
   const page = lesson(t, { health: () => up });
   await settle();
 
-  assert.equal(page.text('.tutor-status'), '离线');
-  assert.equal(page.text('.tutor-send'), '📋 复制提问', 'and the composer degrades to the clipboard');
-  assert.doesNotMatch(page.text('.tutor-hint'), /刷新/, 'nothing asks the learner to reload');
+  assert.equal(page.text('.tutor-status'), drawerSays('tutor.status.offline'));
+  assert.equal(page.text('.tutor-send'), drawerSays('tutor.send.copy'), 'and the composer degrades to the clipboard');
+  // The whole of what it says, so nothing has crept in beside it — telling the
+  // Learner to reload was what stood here before the poll existed.
+  assert.equal(
+    page.text('.tutor-hint'),
+    drawerSays('tutor.offline.hint', { command: 'node tutor/server.js' }),
+    'it says how to start the service, and nothing else',
+  );
 
   up = true;
   page.tick(); // the poll the drawer set going when it found nothing there
   await settle();
 
-  assert.equal(page.text('.tutor-status'), '在线');
-  assert.equal(page.text('.tutor-send'), '发送');
+  assert.equal(page.text('.tutor-status'), drawerSays('tutor.status.online'));
+  assert.equal(page.text('.tutor-send'), drawerSays('tutor.send'));
   assert.equal(page.text('.tutor-hint'), '', 'the instructions for starting it are gone');
   assert.equal(page.timers.live.size, 0, 'and it stops asking');
 });
@@ -685,9 +510,13 @@ test('a Submission handed in from the page is graded in the same page', async (t
   // over a verdict would be the one thing this design exists to rule out, said
   // in the page — and the drawer is the same drawer, so the header is the only
   // thing saying who the composer underneath it now reaches.
-  assert.equal(page.text('.tutor-msg.tutor .tutor-msg-role'), '评分');
-  assert.match(page.text('.tutor-title'), /作业评分/);
-  assert.match(page.text('.tutor-suggest'), /没过|判定|改/, 'and what to ask next suits a verdict');
+  assert.equal(page.text('.tutor-msg.tutor .tutor-msg-role'), drawerSays('tutor.role.grader.reply'));
+  assert.ok(page.text('.tutor-title').includes(drawerSays('tutor.role.grader.title')));
+  assert.equal(
+    page.text('.tutor-suggest'),
+    drawerSays('tutor.role.grader.ask.1'),
+    'and what to ask next suits a verdict',
+  );
   assert.ok(page.query('.assignment').classList.contains('is-sent'));
 });
 
@@ -754,10 +583,13 @@ test('with the service stopped, handing in degrades to the same clipboard fallba
   // the learner has open, and the likeliest one is the Teacher that wrote the
   // Assignment — so an "or just answer as a grader yourself" alternative is how
   // the rule the whole arrangement exists for gets broken by the fallback.
-  assert.match(prompt, /不要自己判/, 'the prompt refuses the session it lands in');
   assert.ok(
-    !/或者以作业评分员的身份/.test(prompt),
-    'the fallback offers the reader a way to grade the Assignment itself',
+    prompt.includes(drawerSays('tutor.role.grader.brief')),
+    'the prompt refuses the session it lands in',
+  );
+  assert.ok(
+    !prompt.includes(drawerSays('tutor.role.tutor.brief')),
+    'the fallback asks a Grader for a verdict, never whoever happens to be reading',
   );
 
   // The page must not claim the work was judged when it was copied instead.
@@ -775,5 +607,5 @@ test('a lesson question is still the Tutor\'s, and still names the Lesson it cam
 
   assert.equal(page.asked[0].role, 'tutor');
   assert.equal(page.asked[0].lesson, UNIT.lesson, 'the path is derived from the page, not assumed');
-  assert.match(page.text('.tutor-title'), /问答助教/, 'and the drawer says so');
+  assert.ok(page.text('.tutor-title').includes(drawerSays('tutor.role.tutor.title')), 'and the drawer says so');
 });

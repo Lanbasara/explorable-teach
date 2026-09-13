@@ -1,9 +1,15 @@
 /* ============================================================
-   AI 问答助教 — in-page tutor widget
-   Requires: assets/tutor.css, assets/rich-text.js
+   In-page tutor widget
+   Requires: assets/tutor.css, assets/rich-text.js, assets/learner-text.js
    Backend : tutor/server.js   ->  node tutor/server.js
    Degrades: if the server is unreachable (e.g. opened via file://),
              the send button becomes "copy a well-formed prompt".
+
+   Every string this file puts on screen is a key into the table in
+   assets/learner-text.js, looked up against the page's own <html lang>. There
+   is no learner-facing text below — a literal here would be one learner's
+   language written into every workspace, which is the defect this arrangement
+   exists to have removed.
 
    Two roles reach the learner through this one drawer, because everything
    around an answer — the thread, the wait, the stop, the retry, the clipboard
@@ -17,6 +23,18 @@
 (function () {
   'use strict';
 
+  /**
+   * What this page says, in the learner's language.
+   *
+   * Reached through `window` and defaulted, because lesson-boot.js carries on
+   * past a script that failed to load. A drawer labelled with its own keys is
+   * ugly and still usable; a drawer that threw on the first label is not there
+   * at all. It is also the last rung of the lookup chain, so the two failures
+   * look the same to whoever reports one.
+   */
+  var say = (window.LearnerText && window.LearnerText.say)
+    || function (key) { return key; };
+
   // The roles this drawer carries, mirroring the service's own ROLES map — one
   // entry each rather than a `convo.role === 'grader'` test wherever the two
   // differ, so a third role is one entry here and not a fourth branch to find.
@@ -28,26 +46,40 @@
   //   brief    what the clipboard prompt asks for at the end. It restates what
   //            the role file says because on this path nothing loads a role
   //            file: the learner is pasting into a session that has none.
+  //
+  // Each field is a key rather than a string, for the reason the whole file is:
+  // what a role is called is the learner's language, and this map is shared by
+  // every workspace.
   var ROLES = {
     tutor: {
-      title: '🎓 问答助教',
-      reply: '助教',
-      ask: ['这段什么意思', '换个类比讲', '为什么不是这样', '和前面哪节课有关'],
-      lead: '我正在读这一课：',
-      brief: '（请以问答助教的身份回答：先读 NOTES.md 和 MISSION.md 了解我的偏好和目标，'
-        + '渐进式披露，只讲我问的这一点。）'
+      title: 'tutor.role.tutor.title',
+      reply: 'tutor.role.tutor.reply',
+      ask: [
+        'tutor.role.tutor.ask.1',
+        'tutor.role.tutor.ask.2',
+        'tutor.role.tutor.ask.3',
+        'tutor.role.tutor.ask.4',
+      ],
+      lead: 'tutor.role.tutor.lead',
+      brief: 'tutor.role.tutor.brief'
     },
     grader: {
-      title: '📝 作业评分',
-      reply: '评分',
-      ask: ['这一条为什么没过', '我不同意这个判定', '下次该怎么改', '举个做对了的例子'],
-      lead: '我在做这份作业：',
+      title: 'tutor.role.grader.title',
+      reply: 'tutor.role.grader.reply',
+      ask: [
+        'tutor.role.grader.ask.1',
+        'tutor.role.grader.ask.2',
+        'tutor.role.grader.ask.3',
+        'tutor.role.grader.ask.4',
+      ],
+      lead: 'tutor.role.grader.lead',
       // The subagent, and nothing else. Offering "or answer as a grader
       // yourself" would invite whichever session this is pasted into to grade —
       // and the session most likely to be open is the one that wrote the
-      // assignment, which is the one thing grading may never be.
-      brief: '（请用 grader 子 agent 判这份作业——它在 .claude/agents/grader.md，就在这个教案目录里。'
-        + '不要自己判：出题的老师不判自己出的作业。）'
+      // assignment, which is the one thing grading may never be. That is a
+      // property of what the entry says, so it is a property of every
+      // translation of it, which is what the suite holds it to.
+      brief: 'tutor.role.grader.brief'
     }
   };
   var START_CMD = 'node tutor/server.js';
@@ -94,14 +126,14 @@
   // is where that earns its keep: the text stops growing, and the learner is
   // told it went to read something rather than left to guess at a stall.
   var STAGES = {
-    accepted: '老师已接到问题，正在启动…',
-    reading: '老师正在读教案…',
-    answering: '老师正在作答…'
+    accepted: 'tutor.stage.accepted',
+    reading: 'tutor.stage.reading',
+    answering: 'tutor.stage.answering'
   };
   // What the row says before the service has said anything. It is the same
   // stage — the question is away — but the claim that the service *has* it
   // waits for the service to say so, which is what the `open` event is.
-  var SENDING = '正在发送…';
+  var SENDING = 'tutor.stage.sending';
 
   // One thread = one line of questioning, put to one role. Turns ride along in
   // each request (bounded replay), so the server stays stateless and never
@@ -275,23 +307,23 @@
 
   var drawer = el('aside', 'tutor-drawer');
   drawer.setAttribute('role', 'dialog');
-  drawer.setAttribute('aria-label', 'AI 问答助教');
+  drawer.setAttribute('aria-label', say('tutor.aria.drawer'));
 
   var head = el('div', 'tutor-head');
   var title = el('div', 'tutor-title');
   // Who is on the other end, which changes under the learner: a Submission
-  // opens a Grader thread, and a header still reading 问答助教 over a verdict
+  // opens a Grader thread, and a header still naming the Tutor over a verdict
   // would be the one confusion this whole arrangement exists to avoid.
   var titleText = document.createTextNode('');
   title.appendChild(titleText);
-  var status = el('span', 'tutor-status', '检测中');
+  var status = el('span', 'tutor-status', say('tutor.status.checking'));
   title.appendChild(status);
-  var histBtn = el('button', 'tutor-newtopic tutor-hist-btn', '历史');
-  histBtn.title = '回到之前问过的话题';
-  var newTopicBtn = el('button', 'tutor-newtopic', '新话题');
-  newTopicBtn.title = '收起这段对话，另起一个话题（不会丢，可在「历史」里找回）';
-  var closeBtn = el('button', 'tutor-close', '×');
-  closeBtn.setAttribute('aria-label', '关闭');
+  var histBtn = el('button', 'tutor-newtopic tutor-hist-btn', say('tutor.history'));
+  histBtn.title = say('tutor.history.title');
+  var newTopicBtn = el('button', 'tutor-newtopic', say('tutor.newtopic'));
+  newTopicBtn.title = say('tutor.newtopic.title');
+  var closeBtn = el('button', 'tutor-close', say('tutor.close'));
+  closeBtn.setAttribute('aria-label', say('tutor.close.title'));
   head.appendChild(title);
   head.appendChild(histBtn);
   head.appendChild(newTopicBtn);
@@ -309,12 +341,13 @@
   // answering, and the openings offered are the ones that make sense against
   // whoever is about to read them.
   function renderRole() {
-    titleText.textContent = role().title;
+    titleText.textContent = say(role().title);
 
     while (suggestions.firstChild) suggestions.removeChild(suggestions.firstChild);
-    role().ask.forEach(function (s) {
-      var b = el('button', 'tutor-suggest', s);
-      b.addEventListener('click', function () { input.value = s; send(); });
+    role().ask.forEach(function (key) {
+      var opening = say(key);
+      var b = el('button', 'tutor-suggest', opening);
+      b.addEventListener('click', function () { input.value = opening; send(); });
       suggestions.appendChild(b);
     });
   }
@@ -322,9 +355,9 @@
 
   var inputRow = el('div', 'tutor-input-row');
   var input = el('textarea', 'tutor-input');
-  input.placeholder = '问点什么…（⌘/Ctrl + Enter 发送）';
+  input.placeholder = say('tutor.input.placeholder');
   input.rows = 1;
-  var sendBtn = el('button', 'tutor-send', '发送');
+  var sendBtn = el('button', 'tutor-send', say('tutor.send'));
   inputRow.appendChild(input);
   inputRow.appendChild(sendBtn);
 
@@ -341,10 +374,10 @@
   drawer.appendChild(foot);
 
   var fab = el('button', 'tutor-fab');
-  fab.appendChild(document.createTextNode('🎓 问老师'));
+  fab.appendChild(document.createTextNode(say('tutor.fab')));
 
   var chip = el('div', 'tutor-chip');
-  chip.appendChild(document.createTextNode('🎓 问老师'));
+  chip.appendChild(document.createTextNode(say('tutor.fab')));
 
   // Guarded rather than a bare DOMContentLoaded listener: lesson-boot.js loads
   // this file dynamically, by which time that event has usually already fired —
@@ -412,7 +445,7 @@
   }
 
   // Both are written idempotently, because once it is polling they are called
-  // every few seconds: a header rebuilt on every probe would stomp the "✓ 已复制"
+  // every few seconds: a header rebuilt on every probe would stomp the "copied"
   // the learner is still reading.
   var shown = '';
 
@@ -421,9 +454,9 @@
     online = true;
     if (shown === 'online') return;
     shown = 'online';
-    status.textContent = '在线';
+    status.textContent = say('tutor.status.online');
     status.className = 'tutor-status live';
-    sendBtn.textContent = '发送';
+    sendBtn.textContent = say('tutor.send');
     hint.textContent = '';
   }
 
@@ -432,14 +465,17 @@
     watchHealth();
     if (shown === 'offline') return;
     shown = 'offline';
-    status.textContent = '离线';
+    status.textContent = say('tutor.status.offline');
     status.className = 'tutor-status off';
-    sendBtn.textContent = '📋 复制提问';
+    sendBtn.textContent = say('tutor.send.copy');
     hint.textContent = '';
-    hint.appendChild(document.createTextNode('老师服务未启动。在教案目录运行 '));
-    var c = el('code', null, START_CMD);
-    hint.appendChild(c);
-    hint.appendChild(document.createTextNode('，启动后这里会自己连上。'));
+    // One sentence in the table rather than two halves, so that a translator
+    // sees the whole of what it says and may put the command anywhere in it.
+    // The command itself is a command, and the same in every language.
+    var around = say('tutor.offline.hint').split('{command}');
+    hint.appendChild(document.createTextNode(around[0]));
+    hint.appendChild(el('code', null, START_CMD));
+    hint.appendChild(document.createTextNode(around.length > 1 ? around[1] : ''));
   }
 
   // ---------------------------------------------------------------- open/close
@@ -480,7 +516,8 @@
   });
   closeBtn.addEventListener('click', close);
   // No backdrop-click-to-close: dismissing a half-read answer by clicking the
-  // page was the exact accident that lost conversations. Use × or Esc.
+  // page was the exact accident that lost conversations. Use the close button
+  // or Esc.
   fab.addEventListener('click', function () { open(''); });
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
@@ -493,10 +530,10 @@
 
   function relTime(ts) {
     var s = Math.max(0, Math.round((Date.now() - ts) / 1000));
-    if (s < 60) return '刚刚';
-    if (s < 3600) return Math.floor(s / 60) + ' 分钟前';
-    if (s < 86400) return Math.floor(s / 3600) + ' 小时前';
-    return Math.floor(s / 86400) + ' 天前';
+    if (s < 60) return say('tutor.time.now');
+    if (s < 3600) return say('tutor.time.minutes', { n: Math.floor(s / 60) });
+    if (s < 86400) return say('tutor.time.hours', { n: Math.floor(s / 3600) });
+    return say('tutor.time.days', { n: Math.floor(s / 86400) });
   }
 
   function threadLabel(rec) {
@@ -504,8 +541,8 @@
     for (var i = 0; i < rec.turns.length; i++) {
       if (rec.turns[i].role === 'user') { first = rec.turns[i].content; break; }
     }
-    if (!first) first = rec.selection || '（空话题）';
-    return first.length > 42 ? first.slice(0, 42) + '…' : first;
+    if (!first) first = rec.selection || say('tutor.thread.untitled');
+    return first.length > 42 ? say('tutor.thread.truncated', { text: first.slice(0, 42) }) : first;
   }
 
   function closeHistory() { histPanel.classList.remove('open'); }
@@ -521,7 +558,7 @@
     while (histPanel.firstChild) histPanel.removeChild(histPanel.firstChild);
 
     if (!list.length) {
-      histPanel.appendChild(el('div', 'tutor-histempty', '还没有问过什么。'));
+      histPanel.appendChild(el('div', 'tutor-histempty', say('tutor.history.empty')));
       return;
     }
 
@@ -531,7 +568,7 @@
       item.appendChild(el('div', 'tutor-histq', threadLabel(rec)));
       var meta = el('div', 'tutor-histmeta');
       var n = rec.turns.filter(function (t) { return t.role === 'user'; }).length;
-      meta.textContent = n + ' 问 · ' + relTime(rec.at);
+      meta.textContent = say('tutor.thread.meta', { asked: n, when: relTime(rec.at) });
       item.appendChild(meta);
       item.addEventListener('click', function () {
         if (rec.id !== convo.id) loadThread(rec);
@@ -582,7 +619,7 @@
   // whoever fills it, so every rule written against the drawer still applies.
   function addMsg(side, text) {
     var wrap = el('div', 'tutor-msg ' + side);
-    wrap.appendChild(el('div', 'tutor-msg-role', side === 'user' ? '你' : role().reply));
+    wrap.appendChild(el('div', 'tutor-msg-role', say(side === 'user' ? 'tutor.you' : role().reply)));
     var body = el('div', 'tutor-msg-body');
     if (side === 'tutor') showRich(body, text);
     else showPlain(body, text);
@@ -602,12 +639,12 @@
     row.appendChild(pinButton(asked.question, getAnswer));
     // The answer as the Tutor wrote it — Markdown, not the nodes it became, so
     // what lands in the clipboard is what any other tool can read back.
-    row.appendChild(copyButton('tutor-copy', '📋 复制', getAnswer));
+    row.appendChild(copyButton('tutor-copy', say('tutor.act.copy'), getAnswer));
 
-    var again = againButton('tutor-regen', '↻ 重答', wrap, asked, function () {
+    var again = againButton('tutor-regen', say('tutor.act.regen'), wrap, asked, function () {
       dropTurn(asked.question, getAnswer());
     });
-    again.title = '让老师换一种说法重答';
+    again.title = say('tutor.act.regen.title');
 
     // Regenerating belongs to the answer at the end of the thread and to no
     // other: replacing one with answers already below it would leave those
@@ -620,14 +657,14 @@
   }
 
   function pinButton(question, getAnswer) {
-    var btn = el('button', 'tutor-act tutor-pin', '📌 钉住');
+    var btn = el('button', 'tutor-act tutor-pin', say('tutor.act.pin'));
     btn.addEventListener('click', function () {
       if (btn.classList.contains('pinned')) return;
       var notes = loadNotes();
       notes.push({ q: question, a: getAnswer(), at: new Date().toISOString() });
       saveNotes(notes);
       btn.classList.add('pinned');
-      btn.textContent = '✓ 已钉住';
+      btn.textContent = say('tutor.act.pinned');
       renderNotes();
     });
     return btn;
@@ -648,7 +685,7 @@
     var btn = el('button', 'tutor-act ' + cls, label);
     btn.addEventListener('click', function () {
       if (busy) return;
-      if (!online) return flash(btn, '服务未启动', label);
+      if (!online) return flash(btn, say('tutor.act.offline'), label);
       if (discard) discard();
       wrap.remove();
       ask(asked, { quiet: true });
@@ -662,7 +699,7 @@
   function copyButton(cls, label, getText) {
     var btn = el('button', 'tutor-act ' + cls, label);
     btn.addEventListener('click', function () {
-      copyText(getText(), function () { flash(btn, '✓ 已复制', label); });
+      copyText(getText(), function () { flash(btn, say('tutor.act.copied'), label); });
     });
     return btn;
   }
@@ -720,24 +757,29 @@
    * Rubric is the only thing it may be judged against.
    */
   function buildCopyPrompt(asked) {
-    var parts = [role().lead + pagePath];
+    var parts = [say(role().lead, { page: pagePath })];
 
-    if (asked.selection) parts.push('选中的原文：\n"""\n' + asked.selection + '\n"""');
+    if (asked.selection) parts.push(say('tutor.copy.selection', { text: asked.selection }));
     if (convo.turns.length) {
-      parts.push('我们前面已经聊过：\n' + convo.turns.slice(-SEND_LAST_TURNS).map(function (t) {
-        return (t.role === 'user' ? '我：' : role().reply + '：') + t.content;
-      }).join('\n\n'));
+      parts.push(say('tutor.copy.history', {
+        turns: convo.turns.slice(-SEND_LAST_TURNS).map(function (t) {
+          return say('tutor.copy.turn', {
+            who: say(t.role === 'user' ? 'tutor.copy.me' : role().reply),
+            text: t.content
+          });
+        }).join('\n\n')
+      }));
     }
 
     // The one place the two prompts differ in shape rather than in wording: the
     // first thing handed to a Grader is work, and everything else is a question.
     if (convo.role === 'grader' && !convo.turns.length) {
-      parts.push('这是我交上来的作业：\n"""\n' + asked.question + '\n"""');
+      parts.push(say('tutor.copy.submission', { text: asked.question }));
     } else {
-      parts.push('我的问题：' + asked.question);
+      parts.push(say('tutor.copy.question', { text: asked.question }));
     }
 
-    parts.push(role().brief);
+    parts.push(say(role().brief));
     return parts.join('\n\n');
   }
 
@@ -749,7 +791,7 @@
   function handIn(asked) {
     if (!online) {
       copyText(buildCopyPrompt(asked), function () {
-        flash(sendBtn, '✓ 已复制', '📋 复制提问');
+        flash(sendBtn, say('tutor.act.copied'), say('tutor.send.copy'));
       });
       addMsg('user', asked.question);
       convo.turns.push({ role: 'user', content: asked.question });
@@ -854,7 +896,7 @@
       endRequest();
       out.wrap.classList.add('stopped');
       // Whatever arrived before the stop stays: half an answer is still an answer.
-      offerRecovery(out.wrap, '已停止。', '', asked);
+      offerRecovery(out.wrap, say('tutor.stopped'), '', asked);
     }
 
     function fail(headline, detail) {
@@ -905,7 +947,7 @@
       // than guess: the answer is what puts the widget offline and starts it
       // watching for the service coming back.
       probe();
-      fail('没能连上老师服务。', err && err.message);
+      fail(say('tutor.fail.connect'), err && err.message);
     }).then(endRequest);
 
     function handleEvent(block) {
@@ -938,12 +980,14 @@
       } else if (name === 'tool') {
         // The chips were decorative; the same events now also say what the wait
         // is for, which is the stage a learner reads as "it is working".
-        progress.stage('reading', data.target ? '老师正在读 ' + data.target : '');
+        progress.stage('reading', data.target ? say('tutor.stage.reading.at', { target: data.target }) : '');
         if (!tools) {
           tools = el('div', 'tutor-tools');
           out.wrap.insertBefore(tools, out.body);
         }
-        var label = data.target ? '📖 ' + data.name + ' · ' + data.target : '📖 ' + data.name;
+        var label = data.target
+          ? say('tutor.tool', { name: data.name, target: data.target })
+          : say('tutor.tool.bare', { name: data.name });
         tools.appendChild(el('span', 'tutor-tool', label));
       } else if (name === 'done') {
         endRequest();
@@ -953,7 +997,7 @@
         // where the next Session reads. Saying so is what stops the learner
         // reporting it by hand, or assuming nobody will ever see it.
         if (data.record) {
-          out.wrap.appendChild(el('div', 'tutor-recorded', '判定已记进 ' + data.record + '，下次上课老师会读到。'));
+          out.wrap.appendChild(el('div', 'tutor-recorded', say('tutor.recorded', { record: data.record })));
         }
         // Recorded as a pair only on success, so history never holds a dangling turn.
         convo.turns.push({ role: 'user', content: asked.question });
@@ -965,7 +1009,7 @@
       } else if (name === 'error') {
         // The service is plainly up — it answered — so this is the Tutor
         // failing, and the widget stays online.
-        fail('老师这次没能答上来。', data.message);
+        fail(say('tutor.fail.answer'), data.message);
       }
     }
   }
@@ -983,10 +1027,10 @@
     row.setAttribute('role', 'status');
     row.setAttribute('aria-live', 'polite');
 
-    var label = el('span', 'tutor-stage', SENDING);
+    var label = el('span', 'tutor-stage', say(SENDING));
     var elapsed = el('span', 'tutor-elapsed', fmtElapsed(0));
-    var stopBtn = el('button', 'tutor-cancel', '停止');
-    stopBtn.title = '停止这次提问';
+    var stopBtn = el('button', 'tutor-cancel', say('tutor.stop'));
+    stopBtn.title = say('tutor.stop.title');
     stopBtn.addEventListener('click', onStop);
 
     row.appendChild(label);
@@ -1002,7 +1046,7 @@
     return {
       stage: function (name, detail) {
         row.setAttribute('data-stage', name);
-        label.textContent = detail || STAGES[name];
+        label.textContent = detail || say(STAGES[name]);
       },
       end: function () {
         clearInterval(tick);
@@ -1013,8 +1057,8 @@
 
   function fmtElapsed(ms) {
     var s = Math.round(ms / 1000);
-    if (s < 60) return s + ' 秒';
-    return Math.floor(s / 60) + ' 分 ' + (s % 60) + ' 秒';
+    if (s < 60) return say('tutor.elapsed.seconds', { seconds: s });
+    return say('tutor.elapsed.minutes', { minutes: Math.floor(s / 60), seconds: s % 60 });
   }
 
   /**
@@ -1032,8 +1076,8 @@
     if (detail) box.appendChild(el('div', 'tutor-recover-why', detail));
 
     var row = el('div', 'tutor-actions');
-    row.appendChild(againButton('tutor-retry', '↻ 再试一次', wrap, asked, null));
-    row.appendChild(copyButton('tutor-copyprompt', '📋 复制提问', function () {
+    row.appendChild(againButton('tutor-retry', say('tutor.act.retry'), wrap, asked, null));
+    row.appendChild(copyButton('tutor-copyprompt', say('tutor.send.copy'), function () {
       return buildCopyPrompt(asked);
     }));
 
@@ -1076,15 +1120,15 @@
 
     var sec = el('section');
     sec.id = 'tutor-notes';
-    var h = el('h2', null, '📌 我钉住的问答');
+    var h = el('h2', null, say('tutor.notes.heading'));
     sec.appendChild(h);
 
     notes.forEach(function (n, i) {
       var card = el('div', 'tutor-note');
       var hd = el('div', 'tutor-note-head');
-      hd.appendChild(el('span', null, '助教回答'));
-      var del = el('button', 'tutor-note-del', '×');
-      del.title = '删除这条';
+      hd.appendChild(el('span', null, say('tutor.notes.answer')));
+      var del = el('button', 'tutor-note-del', say('tutor.notes.delete'));
+      del.title = say('tutor.notes.delete.title');
       del.addEventListener('click', function () {
         var cur = loadNotes();
         cur.splice(i, 1);
@@ -1093,7 +1137,7 @@
       });
       hd.appendChild(del);
       card.appendChild(hd);
-      card.appendChild(el('div', 'tutor-note-q', 'Q: ' + n.q));
+      card.appendChild(el('div', 'tutor-note-q', say('tutor.notes.question', { question: n.q })));
       // Pinned answers render exactly as the live one did: saving an answer
       // must not cost the learner the code blocks in it.
       card.appendChild(showRich(el('div', 'tutor-note-a'), n.a));

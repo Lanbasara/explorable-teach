@@ -815,6 +815,112 @@ every reference this repo actually carried must still be recognised, and sentenc
 almost every paragraph. The README is checked for the opposite thing. What the rebuild removed is
 the runtime dependency, not the debt.
 
+## 30. Language is decided by who reads the string, and the page carries the answer
+
+**Decided:** every string this project ships is either Maintainer-facing or Learner-facing, and
+the test is whether the Learner would ever see it — not what the string eventually becomes.
+Maintainer-facing text (role definitions, prompt scaffolding, the runtime README, comments,
+server logs) is English in every Workspace. Learner-facing text (drawer chrome, Component
+labels, the Tutor's and Grader's prose, anything a failure puts in front of them) is produced at
+run time from `document.documentElement.lang`, against a table the plugin ships for `en` and
+`zh-CN` and a Workspace may override at `assets/strings.js`. A Workspace sets the language once,
+in `units.js`; `lesson-boot.js` writes that onto the document when a page did not set it itself,
+and `wire-lessons.sh` fills it in on the pages it already rewrites. Absent everything, English.
+
+**Why the split is by reader rather than by file.** The obvious line is "role files are English,
+the drawer is the Learner's", and it does not survive contact with `server.js`, which holds
+English comments and Chinese prompt scaffolding in the same function. Reader is the only cut that
+lands cleanly on every string in the repo, including ones nobody has written yet. It settles the
+one genuinely ambiguous case — prompt scaffolding — as Maintainer-facing, because what makes an
+agent's *answer* Learner-facing is an instruction it is given, not the language the scaffolding
+around it happens to be written in. Models are multilingual; the scaffolding is read by whoever
+next edits it.
+
+**Why `<html lang>` rather than a config file or the request.** Three candidates. A config file
+the service reads is server-authoritative, which is this repo's usual instinct, but it is absent
+over `file://` — and `file://` is exactly the path where the drawer has to build a prompt by
+itself. The request body is what decision 28 warns against for the Rubric. `lang` was already
+mandated on every page by `UNIT.md`, is a standards attribute that has to be correct anyway, and
+survives with no service running. The distinction from decision 28 is worth naming: a Rubric
+riding the request changes *what a verdict is*, so a client that lies about it corrupts the
+record; a language changes only what the client renders, so a client that lies about it
+mistranslates its own screen. Those are not the same risk, and only the first earns the
+server-authoritative treatment.
+
+**Why the Workspace sets it in `units.js` and not per page.** `<html lang>` stays the authority,
+because Components should read one thing and the browser reads it too. But a per-page attribute
+is a discipline, and a discipline that is forgotten fails silently: a Chinese Learner would get a
+screen of English with nothing erroring. `units.js` is the one file every page already loads —
+lessons through `lesson-boot.js` before any Component, the Dossier directly — which makes it the
+only place a Workspace-wide default can live without inventing a new load path.
+
+**Why the plugin ships `zh-CN` as well as `en`.** Decision 23 puts what does not vary by subject
+in the plugin. What a Submit button is called varies by neither subject nor Workspace — only by
+language — so translations belong in the plugin by that rule alone, and a Workspace table is the
+fallback for a language the plugin has not collected yet. The payoff is larger than the rule: the
+pilot Workspace holds symlinks, so it picks up the rewritten Components the moment the plugin
+updates, and shipping `zh-CN` is what makes that a change it never notices. No migration step,
+and `assets/strings.js` merely arrives on the next scaffold run.
+
+**Why the offline prompt is the one exception.** With the service down the drawer composes a
+prompt for the Learner to copy into Claude Code. By the rule above it is scaffolding and would be
+English — but its recipient is not a subprocess, it is the Learner, who reads it, may edit it,
+and then sends it. Handing someone a wall of English to check before sending defeats the whole
+fallback. The rule is unchanged; this path is what moves the text onto the Learner's screen.
+
+**Why the suite asserts through a pseudolocale.** Scanning shipped files for non-ASCII catches
+Chinese creeping back and nothing else — a hardcoded English `'Passed'` breaks the split just as
+badly and passes the scan. Mounting every Component under a synthetic `lang` whose table holds
+only sentinels, then asserting the rendered tree contains nothing outside the sentinel alphabet,
+catches any hardcoded string in any language and never has to be rewritten when a language is
+added. Both checks ship: they fail on different things. Per the observer rule, the pseudolocale
+check first asserts that sentinels appeared at all.
+
+**Consequence:** the server keeps no Learner-facing string. Its stream errors carry a `code` the
+drawer renders; the record it writes for a verdict uses ASCII field keys, because the Boot
+sequence reads it. `slugOf`'s character class — `[^a-z0-9\u4e00-\u9fff-]` — was the same defect
+without being a string at all: it collapses any Cyrillic, Arabic or Devanagari filename to the
+constant `assignment`, so every verdict in such a Workspace would contend for one name. It
+becomes `\p{L}\p{N}` under the `u` flag. Four consistency checks land in
+`tests/language.test.js`, all *derived* rather than listed, per the rule against restating what a
+source already owns: the refusal token out of `GRADER.md`, the error codes out of `server.js`,
+the keys out of the Components, and `zh-CN` against `en`. Existing tests split three ways —
+assertions that pinned labels move to keys, fixture prose becomes English, and a named handful of
+non-ASCII *inputs* stays on purpose, widened to include a non-CJK script, because a pipeline that
+mishandles bytes is the class of bug `slugOf` was.
+
+## 31. A Grader refuses with a token, not with a sentence
+
+**Decided:** `GRADER.md` requires a refusal to open with the ASCII line `CANNOT-GRADE:`,
+whatever language the explanation after it is in. `server.js` matches that token to keep the
+refusal out of `learning-records/`, and the drawer strips the line before rendering, so the
+Learner reads clean prose. A test extracts the mandated token from `GRADER.md` and asserts the
+server's pattern matches it. Revises the arrangement decision 28 left implicit.
+
+**Why a token rather than a translated sentence.** The contract was `无法判定：`, written out
+twice — once as the opening the role file mandates, once as a regex in the server. Translating
+the role file without moving the regex in lockstep breaks it *silently*: refusals stop being
+recognised as refusals and land in `learning-records/` as verdicts, and the next Boot sequence
+plans from them. A record claiming a judgement nobody reached is worse than no record. An ASCII
+token is the same contract with the language taken out of it, so a Workspace in a third language
+does not get a third copy of the problem.
+
+**Why the role file owns it and the server merely consumes it.** Two files still hold the string,
+which is what the issue objected to. What changed is that only one of them is authoritative: the
+token lives in `GRADER.md`, the server's pattern is derived from it in the test, and the pair can
+no longer drift without going red. This is the same shape as the transcript heading the role
+definitions promise they will receive — a short contract between two of the plugin's own files —
+and the same shape `pointers.test.js` already enforces between documents and paths.
+
+**Why not structured output.** Asking `claude` for JSON and reading a field would make the
+refusal unambiguous and costs the whole SSE path: the answer streams today, and a verdict the
+Learner watches arrive is decision 26's three stages working. One reserved line at the top of a
+stream is parseable the instant it arrives and changes nothing else.
+
+**Consequence:** the drawer gains a rule about the first line of a Grader answer, which is the
+first time it interprets content rather than rendering it. Kept narrow deliberately — it strips
+one known token and passes everything else through untouched.
+
 ---
 
 ## Where the full record lives

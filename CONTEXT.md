@@ -7,6 +7,12 @@ interactive HTML lessons in a directory that doubles as the memory between sessi
 
 ### The workspace
 
+**Learner**:
+The one person a Workspace exists for. Every other role is defined by what it does for them, and
+the language they are taught in is theirs, recorded in `NOTES.md` rather than assumed from the
+plugin.
+_Avoid_: student, user
+
 **Workspace**:
 A single directory holding everything about one learner studying one subject. It is the memory;
 conversations are disposable. What varies by subject lives here; what does not is linked from the
@@ -35,6 +41,24 @@ _Avoid_: log, journal, session notes
 The status each Unit carries in the Curriculum. Plan and progress live in one file so that a
 fresh Session reads one thing to orient itself.
 _Avoid_: status field, checkbox, tracker
+
+### Audience
+
+Every string this project ships has exactly one reader, and that reader decides its language.
+The test is *"would the Learner ever see this?"* — not what the string eventually becomes.
+
+**Maintainer-facing**:
+Text only someone changing the plugin reads: role definitions, prompt scaffolding, the runtime
+README, code comments, server logs. Always English, in every Workspace. Prompt scaffolding counts
+as maintainer-facing even though an agent consumes it — what makes the agent's *answer*
+Learner-facing is an instruction, not the language the scaffolding is written in.
+_Avoid_: internal, dev-facing
+
+**Learner-facing**:
+Text that reaches the Learner's screen: drawer chrome, Component labels, the Tutor's and Grader's
+prose, anything a failure puts in front of them. Produced in the Learner's language at run time,
+falling back to English when none is recorded.
+_Avoid_: UI strings, user-facing, i18n strings
 
 ### Teaching
 

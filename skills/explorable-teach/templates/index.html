@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,6 +121,14 @@
 
   /* ---- course identity (authored HTML from units.js, not user input) ---- */
   var course = window.TEACH_COURSE || {};
+
+  /* The learner's language, stated once in units.js. Lesson pages get this from
+     assets/lesson-boot.js; the cover loads the manifest itself, so it does the
+     same thing here. A page that declared its own is left alone. */
+  if (!document.documentElement.getAttribute('lang') && course.lang) {
+    document.documentElement.setAttribute('lang', course.lang);
+  }
+
   document.title = (course.title || '卷宗') + ' · 卷宗';
   document.getElementById('course-title').textContent = course.title || '课程卷宗';
   document.getElementById('course-sub').innerHTML = course.subtitle || '';
