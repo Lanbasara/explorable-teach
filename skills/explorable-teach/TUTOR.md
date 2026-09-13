@@ -33,7 +33,7 @@ Artifacts persist across conversations. Processes belong to the learner, not to 
 but that cuts both ways: a process you start must *outlive* you, and you must be able to *see*
 it.
 
-- **Do** let the scaffold write the Tutor files, exactly as it writes the Components.
+- **Do** let the scaffold install the Tutor, exactly as it installs the Components.
 - **Do not** start the service as a side effect of teaching. No silent daemons.
 - **Do** start, restart, or stop it when the learner asks, or when they report the Tutor is not
   responding. Always start it detached (see below) so it survives the end of this conversation.
@@ -44,15 +44,19 @@ it.
 
 ## Installing it
 
-The first step of the [Boot sequence](./SKILL.md#boot-sequence) installs it, along with
-everything else that does not vary by subject. There is nothing to place by hand, and nothing
-here to copy: the only Tutor file this skill authors is `tutor/ROLE.md`, which it tunes for the
-subject.
+The first step of the [Boot sequence](./SKILL.md#boot-sequence) installs it. There is nothing to
+place by hand and nothing here to copy: the only Tutor file this skill authors is
+`tutor/TUNING.md`, which it tunes for the subject.
+
+**The Tutor lives in the plugin, and the Workspace points at it.** Everything under `tutor/` that
+does not vary by subject is a link rather than a copy — the scaffold's report says which — so
+fixing a Tutor defect fixes it for every Workspace at once. Never edit one of them in place: you
+would be editing every other learner's Tutor. What this Workspace gets to say goes in
+`tutor/TUNING.md`.
 
 `server.js` carries security-sensitive code — path-traversal guards, argv `spawn` with no shell,
-input caps, loopback-only bind, idle auto-shutdown. That is exactly why the scaffold copies it
+input caps, loopback-only bind, idle auto-shutdown. That is exactly why the Workspace links at it
 rather than any Session writing it: re-deriving that from prose risks silently dropping a guard.
-Adapt it only if the topic genuinely demands it, and say so when you do.
 
 The service is zero-dependency Node. It serves the Lessons over http — which also lifts the
 `file://` restrictions that gate Pyodide, sql.js and ES modules — and exposes `POST /api/ask`,
@@ -60,12 +64,17 @@ which runs headless Claude with `--restricted` and read-only tools.
 
 ## Two ways to reach the same Tutor
 
-Both read the same `tutor/ROLE.md`, so neither is a downgrade:
+Both read `tutor/ROLE.md` and then `tutor/TUNING.md`, in that order, so neither is a downgrade:
 
 | Path | How | When |
 |------|-----|------|
 | In-page drawer | learner runs `./tutor/tutorctl.sh start` | while studying, question tied to a passage |
 | `tutor` subagent | ask in any Claude Code session | no service running; zero lifecycle |
+
+The service composes the two into one system prompt; the subagent at `.claude/agents/tutor.md` is
+pointed at the same two files in the same order and reads them itself. That is the whole of the
+arrangement — the subagent definition holds no role text of its own, because a second copy is a
+second thing to keep in step.
 
 ## Operating it
 
@@ -90,26 +99,28 @@ The idle timeout is deliberately long — hours, not minutes. The failure it gua
 forgotten process lingering for days, not one sitting idle over lunch. Never shorten it to the
 point where the learner has to think about restarts; that is the opposite of the goal.
 
-## Writing the role prompt
+## Tuning it for the subject
 
-`ROLE.md` should instruct the Tutor to *read the Workspace* rather than hardcoding facts about
-the learner — that keeps it reusable and always current. The service inlines the small
-always-needed files (`NOTES.md`, `MISSION.md`) into the payload; the Tutor reads
-`CURRICULUM.md`, the Lesson HTML, and `learning-records/` only when the question needs them.
+`tutor/ROLE.md` is the plugin's, and it already says the things that are true of every Tutor:
+read the Workspace rather than hardcoding facts about the learner, disclose progressively, obey
+the hard prohibitions in `NOTES.md`, only ever read. Do not restate any of that.
 
-Do not assume questions are about vocabulary — most need surrounding context to answer well. The
-Tutor must **disclose progressively**: answer the question actually asked, bridge from what the
-learner already knows, and check whether a prerequisite is present rather than silently teaching
-it. It must obey the hard prohibitions in `NOTES.md`; those bind every agent the learner talks
-to, not just the Session that was told them.
+`tutor/TUNING.md` is this Workspace's, and it is where anything subject-shaped goes — which
+terms stay in English, which analogies this course has already built and can reuse, what this
+course does and does not cover, which files in `reference/` are worth a second look. It is
+appended after the shared definition, so it can sharpen that definition but should not fight it.
+An empty tuning file is a normal state on day one, not a gap.
+
+Restart the service after tuning it: `./tutor/tutorctl.sh restart`.
 
 Every question is logged to `learning-records/questions.jsonl`, which the Boot sequence reads.
 
 ## Adding the Grader
 
-Grading an Assignment is mechanically the Tutor with a different role file: add
-`tutor/ROLE-grader.md` and one entry in the service's `ROLES` map. It reaches the learner over
-the same transport, so streaming, logging and the offline fallback behave identically.
+Grading an Assignment is mechanically the Tutor with a different role file: one more entry in the
+service's `ROLES` map, pointing at a role definition beside the server and, if the subject needs
+one, a tuning file in the Workspace. It reaches the learner over the same transport, so
+streaming, logging and the offline fallback behave identically.
 
 The Grader is a *fresh* agent reading the stored Rubric, never the Session that wrote the
 Assignment. See [the assessment ladder](./SKILL.md#the-assessment-ladder).

@@ -119,7 +119,11 @@ little else. If the learner asks for more or less interactivity, respect that an
 ### Shipped Components — already in every Workspace
 
 These four do not vary by subject, so they belong to the plugin rather than to any one Workspace.
-The scaffold installs them; use them, and never rewrite them in place.
+A Workspace holds a *link* at each, not a copy — which is what lets one fix reach every Workspace,
+and also means **editing one in place edits every other learner's course**. Use them as they are.
+When one is nearly right but not right, write a new Component beside it rather than changing it.
+If this subject genuinely has to replace one, delete the link and write a real file in its place:
+the scaffold reads that as a deliberate override and leaves it alone from then on.
 
 | Component | Files | Use it for |
 |-----------|-------|------------|
@@ -133,8 +137,9 @@ do not re-derive the markup from this table. All four degrade to plain text with
 and none of them touch the network, so a Lesson works opened from `file://` on a plane.
 
 `assets/style.css` is not a Component: every page links it from `<head>`, and it owns the design
-tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none, so
-re-theming a Workspace means editing that one file.
+tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none. It is linked
+from the plugin like the four above, so re-theming one Workspace means a small stylesheet of your
+own in `assets/`, linked after it — not an edit to the one every Workspace shares.
 
 ### Building a Component for this subject
 

@@ -38,8 +38,11 @@ assignments/          the ones that earn an assignment, with the rubric inside
 reference/            compressed cheat-sheets you will actually revisit
 learning-records/     what you demonstrably know; drives what gets taught next
   questions.jsonl     every question you asked the tutor
-assets/               reusable interactive components
-tutor/                the in-page tutor service
+assets/               reusable interactive components — the shared ones are links
+                      into the plugin; units.js and anything built for this
+                      subject are yours
+tutor/                the in-page tutor service — links into the plugin, plus
+                      TUNING.md, which is this course's own
 .claude/agents/       the tutor subagent
 ```
 
@@ -110,7 +113,8 @@ inlined; the tutor goes and reads the lesson, the curriculum, or your learning r
 question actually demands it. A question containing "this bit" cannot be answered from the
 selection alone.
 
-Two ways in, both reading the same `tutor/ROLE.md`, so neither is a downgrade:
+Two ways in, both reading `tutor/ROLE.md` and then `tutor/TUNING.md`, in that order, so neither
+is a downgrade:
 
 | | How | When |
 |---|---|---|
@@ -135,17 +139,30 @@ Security: loopback-only bind, `spawn` with an argv array and no shell, path-trav
 an extension allowlist on static serving, input caps, and the tutor itself runs `--restricted`
 with only `Read`/`Glob`/`Grep`.
 
-### Why the tutor is a template, not a plugin agent
+### The tutor lives in the plugin; your workspace points at it
 
-Claude Code discovers subagents only in `.claude/agents/`, never inside a skill or a plugin's
-skill folder. A plugin *can* ship a top-level `agents/` directory — and that would be tidier —
-but a plugin-level agent registers **globally**, and subagents have no `disable-model-invocation`
-equivalent, so it would be auto-routable in every unrelated project you open.
+One question decides where a file lives: **does it vary by subject?** If it does not — the
+server, the control script, the tutor's role, the in-page widget, the nav bar, the page
+bootstrap, the shared stylesheet, the four components — it lives in the plugin and your workspace
+holds a **link** at it. A tutor fix therefore reaches every workspace you have, rather than only
+the ones you create afterwards. The flip side is the rule: don't edit one of those in place —
+you'd be editing every course at once. Write a new file beside it. (If a course genuinely has to
+replace one, delete the link and put a real file there; the scaffold reads that as deliberate and
+leaves it alone.)
 
-It also would not want to be. A tutor for Shell and a tutor for music theory are not the same
-role. The scaffold installs a generic `ROLE.md`, and the skill tunes it for your subject.
+What stays yours is what varies: this course's tutor tuning (a tutor for Shell and a tutor for
+music theory are not the same role), the course manifest, the dossier, any component you build
+for this subject, and every lesson, record and submission. The scaffold's report names them, and
+it re-points every link each time it runs — which is how a workspace follows the plugin across an
+upgrade, and why the boot sequence runs it every session.
 
-Project scoping is the only invocation control a subagent has. This spends it where it counts.
+The one thing the scaffold still *copies* into `.claude/agents/` is the subagent definition, and
+it holds no role text of its own — it is a pointer at those same two files. Claude Code discovers
+subagents only in `.claude/agents/`, never inside a skill or a plugin's skill folder. A plugin
+*can* ship a top-level `agents/` directory, and that would be tidier, but a plugin-level agent
+registers **globally**, and subagents have no `disable-model-invocation` equivalent, so it would
+be auto-routable in every unrelated project you open. Project scoping is the only invocation
+control a subagent has. This spends it where it counts.
 
 ## `questions.jsonl` is the point
 

@@ -9,7 +9,8 @@ interactive HTML lessons in a directory that doubles as the memory between sessi
 
 **Workspace**:
 A single directory holding everything about one learner studying one subject. It is the memory;
-conversations are disposable.
+conversations are disposable. What varies by subject lives here; what does not is linked from the
+plugin, so it has one home and one fix.
 _Avoid_: project, course directory
 
 **Mission**:
@@ -105,6 +106,12 @@ _Avoid_: author, planner
 A read-only agent that answers a learner's question about a Lesson they are reading. Holds no
 state between questions.
 _Avoid_: assistant, helper, TA
+
+**Tuning**:
+What one Workspace adds to an agent's role definition for its own subject. The definition itself
+belongs to the plugin and is shared by every Workspace; the Tuning is appended after it, so it
+sharpens the definition rather than replacing it.
+_Avoid_: custom prompt, override, local role
 
 **Grader**:
 A read-only agent that judges one Assignment submission against its Rubric. Carries no memory of

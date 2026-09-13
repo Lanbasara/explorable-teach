@@ -66,6 +66,11 @@ unrelated project. Project scoping is the only invocation control a subagent has
 It also would not want to be global: a tutor for Shell and a tutor for music theory are not the
 same role. Each workspace tunes its own `ROLE.md`.
 
+**Refined by 24:** the subagent definition is still copied into the workspace — that part is
+forced, and the reasoning above still has to be answered — but it no longer carries any role text.
+It is a pointer at the plugin's role definition plus the workspace's own tuning. "Each workspace
+tunes its own `ROLE.md`" is now "each workspace writes its own `TUNING.md`".
+
 **This entry is now the only copy of that reasoning.** `SKILL.md` carried it as a section for a
 human reader who was never going to read it there — it argues a packaging decision the Teacher
 cannot act on and will never face. Decision 19 moved it here. If a future maintainer is tempted
@@ -166,7 +171,8 @@ is not evidence of a missing mission.**
 ## 14. The Components that do not vary by subject ship with the plugin
 
 **Decided:** shared styles, Exercise, Predict-Reveal, Step Animation and Drag Ordering live in
-`templates/assets/` and are installed by the scaffold. The rest of the catalog stays a menu.
+the plugin's asset directory and are installed by the scaffold. The rest of the catalog stays a
+menu.
 
 **Why:** the catalog named roughly twenty component files and shipped none, and the Lesson
 template linked a stylesheet the scaffold never placed — so every new workspace opened with a
@@ -185,6 +191,10 @@ from `file://`.
 **Consequence:** a catalog row written as a path (`assets/exercise.js`) is a promise the test
 suite enforces; a row written as a bare filename (`scrolly.js`) is a pattern to build on demand.
 The prefix is the opt-in.
+
+**Finished by 23.** "One home, fixed once" was the argument, and copying them into every workspace
+did not deliver it — it delivered one home for the *source* and N copies of the bug. A workspace
+now links at them.
 
 **The duplication between Components is deliberate.** All four repeat the same mount tail
 (`document.body ? mountAll() : wait for DOMContentLoaded`), a three-line `each()` helper, and a
@@ -406,6 +416,93 @@ What survives is the rule: pin the version, and wrap the library behind the teac
 **Consequence:** `disclosure.test.js` looks for a Component's `Deps:` declaration where it used to
 look for `Tier N` — the authoring vocabulary tracks the document, and a pattern the document no
 longer uses fails the guard rather than quietly matching nothing.
+
+## 23. The split is "does this vary by subject?", and the Workspace links rather than copies
+
+**Decided:** everything that does not vary by subject — the server, the control script, the role
+definition, the in-page widget, the nav bar, the page bootstrap, the shared styles, the four
+Components — lives in `skills/explorable-teach/runtime/` and a Workspace holds a **symlink** at
+each. What does vary — the subject tuning, the course manifest, the Dossier, subject-specific
+Components, every Lesson and record — is copied in once and is the learner's from then on. The
+scaffold re-points every link on every run, so a Workspace follows the plugin across an upgrade.
+
+**Why:** twelve Workspaces held twelve forks of the same server, so fixing a Tutor defect fixed it
+in none of them — only in Workspaces created afterwards. That is the whole of the defect. Decision
+14 had already made the argument for the four Components ("twenty copies of them across twenty
+workspaces is twenty places for the same bug to live") and then settled for copying them anyway.
+This finishes it.
+
+**Rejected: serving the plugin's copies and putting nothing in the Workspace.** This is the
+literal reading of the ticket, and it breaks a rule the project has held since decision 7: a
+Lesson must work with the service stopped, and stopped is the normal state. With no files in
+`assets/`, double-clicking a Lesson opens unstyled prose with no nav bar — which is precisely
+user story 1, the dead-stylesheet defect, arriving by a new route.
+
+**Rejected: copying, but overwriting a plugin-owned file when it differs.** A fix would land at
+the next Session's Boot sequence rather than immediately, which is close enough. What ruled it out
+is that it keeps N copies on disk and adds a rule about when to clobber them — the "never
+overwrites" promise stops being a promise and becomes a promise with a footnote.
+
+**The symlink is not free, and the cost is worth naming.** Writing to
+`<workspace>/assets/style.css` follows the link and rewrites the plugin's copy — every other
+learner's course with it. It happened during this change: a test wrote a fixture value to
+`tutor/ROLE.md` and silently replaced the shipped role prompt. `Workspace.write()` now unlinks
+before writing, and `UNIT.md`, `TUTOR.md` and the Tutor's README all state the rule for the
+Teacher: never edit a linked file in place, write a new one beside it. Nothing enforces that
+mechanically, which `docs/agents/tests.md` records as a known gap.
+
+**The server also falls back.** A static request under `/assets/` that the Workspace cannot answer
+is tried against the plugin's `runtime/assets/`, with the same normalisation, containment check
+and extension allowlist applied to each root independently. Belt and braces rather than
+redundancy: a Workspace copied to another machine has dangling links until the next scaffold run,
+and over http it should still render. The rest of the Workspace does not fall back — `lessons/`,
+`learning-records/` and submissions are the learner's, and the plugin has nothing to offer there.
+
+**And the server now bounds the bytes, not only the path.** Review caught this and it is the one
+place where "the security posture is unchanged" was not quite true. The static check is lexical,
+and `stat` and the read stream follow links — which was harmless while no file in a Workspace was
+a link, and stopped being harmless the moment escaping links became the design. A file is served
+only if its real path is inside the Workspace or inside the plugin's assets, so the scaffold's own
+links are followed and any other link out is refused. Unchanged in kind; the guarantee the old
+code got for free now has to be asked for.
+
+**The Boot sequence scaffolds every Session, not only a bare Workspace.** Also from review, and
+the finding that mattered most: the links are absolute and are re-pointed only when the scaffold
+runs, so a step that fired only on an empty directory would have stranded every existing
+Workspace on the version of the plugin it was born under — the exact defect this decision exists
+to remove, arriving by a new route. The script has been safe to re-run since decision 12; now it
+is run.
+
+## 24. One role definition, in two halves
+
+**Decided:** the Tutor's role is one file in the plugin's runtime, linked into the Workspace at
+`tutor/ROLE.md`, plus `tutor/TUNING.md`, which is the Workspace's own and is appended after it.
+The service composes the two into one system prompt; `.claude/agents/tutor.md` is pointed at the
+same two files in the same order and reads them itself.
+
+(Both paths are the scaffold's to name, so this entry does not spell them — `TUTOR.md` is where a
+Teacher reads them, and the script is where they are true.)
+
+**Why:** decision 5 said "each workspace tunes its own `ROLE.md`", which made the whole role
+subject-specific — so every improvement to how a Tutor answers was stranded in the Workspace it
+was written in. Splitting it keeps decision 5's point (a Tutor for Shell and a Tutor for music
+theory are not the same role) while moving the nine tenths of that file that are the same for both.
+
+**Why the subagent holds no role text.** It could have carried a copy of the shared definition,
+and then there would be two documents to keep in step and one of them would drift — which is the
+defect this project keeps finding under different names. It carries a pointer and the one genuine
+difference: the service pre-reads `NOTES.md` and `MISSION.md` into the payload, and a subagent has
+to read them itself.
+
+**Order matters and is asserted.** Tuning comes after the definition it tunes, so a subject can
+sharpen the shared rules rather than being overridden by them.
+
+**Found while doing it:** the server read its role prompt from `__dirname`, which was the
+Workspace's `tutor/` directory and is now the plugin's. Everything else it reads — the inlined
+context, the question log, the Lessons, the agent's working directory — had to start coming from
+an explicit Workspace argument instead. The control script passes it; run by hand, the server
+falls back to its working directory, which is what keeps `node tutor/server.js` working from a
+Workspace root.
 
 ---
 

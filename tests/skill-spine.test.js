@@ -60,17 +60,21 @@ function glossaryTerms(grouping) {
 }
 
 /**
- * Every template `scripts/init-workspace.sh` copies into a Workspace — the
- * source end of each copy, not the destination.
+ * Every file `scripts/init-workspace.sh` installs into a Workspace — the source
+ * end of each one, not the destination. Both halves of the split count: what it
+ * copies out of `templates/`, and what it links at in `runtime/`.
  *
  * `init-workspace.test.js` reads the script's *report* instead, which is the
  * route `docs/agents/tests.md` endorses. It cannot serve here: the report names
  * where each file landed, and what a document restating the list would name is
- * where each file came from. So this one reads the copy list itself.
+ * where each file came from. So this one reads the install list itself.
  */
 function scaffoldSources() {
   const script = fs.readFileSync(path.join(REPO_ROOT, 'scripts/init-workspace.sh'), 'utf8');
-  return [...script.matchAll(/place\s+"\$TPL\/(\S+?)"/g)].map((m) => `templates/${m[1]}`);
+  return [
+    ...[...script.matchAll(/place\s+"\$TPL\/(\S+?)"/g)].map((m) => `templates/${m[1]}`),
+    ...[...script.matchAll(/link\s+"\$RUNTIME\/(\S+?)"/g)].map((m) => `runtime/${m[1]}`),
+  ];
 }
 
 test('the Boot sequence is the first thing the Teacher reads', () => {
@@ -146,7 +150,7 @@ test('no document restates what the scaffold installs', () => {
   // paths would be this check keeping its own copy of the list it forbids.
   const asTheBlockWrote = sources
     .slice(0, 2)
-    .map((src) => `${src}   → <workspace>/${src.replace('templates/', '')}`)
+    .map((src) => `${src}   → <workspace>/${src.replace(/^(templates|runtime)\//, '')}`)
     .join('\n');
 
   assert.ok(

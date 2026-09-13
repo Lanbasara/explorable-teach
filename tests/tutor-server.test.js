@@ -26,6 +26,7 @@ const FIRST_LESSON = '<!doctype html>\n<title>0001</title>\n<h1>第一课：fork
 const SECOND_LESSON = '<!doctype html>\n<title>0002</title>\n<h1>第二课：exec</h1>\n';
 const NOTES = '# 偏好\n\n不要直接给答案。\n';
 const MISSION = '# Mission\n\n读懂进程调用栈。\n';
+const TUNING = '# 学科调校\n\nfork/exec 一律用英文原词。\n';
 
 /** A marker that must never come back over the socket. */
 const WITHHELD = 'WITHHELD-FROM-HTTP';
@@ -46,6 +47,8 @@ function workspace(t) {
   ws.write('lessons/0001-fork.html', FIRST_LESSON);
   ws.write('NOTES.md', NOTES);
   ws.write('MISSION.md', MISSION);
+
+  ws.write('tutor/TUNING.md', TUNING);
 
   ws.write('private.txt', WITHHELD);
   ws.write('tutor/.tutor.pid', WITHHELD);
@@ -179,6 +182,29 @@ test('a Lesson and its assets are served with the type the browser needs', async
   assert.match(script.headers['content-type'], /^text\/javascript/);
 });
 
+test('an asset the Workspace cannot answer falls back to the plugin', async (t) => {
+  const ws = workspace(t);
+  const styles = ws.path('assets/style.css');
+  const served = fs.readFileSync(styles, 'utf8');
+
+  // What a Workspace copied to another machine looks like: the link into the
+  // plugin is there and points at nothing. Over http it should still render,
+  // because the bytes the link was pointing at are the ones this service holds.
+  fs.rmSync(styles);
+  assert.ok(!fs.existsSync(styles), 'the fixture should have removed the link');
+
+  const service = await TutorService.start(t, ws);
+  const res = await service.get('/assets/style.css');
+
+  assert.equal(res.status, 200, 'the plugin has this file, so the Workspace not holding it is not a 404');
+  assert.equal(res.body, served);
+  assert.match(res.headers['content-type'], /^text\/css/);
+
+  // Only assets/ falls back. The rest of a Workspace is the learner's, and a
+  // fallback there would answer for a file this Workspace does not have.
+  assert.equal((await service.get('/lessons/0404-absent.html')).status, 404);
+});
+
 test('the extension allowlist refuses files that are really there', async (t) => {
   const ws = workspace(t);
   const service = await TutorService.start(t, ws);
@@ -195,6 +221,35 @@ test('the extension allowlist refuses files that are really there', async (t) =>
   // A directory is not a file, whatever its name suggests.
   const dir = await service.get('/lessons/');
   assert.equal(dir.status, 404);
+});
+
+test('a link out of the Workspace is refused, though the links it holds are followed', async (t) => {
+  const ws = workspace(t);
+
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'explorable-teach-outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const target = path.join(outside, 'outside.html');
+  fs.writeFileSync(target, WITHHELD, 'utf8');
+
+  // A Workspace now deliberately holds links into the plugin, so stat and the
+  // read stream follow a link out of it by design. A link the scaffold did not
+  // write is the other side of that: its path is inside the Workspace and
+  // passes every spelling check, so only where the bytes really live can
+  // refuse it.
+  fs.symlinkSync(target, ws.path('lessons/0003-leak.html'));
+
+  const service = await TutorService.start(t, ws);
+
+  const leaked = await service.get('/lessons/0003-leak.html');
+  assert.equal(leaked.status, 404, 'a link pointing out of the Workspace served what it pointed at');
+  assert.ok(!leaked.body.includes(WITHHELD));
+
+  // And the half that has to keep working, or the whole arrangement is broken:
+  // the scaffold's own links land in the plugin and are served.
+  assert.ok(fs.lstatSync(ws.path('assets/style.css')).isSymbolicLink(), 'the fixture should be a scaffolded Workspace');
+  const linked = await service.get('/assets/style.css');
+  assert.equal(linked.status, 200);
+  assert.equal(linked.body, ws.read('assets/style.css'));
 });
 
 test('path traversal is refused, however it is spelled', async (t) => {
@@ -236,6 +291,24 @@ test('path traversal is refused, however it is spelled', async (t) => {
   const inside = await service.get('/lessons/../lessons/0001-fork.html');
   assert.equal(inside.status, 200);
   assert.equal(inside.body, FIRST_LESSON);
+});
+
+// ---------------------------------------------------------------- control
+
+test('the control script refuses to serve the plugin as though it were a Workspace', (t) => {
+  const ws = workspace(t);
+
+  // Run through the plugin's own copy rather than through the Workspace's
+  // link, the script resolves the plugin as its Workspace — and would serve it
+  // as a course and drop a pidfile and a log inside it. Every document says to
+  // run `./tutor/tutorctl.sh` from a Workspace, but `SKILL.md` also teaches
+  // naming scripts from the plugin root, so this is a reachable mistake.
+  const plugin = fs.realpathSync(ws.path('tutor/tutorctl.sh'));
+  const run = ws.run(plugin, ['start']);
+
+  assert.equal(run.status, 2, run.stdout + run.stderr);
+  assert.match(run.stderr, /not a teaching workspace/);
+  assert.ok(!fs.existsSync(path.join(path.dirname(plugin), '.tutor.pid')), 'it wrote a pidfile into the plugin');
 });
 
 // ---------------------------------------------------------------- asking
@@ -439,7 +512,57 @@ test('the agent is spawned read-only, in the Workspace, with the tuned role prom
   // the rot this design exists to avoid." The Tutor holds no process state.
   assert.deepEqual(run.argv.filter((a) => a === '--resume' || a === '--continue'), []);
 
-  // One source of truth for how the Tutor behaves: the file the skill tunes.
+  // One source of truth for how the Tutor behaves, read in two halves: the
+  // shared definition the plugin owns, then this Workspace's own tuning. The
+  // subagent is pointed at the same two files in the same order, so neither
+  // path is a degraded version of the other.
+  assert.equal(
+    service.agentFlag('--append-system-prompt'),
+    `${ws.read('tutor/ROLE.md').trim()}\n\n${ws.read('tutor/TUNING.md').trim()}`,
+  );
+});
+
+test('the role definition is the plugin\'s, and the Workspace only tunes it', async (t) => {
+  const ws = workspace(t);
+
+  // The link is what makes a fix reach every Workspace: the Workspace holds a
+  // pointer, and the bytes live once, in the plugin.
+  assert.ok(fs.lstatSync(ws.path('tutor/ROLE.md')).isSymbolicLink(), 'the role definition should not be a copy');
+  assert.ok(fs.lstatSync(ws.path('tutor/TUNING.md')).isFile(), 'the tuning is this Workspace\'s own');
+
+  ws.write('tutor/TUNING.md', '# 学科调校\n\n本课只讲 POSIX，不要提 Windows。');
+
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result('好。')] });
+  await service.ask({ question: '这是什么？' });
+
+  const prompt = service.agentFlag('--append-system-prompt');
+  assert.ok(prompt.includes('你**只读不写**'), 'the shared definition should be there');
+  assert.ok(prompt.includes('本课只讲 POSIX'), 'and this Workspace\'s tuning after it');
+  assert.ok(
+    prompt.indexOf('你**只读不写**') < prompt.indexOf('本课只讲 POSIX'),
+    'tuning comes after the definition it tunes, so it can override rather than be overridden',
+  );
+
+  // The same two documents, named in the same order, are what the subagent is
+  // told to read — that is the whole of "one role definition, two paths".
+  const subagent = ws.read('.claude/agents/tutor.md');
+  assert.ok(subagent.includes('tutor/ROLE.md'), 'the subagent should be pointed at the shared definition');
+  assert.ok(subagent.includes('tutor/TUNING.md'), 'and at this Workspace\'s tuning');
+  assert.ok(
+    subagent.indexOf('tutor/ROLE.md') < subagent.indexOf('tutor/TUNING.md'),
+    'in the order the service composes them',
+  );
+});
+
+test('an untuned Workspace still gets the whole role definition', async (t) => {
+  const ws = workspace(t);
+  fs.rmSync(ws.path('tutor/TUNING.md'));
+
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result('好。')] });
+  await service.ask({ question: '这是什么？' });
+
+  // A Workspace nobody has tuned yet is the normal state on day one, not a
+  // broken install — so the Tutor is whole without it.
   assert.equal(service.agentFlag('--append-system-prompt'), ws.read('tutor/ROLE.md').trim());
 });
 

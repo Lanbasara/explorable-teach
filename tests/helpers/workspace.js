@@ -52,9 +52,19 @@ class Workspace {
     return fs.readFileSync(this.path(rel), 'utf8');
   }
 
+  /**
+   * Write a file into the Workspace, replacing whatever is there.
+   *
+   * The unlink is load-bearing rather than tidy. A scaffolded Workspace holds
+   * links into the plugin, and `writeFileSync` follows a link: writing to
+   * `assets/style.css` without this would edit the plugin's own copy and leak
+   * out of a test that believes it is working in a throwaway directory. It
+   * cost the plugin's role prompt once already.
+   */
   write(rel, contents) {
     const dest = this.path(rel);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.rmSync(dest, { force: true });
     fs.writeFileSync(dest, contents, 'utf8');
     return dest;
   }

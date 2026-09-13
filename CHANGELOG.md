@@ -4,6 +4,46 @@
 
 ### Changed
 
+- **The tutor and the page infrastructure now live in the plugin, and a workspace links at
+  them.** Every workspace used to hold its own copy of the server, the control script, the role
+  prompt, the in-page widget, the nav bar, the page bootstrap, the shared stylesheet and the four
+  components — twelve forks of the same code, so fixing a tutor defect fixed it in none of them,
+  only in workspaces created afterwards. The split is now one question, **does this file vary by
+  subject?** It does not: it lives in `skills/explorable-teach/runtime/` and the workspace holds a
+  symlink at it. It does: it is copied in once and is yours from then on — `tutor/TUNING.md`,
+  `assets/units.js`, `index.html`, the subagent definition, and everything you author. The
+  scaffold re-points every link on each run, and the boot sequence now runs it **every** session
+  rather than only when a workspace looks bare — that is how a workspace follows the plugin
+  across an upgrade, and gating it on emptiness would have stranded every existing workspace on
+  the version it was born under. **Do not edit a linked file in place** — you would be editing
+  every course on the machine; write a new file beside it instead. If one course genuinely has to
+  replace a shared file, delete the link and write a real file there: the scaffold reads that as
+  a deliberate override and never touches it again.
+- **A workspace scaffolded before this change keeps its hand-tuned `tutor/ROLE.md`**, because the
+  scaffold will not replace a real file with a link. It is no longer read, though: move anything
+  subject-specific out of it into `tutor/TUNING.md`, then delete it so the shared definition
+  links in.
+- **The tutor's role is one definition plus this course's tuning.** `tutor/ROLE.md` is the
+  plugin's, shared by every workspace, and `tutor/TUNING.md` is yours: the terms this subject
+  keeps in English, the analogies it has already built, what it does and does not cover. The
+  service composes them in that order, and the `tutor` subagent is pointed at the same two files
+  in the same order — so it carries no role text of its own, and the two paths cannot drift into
+  one being a degraded version of the other. An empty tuning file is a normal day-one state.
+  Workspaces scaffolded before this change keep their old `tutor/ROLE.md` content, which the next
+  scaffold run replaces with the link; move anything subject-specific in it to `TUNING.md` first.
+- **The server takes the workspace it serves as an argument.** It used to infer it from its own
+  location, which stops working once it lives in the plugin. `./tutor/tutorctl.sh` passes it;
+  run by hand it falls back to the working directory, so `node tutor/server.js` from a workspace
+  root still does what it always did. Static requests under `/assets/` that the workspace cannot
+  answer fall back to the plugin's copy, with path normalisation, the root check and the
+  extension allowlist applied to each root on its own — so a workspace copied to another machine
+  still renders over http while its links are dangling. The static check also bounds the bytes
+  now and not only the path: a file is served only if it really sits in the workspace or in the
+  plugin's assets, so the scaffold's own links are followed and a link pointing anywhere else is
+  refused. That was free while no workspace file was a link, and had to be asked for once
+  escaping links became the design. Nothing else about the server's security posture changed, and
+  it is still driven entirely over HTTP by the test suite.
+
 - **The component catalog is now a selection guide, indexed by teaching act.** It was indexed by
   underlying library and stacked into five tiers, so a teacher arriving from "I need to show how
   `fork` works" met a shelf of tools and had to work backwards to its own question. It now reads

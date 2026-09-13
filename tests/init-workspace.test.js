@@ -5,6 +5,12 @@
 // for the scaffold to be run against a Workspace already holding a
 // learner's work. These tests hold it to that.
 //
+// It installs in two ways, and the difference is the plugin's central split: a
+// file that varies by subject is *placed* — copied once and then the learner's
+// — and a file that does not is *linked* at the plugin's own copy, re-pointed
+// on every run so a Workspace follows the plugin across an upgrade. Both halves
+// have to be idempotent, for different reasons.
+//
 // Note what is deliberately absent: a list of the files the scaffold installs.
 // The script owns that list. A test restating it would be one more document
 // caching a fact it does not own — so the expectations here are read back out
@@ -23,21 +29,34 @@ function report(stdout) {
       .map((m) => m[1])
       .sort();
 
-  return { created: pick('create'), skipped: pick('skip'), directories: pick('mkdir') };
+  return {
+    stdout,
+    created: pick('create'),
+    skipped: pick('skip'),
+    linked: pick('link'),
+    kept: pick('keep'),
+    directories: pick('mkdir'),
+  };
 }
 
 test('scaffolding a bare directory installs files and reports them', (t) => {
   const ws = Workspace.create(t);
 
   const run = ws.scaffold();
-  const { created, directories } = report(run.stdout);
+  const { created, linked, directories } = report(run.stdout);
 
   assert.equal(run.status, 0, run.stderr);
-  assert.ok(created.length > 0, 'the scaffold should install something');
+  assert.ok(created.length > 0, 'the scaffold should copy in the files a Workspace owns');
+  assert.ok(linked.length > 0, 'the scaffold should point the Workspace at the files the plugin owns');
   assert.ok(directories.length > 0, 'the scaffold should create the workspace directories');
 
   for (const rel of created) {
-    assert.ok(ws.exists(rel), `reported creating ${rel}, but it is not there`);
+    assert.ok(fs.lstatSync(ws.path(rel)).isFile(), `reported creating ${rel}, but it is not a file there`);
+  }
+  for (const rel of linked) {
+    const at = ws.path(rel);
+    assert.ok(fs.lstatSync(at).isSymbolicLink(), `reported linking ${rel}, but it is not a link`);
+    assert.ok(fs.existsSync(at), `${rel} is a link at nothing`);
   }
   for (const dir of directories) {
     assert.ok(fs.statSync(ws.path(dir)).isDirectory(), `${dir} should be a directory`);
@@ -46,7 +65,14 @@ test('scaffolding a bare directory installs files and reports them', (t) => {
   // The report is this suite's oracle, so it has to be complete: a file written
   // without being announced would be invisible to every test below.
   const files = Object.keys(ws.snapshot()).filter((rel) => !rel.endsWith('/'));
-  assert.deepEqual(files.sort(), created, 'the scaffold installed something it did not report');
+  assert.deepEqual(files.sort(), [...created, ...linked].sort(), 'the scaffold installed something it did not report');
+  assert.deepEqual(report(run.stdout).kept, [], 'a bare directory has nothing to override');
+
+  // The closing tally is prose rather than a verb line, so the checks above
+  // cannot see it — and a shell expansion that reads `0` as "something to
+  // mention" is exactly the kind of defect that hides there.
+  assert.match(run.stdout, new RegExp(`^${created.length} created, 0 left alone, ${linked.length} pointed at`, 'm'));
+  assert.ok(!/overridden here/.test(run.stdout), 'nothing was overridden, so the tally should not mention it');
 });
 
 test('running the scaffold twice produces no change', (t) => {
@@ -57,12 +83,15 @@ test('running the scaffold twice produces no change', (t) => {
   const second = report(ws.scaffold().stdout);
 
   assert.deepEqual(ws.snapshot(), before, 'the second run modified the workspace');
-  assert.deepEqual(second.created, [], 'the second run should create nothing');
+  assert.deepEqual(second.created, [], 'the second run should copy nothing in again');
   assert.deepEqual(
     second.skipped,
     first.created,
-    'the second run should leave alone exactly what the first run installed',
+    'the second run should leave alone exactly what the first run copied in',
   );
+  // Links are re-pointed every run by design — that is how a Workspace follows
+  // the plugin across an upgrade — so re-pointing must be what changes nothing.
+  assert.deepEqual(second.linked, first.linked, 'the second run should re-point the same links');
 });
 
 test('the scaffold leaves the learner\'s own work untouched', (t) => {
@@ -72,23 +101,23 @@ test('the scaffold leaves the learner\'s own work untouched', (t) => {
   // One file the scaffold never writes, and one it does — tuned by hand, the
   // way the skill tells the Teacher to tune it.
   ws.write('MISSION.md', '# Mission: shells\n');
-  ws.write('tutor/ROLE.md', 'tuned for this subject\n');
+  ws.write('tutor/TUNING.md', 'tuned for this subject\n');
   ws.write('lessons/0001-intro.html', '<h1>hand-written</h1>');
 
   const before = ws.snapshot();
   ws.scaffold();
 
   assert.deepEqual(ws.snapshot(), before);
-  assert.equal(ws.read('tutor/ROLE.md'), 'tuned for this subject\n');
+  assert.equal(ws.read('tutor/TUNING.md'), 'tuned for this subject\n');
 });
 
 test('the scaffold repairs a workspace that lost a file', (t) => {
   const ws = Workspace.create(t);
-  const installed = report(ws.scaffold().stdout).created;
+  const first = report(ws.scaffold().stdout);
   const complete = ws.snapshot();
 
-  const casualty = installed.find((rel) => rel.includes('tutor/server.js'));
-  assert.ok(casualty, 'expected the tutor server among the installed files');
+  const casualty = first.created.find((rel) => rel.includes('units.js'));
+  assert.ok(casualty, 'expected the course manifest among the copied files');
   fs.rmSync(ws.path(casualty));
   assert.notDeepEqual(ws.snapshot(), complete, 'the file should be gone');
 
@@ -98,10 +127,48 @@ test('the scaffold repairs a workspace that lost a file', (t) => {
   assert.deepEqual(ws.snapshot(), complete, 'the workspace should be whole again');
 });
 
-test('the tutor control script is installed executable', (t) => {
+test('a lost link is restored rather than left dangling', (t) => {
+  const ws = Workspace.create(t);
+  const first = report(ws.scaffold().stdout);
+  const complete = ws.snapshot();
+
+  const casualty = first.linked.find((rel) => rel.includes('tutor/server.js'));
+  assert.ok(casualty, 'expected the tutor server among the linked files');
+  fs.rmSync(ws.path(casualty));
+  assert.notDeepEqual(ws.snapshot(), complete, 'the link should be gone');
+
+  ws.scaffold();
+
+  assert.deepEqual(ws.snapshot(), complete, 'the workspace should be whole again');
+});
+
+test('a real file where a link belongs is treated as a deliberate override', (t) => {
+  const ws = Workspace.create(t);
+  const linked = report(ws.scaffold().stdout).linked;
+
+  const overridden = linked.find((rel) => rel.includes('style.css'));
+  assert.ok(overridden, 'expected the shared stylesheet among the linked files');
+
+  // Replacing a link with a real file is how someone says "not this one". The
+  // scaffold re-points links on every run, so without this it would be the
+  // thing that deletes their work — the one outcome it must never produce.
+  ws.write(overridden, '/* this course only */\n');
+  const before = ws.snapshot();
+
+  const second = report(ws.scaffold().stdout);
+
+  assert.deepEqual(ws.snapshot(), before, 'the override was overwritten');
+  assert.deepEqual(second.kept, [overridden], 'and the scaffold should say it left it alone');
+  assert.ok(!second.linked.includes(overridden), 'a kept file is not also reported as linked');
+  assert.match(second.stdout, /, 1 overridden here\./, 'the tally should count it too');
+});
+
+test('the tutor control script is reachable as a command the learner runs', (t) => {
   const ws = Workspace.create(t);
   ws.scaffold();
 
+  // Through the link, because that is how the learner invokes it:
+  // `./tutor/tutorctl.sh start` from the Workspace root.
   const mode = fs.statSync(ws.path('tutor/tutorctl.sh')).mode;
   assert.ok(mode & 0o111, 'tutorctl.sh is documented as a command the learner runs');
 });

@@ -102,3 +102,20 @@ test('run reports a non-zero exit rather than throwing', (t) => {
   assert.equal(result.status, 3);
   assert.match(result.stderr, /nope/);
 });
+
+test('write replaces a link rather than writing through it', (t) => {
+  const ws = Workspace.create(t);
+
+  // The hazard a scaffolded Workspace introduces: `assets/style.css` and the
+  // rest of the invariant files are links into the plugin, and writeFileSync
+  // follows a link. A test that wrote a fixture value through one would edit
+  // the plugin's own copy — which happened, and cost the shipped role prompt.
+  const outside = ws.write('outside.md', 'the plugin\'s copy\n');
+  fs.symlinkSync(outside, ws.path('linked.md'));
+
+  ws.write('linked.md', 'this test\'s own\n');
+
+  assert.equal(ws.read('outside.md'), 'the plugin\'s copy\n', 'the write reached past the Workspace');
+  assert.equal(ws.read('linked.md'), 'this test\'s own\n');
+  assert.ok(fs.lstatSync(ws.path('linked.md')).isFile(), 'the link should have been replaced by a real file');
+});

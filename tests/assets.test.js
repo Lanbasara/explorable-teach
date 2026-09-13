@@ -19,9 +19,22 @@ const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
 const { COMPONENTS, SHARED_STYLES, LESSON_HTML, assetRefs } = require('./helpers/lesson.js');
 
+// The two halves of the split this plugin is built on. `runtime/` holds what
+// does not vary by subject, which a Workspace links at rather than copies;
+// `templates/` holds what does, which it copies once and then owns.
+const RUNTIME = path.join(SKILL_DIR, 'runtime', 'assets');
 const TEMPLATES = path.join(SKILL_DIR, 'templates');
 
 const read = (abs) => fs.readFileSync(abs, 'utf8');
+
+/** Where the plugin keeps its copy of `assets/x`, whichever half owns it. */
+function pluginSource(rel) {
+  const name = path.basename(rel);
+  for (const dir of [RUNTIME, path.join(TEMPLATES, 'assets')]) {
+    if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
+  }
+  return null;
+}
 
 /**
  * Every document of the skill, whichever one currently names an asset. Read as
@@ -36,10 +49,13 @@ function skillDocs() {
 
 /** Everything that tells a Lesson author, or a Lesson, which assets exist. */
 function sources() {
-  const shipped = fs
-    .readdirSync(path.join(TEMPLATES, 'assets'))
-    .sort()
-    .map((name) => ({ from: `templates/assets/${name}`, text: read(path.join(TEMPLATES, 'assets', name)) }));
+  const shipped = [
+    ...fs.readdirSync(RUNTIME).sort().map((name) => ({ dir: RUNTIME, from: `runtime/assets/${name}`, name })),
+    ...fs
+      .readdirSync(path.join(TEMPLATES, 'assets'))
+      .sort()
+      .map((name) => ({ dir: path.join(TEMPLATES, 'assets'), from: `templates/assets/${name}`, name })),
+  ].map(({ dir, from, name }) => ({ from, text: read(path.join(dir, name)) }));
 
   return [
     ...skillDocs(),
@@ -54,7 +70,20 @@ function scaffolded(t) {
   const ws = Workspace.create(t);
   const run = ws.scaffold();
   assert.equal(run.status, 0, run.stderr);
+  ws.report = run.stdout;
   return ws;
+}
+
+/**
+ * What the scaffold said it put under `assets/`, split the way it split it.
+ *
+ * Read out of the script's own report rather than typed here. `docs/agents/tests.md`
+ * bans restating the list the script owns, and this is the same list — naming
+ * `lesson-boot.js` and `nav.js` in a test would be a second copy of it, going
+ * stale the day a Component is added.
+ */
+function assetsBy(verb, report) {
+  return [...report.matchAll(new RegExp(String.raw`^\s{2}${verb}\s+(assets/\S+)`, 'gm'))].map((m) => m[1]);
 }
 
 test('every asset a shipped document or template names is installed by the scaffold', (t) => {
@@ -107,7 +136,7 @@ test('every design token a stylesheet uses is defined in the shared styles', () 
   for (const { text } of sources()) {
     for (const [, name] of text.matchAll(/var\((--[\w-]+)/g)) tokens.add(name);
   }
-  for (const [, name] of read(path.join(TEMPLATES, 'assets', SHARED_STYLES)).matchAll(/^\s*(--[\w-]+):/gm)) {
+  for (const [, name] of read(path.join(RUNTIME, SHARED_STYLES)).matchAll(/^\s*(--[\w-]+):/gm)) {
     definitions.add(name);
   }
 
@@ -121,7 +150,7 @@ test('every Component declares its dependencies at its head', () => {
   const files = [SHARED_STYLES, ...COMPONENTS.flatMap((c) => [c.js, c.css])];
 
   for (const file of files) {
-    const head = read(path.join(TEMPLATES, 'assets', file)).split('\n').slice(0, 20).join('\n');
+    const head = read(path.join(RUNTIME, file)).split('\n').slice(0, 20).join('\n');
     assert.match(head, /^[\s*/]*Deps:/m, `${file}: a reader has to be told what it needs before using it`);
   }
 });
@@ -136,7 +165,7 @@ test('no Component needs a server or a network to work', () => {
 
   for (const component of COMPONENTS) {
     for (const file of [component.js, component.css]) {
-      const text = read(path.join(TEMPLATES, 'assets', file));
+      const text = read(path.join(RUNTIME, file));
       assert.ok(text.length > 0, `${file} is empty`);
 
       for (const [pattern, why] of forbidden) {
@@ -156,8 +185,8 @@ test('a Component only hides what it has taken over', () => {
   // mechanism the Components hide *with*: an element carries that attribute
   // only because a script put it there, and the authoring document tells
   // authors never to write it by hand.
-  for (const css of [read(path.join(TEMPLATES, 'assets', SHARED_STYLES))].concat(
-    COMPONENTS.map((c) => read(path.join(TEMPLATES, 'assets', c.css))),
+  for (const css of [read(path.join(RUNTIME, SHARED_STYLES))].concat(
+    COMPONENTS.map((c) => read(path.join(RUNTIME, c.css))),
   )) {
 
     for (const block of css.split('}')) {
@@ -187,14 +216,65 @@ test('every asset in a scaffolded Workspace came from the plugin', (t) => {
 
   // The other direction of the same promise: the plugin is the one source of
   // truth for what a Workspace's assets/ holds, so nothing may appear there
-  // that `templates/assets/` does not own.
+  // that neither half of the plugin's asset directories owns.
   //
   // This is not the file list the scaffold owns — `docs/agents/tests.md` bans
   // restating that, and nothing here names a file. It is the structural rule
   // the list has to obey, and it checks the direction the scaffold's own report
   // cannot: a file the report never mentioned.
   for (const rel of installed) {
-    const source = path.join(TEMPLATES, rel);
-    assert.ok(fs.existsSync(source), `${rel} is installed but the plugin has no ${path.relative(REPO_ROOT, source)}`);
+    const source = pluginSource(rel);
+    assert.ok(source, `${rel} is installed but the plugin ships no ${path.relative(REPO_ROOT, path.join('…', rel))}`);
   }
+});
+
+test('an invariant asset is a link into the plugin, and a subject one is the Workspace\'s own', (t) => {
+  const ws = scaffolded(t);
+
+  // The whole point of the split, as a property of the tree. Which files fall
+  // on which side is the scaffold's to say, so both lists are read back out of
+  // its report rather than named here.
+  const linked = assetsBy('link', ws.report);
+  const placed = assetsBy('create', ws.report);
+
+  assert.ok(linked.length >= 10, `expected linked assets to check, found ${linked.length}`);
+  assert.ok(placed.length >= 1, `expected a copied asset to check, found ${placed.length}`);
+
+  // A file the plugin owns has one home, and a Workspace holds a pointer at it.
+  // That is what makes fixing it once fix it everywhere.
+  for (const rel of linked) {
+    assert.ok(fs.lstatSync(ws.path(rel)).isSymbolicLink(), `${rel} does not vary by subject, so it is not a copy`);
+    assert.equal(
+      fs.realpathSync(ws.path(rel)),
+      fs.realpathSync(path.join(RUNTIME, path.basename(rel))),
+      `${rel} should point at the plugin's copy`,
+    );
+  }
+
+  // And the other side of it. A copied asset is this course's, so editing it
+  // must not reach into the plugin and change every other Workspace.
+  for (const rel of placed) {
+    const source = path.join(TEMPLATES, rel);
+    assert.ok(fs.lstatSync(ws.path(rel)).isFile(), `${rel} varies by subject, so it is copied`);
+
+    const before = read(source);
+    fs.writeFileSync(ws.path(rel), '/* this course only */\n', 'utf8');
+    assert.equal(read(source), before, `editing ${rel} wrote through to the plugin`);
+  }
+});
+
+test('a Workspace follows the plugin when its link goes stale', (t) => {
+  const ws = scaffolded(t);
+  const link = ws.path(`assets/${SHARED_STYLES}`);
+
+  // What an upgrade looks like from the Workspace's side: the link still
+  // resolves, but to a copy of the plugin that is no longer the current one.
+  const stale = ws.write('stale-style.css', '/* an older plugin */\n');
+  fs.rmSync(link);
+  fs.symlinkSync(stale, link);
+  assert.equal(read(link), '/* an older plugin */\n');
+
+  ws.scaffold();
+
+  assert.equal(fs.realpathSync(link), fs.realpathSync(path.join(RUNTIME, SHARED_STYLES)));
 });

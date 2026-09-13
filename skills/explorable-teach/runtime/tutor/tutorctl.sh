@@ -5,6 +5,10 @@
 # any AI conversation. `start` detaches it deliberately so it survives the shell
 # (and the conversation) that launched it.
 #
+# This script lives in the plugin; a workspace links it in at
+# tutor/tutorctl.sh. It works out which workspace it is controlling from the
+# path it was invoked through, so run it from the workspace:
+#
 #   ./tutor/tutorctl.sh status|start|stop|restart|log
 #
 # Env: PORT (default 4173), IDLE_TIMEOUT_MS (default 8h, set in server.js)
@@ -52,6 +56,16 @@ print("  ws      %s" % d["workspace"])' 2>/dev/null || printf '%s\n' "$body"
 }
 
 cmd_start() {
+  # If this is run through the plugin's own copy rather than through a
+  # workspace's link, $ROOT is the plugin — and starting would serve the plugin
+  # as though it were a course, and drop a pidfile and a log inside it. Every
+  # workspace has lessons/, because the scaffold makes one; the plugin does not.
+  if [ ! -d "$ROOT/lessons" ]; then
+    echo "tutor: $ROOT is not a teaching workspace (no lessons/)." >&2
+    echo "       Run this from the workspace root:  ./tutor/tutorctl.sh start" >&2
+    return 2
+  fi
+
   if health >/dev/null 2>&1; then echo "tutor: already up on port $PORT"; return 0; fi
   squatter=$(listener_pid || true)
   if [ -n "$squatter" ]; then
@@ -62,8 +76,10 @@ cmd_start() {
   command -v claude >/dev/null 2>&1 || echo "tutor: WARNING - 'claude' not on PATH; /api/ask will fail" >&2
 
   # nohup + & : detach on purpose. Must outlive the launching shell.
+  # The server lives in the plugin and is reached through the workspace's own
+  # tutor/server.js link, so it has to be told which workspace it is serving.
   cd "$ROOT"
-  PORT="$PORT" nohup node "$DIR/server.js" >>"$LOGFILE" 2>&1 &
+  PORT="$PORT" nohup node "$DIR/server.js" "$ROOT" >>"$LOGFILE" 2>&1 &
 
   i=0
   while [ "$i" -lt 40 ]; do

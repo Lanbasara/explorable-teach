@@ -7,8 +7,17 @@
  *   2. POST /api/ask  -> stream an answer from headless `claude` as SSE
  *   3. Append every Q&A to learning-records/questions.jsonl (curriculum signal)
  *
- * Zero npm dependencies. Run from the workspace root:  node tutor/server.js
+ * This file lives in the plugin and serves whichever workspace it is pointed
+ * at, so a fix here reaches every workspace rather than only the ones
+ * scaffolded afterwards. The workspace is named on the command line; a
+ * workspace links this file in at tutor/server.js, which is how
+ * `node tutor/server.js` still works from a workspace root.
+ *
+ * Zero npm dependencies.
+ *
+ *   node server.js [workspace-dir]     # default: current directory
  */
+
 
 'use strict';
 
@@ -18,7 +27,38 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
-const WORKSPACE_ROOT = path.resolve(__dirname, '..');
+/**
+ * The workspace being served. Everything subject-specific is read from here:
+ * the lessons, the inlined context, the subject tuning, the question log.
+ */
+const WORKSPACE_ROOT = resolveWorkspace(process.argv[2] || process.cwd());
+
+/**
+ * The plugin's own copy of everything that does not vary by subject. Static
+ * requests fall back here, so a workspace whose link into the plugin is missing
+ * or stale still gets styles, navigation and the in-page widget.
+ */
+const RUNTIME_ASSETS = path.resolve(__dirname, '..', 'assets');
+
+function resolveWorkspace(dir) {
+  const full = path.resolve(dir);
+  let stat;
+  try {
+    stat = fs.statSync(full);
+  } catch (err) {
+    console.error(`[tutor] FATAL: cannot read workspace at ${full}`);
+    console.error(`[tutor]        ${err.message}`);
+    process.exit(1);
+  }
+  if (!stat.isDirectory()) {
+    console.error(`[tutor] FATAL: workspace is not a directory: ${full}`);
+    process.exit(1);
+  }
+  // Resolved, because every containment check below compares against it and a
+  // symlinked temp directory would make those comparisons lie.
+  return fs.realpathSync(full);
+}
+
 const PORT = Number(process.env.PORT) || 4173;
 const HOST = '127.0.0.1';
 
@@ -39,13 +79,21 @@ const QUESTION_LOG = path.join(WORKSPACE_ROOT, 'learning-records', 'questions.js
 // ---------------------------------------------------------------- roles
 
 /**
- * Role prompts live in files next to this server, not in this source.
- * The Claude Code subagent at .claude/agents/tutor.md reads the same file,
- * so there is exactly one source of truth for how the tutor behaves.
+ * Role prompts live in files, not in this source, and each one is read in two
+ * halves: the shared definition that ships beside this server, then whatever
+ * the workspace adds for its own subject. The Claude Code subagent at
+ * .claude/agents/tutor.md is pointed at the same two files in the same order,
+ * so there is exactly one definition of how the tutor behaves and neither path
+ * is a degraded version of the other.
+ *
+ *   roleFile    next to this server, in the plugin. Required.
+ *   tuningFile  relative to the workspace. Optional — a workspace that has not
+ *               been tuned yet gets the shared definition alone.
  */
 const ROLES = {
   tutor: {
     roleFile: 'ROLE.md',
+    tuningFile: path.join('tutor', 'TUNING.md'),
     buildPayload({ lesson, selection, question, inlined, history }) {
       const parts = [];
       if (inlined) parts.push(inlined);
@@ -94,18 +142,32 @@ function renderHistory(history) {
 function loadRolePrompts() {
   for (const [name, spec] of Object.entries(ROLES)) {
     const file = path.join(__dirname, spec.roleFile);
+    let shared;
     try {
-      spec.systemPrompt = fs.readFileSync(file, 'utf8').trim();
+      shared = fs.readFileSync(file, 'utf8').trim();
     } catch (err) {
       console.error(`[tutor] FATAL: cannot read role prompt for "${name}"`);
       console.error(`[tutor]        expected at: ${file}`);
       console.error(`[tutor]        ${err.message}`);
       process.exit(1);
     }
-    if (!spec.systemPrompt) {
+    if (!shared) {
       console.error(`[tutor] FATAL: role prompt for "${name}" is empty: ${file}`);
       process.exit(1);
     }
+
+    // The subject tuning is the workspace's to write, so its absence is a
+    // workspace nobody has tuned yet rather than a broken install.
+    let tuning = '';
+    if (spec.tuningFile) {
+      try {
+        tuning = fs.readFileSync(path.join(WORKSPACE_ROOT, spec.tuningFile), 'utf8').trim();
+      } catch {
+        tuning = '';
+      }
+    }
+
+    spec.systemPrompt = tuning ? `${shared}\n\n${tuning}` : shared;
   }
 }
 
@@ -167,42 +229,98 @@ function firstLessonPath() {
   }
 }
 
-/** Resolve a URL path to a real file inside the workspace, or null if unsafe. */
+/** True when `full` is `root` itself or sits beneath it. */
+function within(root, full) {
+  return full === root || full.startsWith(root + path.sep);
+}
+
+/** Resolve `rel` under `root`, or null if it would escape it. */
+function under(root, rel) {
+  const full = path.resolve(root, '.' + path.sep + rel);
+  return within(root, full) ? full : null;
+}
+
+/**
+ * The roots a served file is allowed to physically live in.
+ *
+ * The check in resolveStatic bounds the path; this bounds the bytes, and the
+ * two are no longer the same question. A workspace deliberately holds links
+ * into the plugin, so `fs.stat` and the read stream follow a link out of it by
+ * design — which means a link the scaffold did not write could follow one
+ * anywhere. A file is served only if it really sits in the workspace or in the
+ * plugin's assets.
+ */
+const SERVE_ROOTS = [WORKSPACE_ROOT, RUNTIME_ASSETS];
+
+/**
+ * Where a URL path may be read from, in the order to try, or an empty list if
+ * it is unsafe or not a type we serve.
+ *
+ * Two roots, because the files that do not vary by subject live in the plugin:
+ * the workspace answers first, so its own course manifest and its
+ * subject-specific components win, and anything it does not hold falls back to
+ * the plugin's copy. The path is normalized once and then bounded against each
+ * root separately, so a request that escapes the workspace yields no candidate
+ * at all rather than being tried against the plugin instead.
+ */
 function resolveStatic(urlPath) {
   let decoded;
   try {
     decoded = decodeURIComponent(urlPath.split('?')[0]);
   } catch {
-    return null;
+    return [];
   }
   if (decoded.endsWith('/')) decoded += 'index.html';
   if (decoded === '/index.html') decoded = firstLessonPath() || decoded;
 
   const normalized = path.normalize(decoded).replace(/^(\.\.[/\\])+/, '');
-  const full = path.resolve(WORKSPACE_ROOT, '.' + path.sep + normalized);
 
-  // Must stay inside the workspace.
-  if (full !== WORKSPACE_ROOT && !full.startsWith(WORKSPACE_ROOT + path.sep)) return null;
+  const ext = path.extname(normalized).toLowerCase();
+  if (!Object.prototype.hasOwnProperty.call(MIME, ext)) return [];
 
-  const ext = path.extname(full).toLowerCase();
-  if (!Object.prototype.hasOwnProperty.call(MIME, ext)) return null;
+  const inWorkspace = under(WORKSPACE_ROOT, normalized);
+  if (!inWorkspace) return [];
 
-  return full;
+  const candidates = [inWorkspace];
+
+  // Only assets/ falls back. The rest of a workspace — lessons, records,
+  // submissions — is the learner's, and the plugin has nothing to offer there.
+  const asset = /^[/\\]assets[/\\](.+)$/.exec(normalized);
+  if (asset) {
+    const inPlugin = under(RUNTIME_ASSETS, path.sep + asset[1]);
+    if (inPlugin) candidates.push(inPlugin);
+  }
+
+  return candidates;
 }
 
 function serveStatic(req, res) {
-  const full = resolveStatic(req.url);
-  if (!full) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+  const candidates = resolveStatic(req.url);
 
-  fs.stat(full, (err, stat) => {
-    if (err || !stat.isFile()) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
-    res.writeHead(200, {
-      'Content-Type': MIME[path.extname(full).toLowerCase()],
-      'Content-Length': stat.size,
-      'Cache-Control': 'no-cache',
+  const tryNext = () => {
+    const full = candidates.shift();
+    if (!full) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+
+    fs.stat(full, (err, stat) => {
+      if (err || !stat.isFile()) return tryNext();
+
+      fs.realpath(full, (linkErr, real) => {
+        if (linkErr || !SERVE_ROOTS.some((root) => within(root, real))) return tryNext();
+
+        res.writeHead(200, {
+          // The request's extension, because that is what the allowlist above
+          // was applied to. Read from the resolved path, because that is what
+          // was just bounded.
+          'Content-Type': MIME[path.extname(full).toLowerCase()],
+          'Content-Length': stat.size,
+          'Cache-Control': 'no-cache',
+        });
+        fs.createReadStream(real).pipe(res);
+      });
     });
-    fs.createReadStream(full).pipe(res);
-  });
+  };
+
+  tryNext();
 }
 
 function send(res, status, type, body) {

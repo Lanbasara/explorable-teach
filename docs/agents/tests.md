@@ -22,15 +22,42 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
-| `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
+| `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
-| `tests/init-workspace.test.js` | The scaffold never overwrites, so it is safe as a repair tool |
+| `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, and is safe to re-run either way |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
 | `tests/markdown-helper.test.js` | The Markdown reader below sees the document structure a reader sees |
+
+## The split a scaffolded Workspace is built on
+
+One question decides where a file lives: **does it vary by subject?** No means it lives in
+`skills/explorable-teach/runtime/` and a Workspace holds a symlink at it, so one fix reaches every
+Workspace. Yes means it lives in `skills/explorable-teach/templates/`, is copied in once, and is
+the learner's from then on.
+
+Three suites hold that. `init-workspace.test.js` reads the scaffold's own report and checks that
+what it says it *created* is a file, what it says it *linked* is a live symlink, and that a real
+file sitting where a link belongs is *kept* rather than deleted — the scaffold re-points links on
+every run, so without that it would be the one thing in this repo that destroys work.
+`assets.test.js` checks the direction the report cannot: that every asset in a Workspace has a
+plugin source, that the invariant ones resolve to the plugin's copy, that editing the course
+manifest does not write through to the plugin, and that a stale link is re-pointed by the next
+scaffold run. `tutor-server.test.js` checks the role definition end of it — the plugin's
+definition plus the Workspace's tuning, composed in that order, and the same two files named in
+the same order by the subagent.
+
+The hazard that comes with symlinks is real and cost the plugin's role prompt once: writing to a
+Workspace path follows the link. `Workspace.write()` unlinks first for exactly that reason, and
+`workspace-helper.test.js` holds it to that.
+
+Reading has the same shape, and `tutor-server.test.js` covers it from the other side. The
+server's containment check bounds the *path*; a Workspace full of links means it has to bound the
+*bytes* too, so a link the scaffold did not write — pointing anywhere but the plugin's `assets/`
+— is refused while the scaffold's own links are served.
 
 ## The fixture Workspace
 
@@ -127,12 +154,16 @@ assert.deepEqual(answer.sequence(), ['open', 'done']);
 service.agentFlag('-p');                 // the payload the agent was actually handed
 ```
 
-`server.js` carries the security-sensitive code in this plugin, and `TUTOR.md` says the scaffold
-copies it rather than any Session writing it *because* re-deriving it from prose risks silently
+`server.js` carries the security-sensitive code in this plugin, and `TUTOR.md` says a Workspace
+links at it rather than any Session writing it *because* re-deriving it from prose risks silently
 dropping a guard. Nothing noticed if one had been. So the service is held at arm's length: it runs
 as its own process on a port of its own, and a test touches only a socket, the Workspace on disk,
-and the stub agent. No function in it is called directly, and no line of it was changed to make
-that possible.
+and the stub agent. No function in it is called directly.
+
+The fixture starts it the way a Workspace does — `node <ws>/tutor/server.js`, which resolves
+through the link into the plugin — so the split is exercised rather than bypassed. The server
+defaults to its working directory when nothing names a Workspace, which is what keeps that
+invocation meaningful.
 
 **The agent is a stub binary first on `PATH`.** `PATH` is set to *only* the directory holding it,
 so the real `claude` cannot be reached even on a machine that has one. The stub records its argv
@@ -239,10 +270,11 @@ the rebuild.
 *invoking* `scripts/init-workspace.sh`. A Session that has to wade through reference material to
 find out what to do first will sometimes not do it.
 
-**No document restates what the scaffold installs.** The copy list is read out of the script
-itself; a document naming two or more of those template paths is holding a second copy of a
-list it does not own. Naming one — the way the Tutor's design rationale names
-`templates/agents/tutor.md` — is a reference, not a list.
+**No document restates what the scaffold installs.** The install list is read out of the script
+itself — both halves of it, the `templates/…` it copies and the `runtime/…` it links — and a
+document naming two or more of those source paths is holding a second copy of a list it does not
+own. Naming one — the way the Tutor's design rationale names `templates/agents/tutor.md` — is a
+reference, not a list.
 
 **Every script the skill tells a Session to run is named from the plugin root.** The Teacher's
 working directory is the learner's Workspace; these scripts live in the plugin, which is never
@@ -343,9 +375,10 @@ against a scaffolded Workspace instead, which is the only place they can mean an
 
 Known gaps, so that nobody reads a green suite as a stronger claim than it is:
 
-- **`templates/` is not scanned as a document.** It is material copied into a Workspace, so
-  its relative paths resolve *there*. `assets.test.js` covers the part that matters — every
-  `assets/…` path a template names must exist in a scaffolded Workspace.
+- **`templates/` and `runtime/` are not scanned as documents.** One is material copied into a
+  Workspace and the other is material a Workspace links at, so the relative paths either one
+  writes resolve *there*. `assets.test.js` covers the part that matters — every `assets/…` path
+  either one names must exist in a scaffolded Workspace.
 - **The Components the Teacher builds are not checked**, because there is nothing there to
   check. Every file the selection guide names is one the plugin ships — the four Components, the
   shared stylesheet, the bootstrap — and every other row names a teaching act and what to reach
@@ -366,11 +399,27 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   agents working on this repo instead, and `README.md` is checked for the opposite thing. If a
   document an agent runs from ever lands outside `skills/`, widen the scan rather than
   trusting that.
-- **The restatement check reads one spelling.** It matches the `templates/…` paths the
-  scaffold copies *from*. The same list spelled as destinations — `tutor/server.js`,
-  `.claude/agents/tutor.md` — would pass. That spelling cannot simply be added: a document
-  naming `assets/exercise.js` is making a promise rather than keeping a copy, and
-  `assets.test.js` already holds that promise. Nothing holds the `tutor/` subset.
+- **The restatement check reads the source spelling only.** It matches the `templates/…` and
+  `runtime/…` paths the scaffold installs *from*. The same list spelled as destinations —
+  `tutor/server.js`, `.claude/agents/tutor.md` — would pass. That spelling cannot simply be
+  added: a document naming `assets/exercise.js` is making a promise rather than keeping a copy,
+  and `assets.test.js` already holds that promise. Nothing holds the `tutor/` subset.
+- **Nothing checks that a linked file is never edited through its link.** A Workspace's
+  `assets/style.css` is a symlink into the plugin, so writing to it rewrites the plugin's copy
+  and every other Workspace with it. `UNIT.md` and `TUTOR.md` both state the rule; the only
+  mechanical guard is in the test helper, where `Workspace.write()` unlinks before writing —
+  added after a test quietly rewrote the plugin's role prompt. A Teacher that ignores the rule
+  is not caught here. What *is* covered is the server's side of the same hazard: it refuses to
+  serve a file whose real path is neither in the Workspace nor in the plugin's `assets/`.
+- **Symlinks are a POSIX assumption.** The scaffold uses `ln -s`, and the suite asserts
+  `lstat().isSymbolicLink()`. Neither would hold on a filesystem without symlinks; the server's
+  fallback to the plugin's `assets/` would still serve such a Workspace over http, but nothing
+  tests that path as the only one.
+- **Nothing runs a Workspace against a plugin that has moved.** "A stale link is re-pointed" is
+  tested by pointing one at a decoy inside the fixture Workspace, which is the same code path;
+  an actual plugin upgrade, with the old root still on disk, is not staged. The half that
+  matters is that the Boot sequence runs the scaffold every Session — and that is checked as a
+  property of `SKILL.md`, not by running one.
 - **`docs/DECISIONS.md` is exempt from the one-entry-point check.** It records the removal of
   the setup command, and a record that may not name what it removed is not a record. Every
   other document naming a `/explorable-teach:…` is instructing someone.

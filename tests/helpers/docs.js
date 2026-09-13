@@ -46,6 +46,13 @@ const OWNED_ROOTS = ['scripts', 'templates', 'commands', 'docs', 'skills', 'test
 const DOC_ROOTS = ['skills', 'commands', 'docs'];
 
 /**
+ * Directories whose contents belong to a Workspace rather than to this repo —
+ * copied into one, or linked at from one. A document in either writes paths
+ * that mean something over there.
+ */
+const WORKSPACE_FACING = new Set(['templates', 'runtime']);
+
+/**
  * `docs/agents/domain.md` names `docs/adr/` as the convention this repo
  * deliberately rejects in favour of one narrative `docs/DECISIONS.md`. It is
  * supposed to be absent; flagging it would be flagging the repo for agreeing
@@ -88,8 +95,9 @@ const SKILL_DIR = skillDir();
 
 /**
  * Every Markdown document that instructs an agent working on or with this
- * plugin. `templates/` is excluded: it is material copied into a Workspace, so
- * its relative paths resolve there rather than here.
+ * plugin. Two directories are excluded, for one reason: `templates/` is
+ * material copied into a Workspace and `runtime/` is material a Workspace
+ * links at, so the paths either one writes resolve there rather than here.
  */
 function agentDocs() {
   const docs = [path.join(REPO_ROOT, 'AGENTS.md'), path.join(REPO_ROOT, 'README.md')];
@@ -101,7 +109,7 @@ function agentDocs() {
 
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const abs = path.join(dir, entry.name);
-      if (entry.isDirectory() && entry.name !== 'templates') walk(abs);
+      if (entry.isDirectory() && !WORKSPACE_FACING.has(entry.name)) walk(abs);
       else if (entry.isFile() && entry.name.endsWith('.md')) docs.push(abs);
     }
   };

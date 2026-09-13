@@ -16,12 +16,14 @@ delivers one Unit, and then ends.
 
 Begin every Session here, in this order, before proposing anything.
 
-1. **Scaffold, if the Workspace is bare.** No `index.html` and no `assets/` means nothing has
-   been set up yet — run `${CLAUDE_PLUGIN_ROOT}/scripts/init-workspace.sh`. It never overwrites,
-   so it costs nothing against a Workspace already holding work, and it is the repair tool for
-   one that lost a file. The script owns what a Workspace contains: read its report, and never
-   place any of those files by hand. **Both scripts are named from the plugin root**, here and
-   below — you are standing in the Workspace, where a bare `scripts/…` resolves to nothing.
+1. **Scaffold, every Session.** Run `${CLAUDE_PLUGIN_ROOT}/scripts/init-workspace.sh` before
+   anything else. It never overwrites work, so it costs nothing against a Workspace already
+   holding some; it is the repair tool for one that lost a file; and it is how a Workspace
+   that was set up under an older version of this plugin catches up with the current one.
+   Running it only when the Workspace looks bare would leave every existing Workspace behind.
+   The script owns what a Workspace contains: read its report, and never place any of those
+   files by hand. **Both scripts are named from the plugin root**, here and below — you are
+   standing in the Workspace, where a bare `scripts/…` resolves to nothing.
 2. `MISSION.md` — why they are here.
 3. `CURRICULUM.md` — the plan, and the progress marker on each Unit.
 4. The last two or three `learning-records/` — where the learner actually is, rather than where

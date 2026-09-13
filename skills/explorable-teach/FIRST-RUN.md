@@ -83,4 +83,4 @@ the whole stack up front: a Component nobody has needed yet is a guess.
 
 ## 7. Tune the Tutor for this subject
 
-`tutor/ROLE.md` is the one Tutor file this skill authors. See [TUTOR.md](./TUTOR.md).
+`tutor/TUNING.md` is the one Tutor file this skill authors. See [TUTOR.md](./TUTOR.md).

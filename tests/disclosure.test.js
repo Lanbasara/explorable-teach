@@ -38,12 +38,16 @@ const DISCLOSED = [
   {
     file: 'FIRST-RUN.md',
     // Reached on roughly one Session in twenty — the first one in a Workspace.
-    carries: [/MISSION\.md/, /TECH-STACK\.md/, /CURRICULUM\.md/, /ROLE\.md/],
+    // `TUNING.md`, not `ROLE.md`: the role definition belongs to the plugin and
+    // the tuning is the one Tutor file a first run authors.
+    carries: [/MISSION\.md/, /TECH-STACK\.md/, /CURRICULUM\.md/, /TUNING\.md/],
   },
   {
     file: 'TUTOR.md',
-    // Reached on installation or on failure, and on no other Session.
-    carries: [/tutorctl\.sh/, /\/api\/health/, /--resume/, /ROLE\.md/],
+    // Reached on installation or on failure, and on no other Session. Both
+    // halves of the role, because reading only one of them is the degraded
+    // Tutor this split exists to rule out.
+    carries: [/tutorctl\.sh/, /\/api\/health/, /--resume/, /ROLE\.md/, /TUNING\.md/],
   },
   {
     file: 'UNIT.md',
