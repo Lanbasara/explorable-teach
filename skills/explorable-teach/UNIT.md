@@ -100,6 +100,7 @@ yourself in is a Component this Unit does not need.
 | Check that an idea landed, the moment it lands | Exercise | Shipped |
 | Walk one process through its stages — `fork`/`exec`, a TCP handshake, a request's life | Step animation | Shipped |
 | Teach an order that *is* the knowledge — pipeline stages, protocol steps, a proof's line | Drag ordering | Shipped |
+| Find out whether a Unit may be closed, once it is over | Checkpoint | Shipped |
 | Let the learner run the thing being taught — a shell, a query, a snippet, a synth | A playground for that subject, which unconstrained is also the sandbox a Lesson ends on | You build it |
 | Show a structure they have to hold in their head — a process tree, a memory layout | A diagram they can manipulate | You build it |
 | Show how a set of things relate — dependencies, a state machine, an architecture | A graph they can rearrange | You build it |
@@ -118,7 +119,7 @@ little else. If the learner asks for more or less interactivity, respect that an
 
 ### Shipped Components — already in every Workspace
 
-These four do not vary by subject, so they belong to the plugin rather than to any one Workspace.
+These five do not vary by subject, so they belong to the plugin rather than to any one Workspace.
 A Workspace holds a *link* at each, not a copy — which is what lets one fix reach every Workspace,
 and also means **editing one in place edits every other learner's course**. Use them as they are.
 When one is nearly right but not right, write a new Component beside it rather than changing it.
@@ -128,22 +129,25 @@ the scaffold reads that as a deliberate override and leaves it alone from then o
 | Component | Files | Use it for |
 |-----------|-------|------------|
 | **Exercise** | `assets/exercise.js` + `assets/exercise.css` | Checking a concept the moment it is taught |
-| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | **The strongest of the four.** Anything where intuition can be wrong |
+| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | **The strongest of them.** Anything where intuition can be wrong |
 | **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | Multi-stage processes |
 | **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | Sequences where the order is the knowledge |
+| **Checkpoint** | `assets/checkpoint.js` + `assets/checkpoint.css` | Gating a Unit at its end — see [Checkpoints](#checkpoints) |
 
 Each file's head comment holds the markup its author writes — **read that before using one**, and
-do not re-derive the markup from this table. All four degrade to plain text with scripting off,
-and none of them touch the network, so a Lesson works opened from `file://` on a plane.
+do not re-derive the markup from this table. All five degrade to plain text with scripting off,
+and none of them touch the network, so a Lesson works opened from `file://` on a plane. Four of
+them build a Lesson; the Checkpoint is the one that does not, because it gates the Unit from a
+page of its own once the Lesson is behind the learner.
 
 `assets/style.css` is not a Component: every page links it from `<head>`, and it owns the design
 tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none. It is linked
-from the plugin like the four above, so re-theming one Workspace means a small stylesheet of your
+from the plugin like the five above, so re-theming one Workspace means a small stylesheet of your
 own in `assets/`, linked after it — not an edit to the one every Workspace shares.
 
 ### Building a Component for this subject
 
-Every teaching act above that is not one of those four is something **you build**, for this
+Every teaching act above that is not one of those five is something **you build**, for this
 subject, into this Workspace's `assets/`. Nothing else is sitting there waiting: a music Unit
 earns the Web Audio API and interactive notation, an algorithms Unit earns a step-by-step
 visualiser, a shell Unit earns a simulated terminal — and each of those exists because a Session
@@ -202,10 +206,40 @@ formatting that singles out the right answer turns a retrieval Exercise into a s
 
 ## Checkpoints
 
-The gate at the end of a Unit: a small set of retrieval questions covering what the Unit
-claimed to teach, in its own page, judged there the same way an Exercise is. It answers one
-question — *may the learner move on?* — and the answer belongs in the Learning Record, because
-the next Session plans from it.
+The gate at the end of a Unit: a small set of retrieval questions covering what the Unit claimed
+to teach, on a page of its own, judged there the same way an Exercise is. It answers one question
+— *may the learner move on?* — and the answer belongs in the Learning Record, because the next
+Session plans from it.
+
+Whether this Unit earns one at all was settled before you got here — see [the assessment
+ladder](./SKILL.md#the-assessment-ladder). What is left is the form it takes.
+
+**One page, beside the Lesson it closes.** `lessons/0003b-checkpoint.html` sits next to
+`lessons/0003-fork-exec.html` and carries the same `data-unit`, so the two read as one Unit to
+every piece of infrastructure that meets them. Two to five questions: more than that is a
+Lesson's worth of work arriving at the moment the learner expected to be finishing.
+
+**Built out of Exercises, gated by the Checkpoint Component.** The questions are ordinary
+Exercises, each judged as it is answered; `assets/checkpoint.js` counts them and says whether the
+Unit may close. Its head comment holds the markup, as every Component's does — read that before
+writing one. The page is built like any other — [the page](#the-page) above — with
+`assets/exercise.css` and `assets/checkpoint.css` in the head, and `assets/exercise.js` before
+`assets/checkpoint.js`, which is the order its `Deps:` line states.
+
+**Every question has to be right.** A gate with a pass mark is a score, and a score does not
+answer *may we move on?* So a question that could be got wrong while the Unit still closes is one
+that does not belong here: cut it, or move it back into the Lesson as an Exercise.
+
+**Write both outcomes, and give the failing one somewhere to go.** Pass says the Unit is closed
+and asks the learner to tell you the score. The other names the part of the Lesson to reread and
+links at it by anchor — being sent back without being told where is what makes a gate feel like a
+verdict on the learner rather than on the page.
+
+**Then the links.** Add `checkpoint:` to this Unit's entry in `assets/units.js`: that is what
+lights the slot the navigation bar and the Dossier have always had a place for, and it is what
+makes every page of the Unit reachable from every other. Write one link yourself — the Lesson
+pointing at its Checkpoint where the Lesson ends — because a bar at the top of the page is not
+where a learner is looking when they have just finished reading.
 
 A Checkpoint the learner passes by scrolling back into the Lesson has measured nothing.
 

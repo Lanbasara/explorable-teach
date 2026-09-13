@@ -1,0 +1,113 @@
+/* ============================================================
+   checkpoint.js — the gate at the end of a Unit, judged by the page before
+   the Unit closes. Measures whether the Unit may be closed, which is a
+   different question from whether any one idea landed.
+   Deps: exercise.js (the questions it counts — loaded before this), style.css
+         (design tokens), checkpoint.css. No library, no network, no server:
+         works from file://.
+
+   Markup the author writes, on a page of its own at the Unit's end:
+
+     <div class="checkpoint" data-checkpoint>
+       <p class="checkpoint-lead">凭记忆答。翻回正文找得到的答案,不算学会了。</p>
+
+       <div class="exercise" data-exercise>…</div>   <!-- 2-5 of them -->
+
+       <p class="checkpoint-pass">可以合上了。把结果告诉老师。</p>
+       <p class="checkpoint-again">回到<a href="0003-fork-exec.html">正文</a>再读一遍。</p>
+     </div>
+
+   Every question has to be right. A gate with a pass mark is a score, and a
+   score does not answer *may we move on?* — so a question that may be got
+   wrong while the Unit still closes is a question that does not belong here.
+
+   Scripting off: the questions are plain text, and both outcomes are there to
+   read as the two halves of one sentence — right, and you are done; wrong, and
+   here is where to go back to. Nothing is hidden until this file has taken the
+   page over.
+
+   The verdict is read off the questions rather than reported by them. An
+   Exercise marks its own root the instant it is answered, in a handler on the
+   option; this listens on the container, where the same event arrives on its
+   way up — so by the time it looks, the answer is already recorded. Nothing
+   here reaches into exercise.js, and exercise.js knows nothing about this.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var ANSWERED = '已答';
+  var RIGHT = '答对';
+
+  function each(nodes, fn) {
+    for (var i = 0; i < nodes.length; i++) fn(nodes[i], i);
+  }
+
+  function mount(root) {
+    var questions = root.querySelectorAll('.exercise');
+    // A gate with nothing to judge judges nothing, and must not say otherwise.
+    if (!questions.length) return;
+
+    var pass = root.querySelector('.checkpoint-pass');
+    var again = root.querySelector('.checkpoint-again');
+    if (pass) pass.hidden = true;
+    if (again) again.hidden = true;
+
+    var progress = document.createElement('p');
+    progress.className = 'checkpoint-progress';
+    progress.setAttribute('role', 'status');
+    // Above the outcome it will be replaced by, when there is one to sit above;
+    // only a direct child is a legal insertion point, so anything else means
+    // "put it at the end".
+    var before = [pass, again].filter(function (node) {
+      return node && node.parentNode === root;
+    })[0];
+    root.insertBefore(progress, before || null);
+
+    var judged = false;
+
+    function counting(state) {
+      var n = 0;
+      each(questions, function (question) {
+        if (question.classList.contains(state)) n++;
+      });
+      return n;
+    }
+
+    function review() {
+      if (judged) return;
+
+      var answered = counting('is-answered');
+      if (answered < questions.length) {
+        progress.textContent = ANSWERED + ' ' + answered + ' / ' + questions.length;
+        return;
+      }
+
+      judged = true;
+      var right = counting('is-correct');
+      var passed = right === questions.length;
+
+      root.classList.add('is-judged', passed ? 'is-passed' : 'is-failed');
+      var outcome = passed ? pass : again;
+      if (outcome) outcome.hidden = false;
+
+      // The score, not just the verdict: it is what the learner reports to the
+      // Teacher, and what the Learning Record is written from.
+      progress.textContent = RIGHT + ' ' + right + ' / ' + questions.length;
+    }
+
+    root.addEventListener('click', review);
+    root.addEventListener('keydown', review);
+
+    root.classList.add('is-live');
+    review();
+  }
+
+  function mountAll() {
+    each(document.querySelectorAll('[data-checkpoint]'), mount);
+  }
+
+  // Lessons put component scripts at the end of <body>, but lesson-boot.js
+  // loads scripts dynamically, by which time DOMContentLoaded has passed.
+  if (document.body) mountAll();
+  else document.addEventListener('DOMContentLoaded', mountAll);
+})();

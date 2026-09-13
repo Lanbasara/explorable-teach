@@ -108,6 +108,8 @@ link "$RUNTIME/assets/step-animation.js"   "assets/step-animation.js"
 link "$RUNTIME/assets/step-animation.css"  "assets/step-animation.css"
 link "$RUNTIME/assets/drag-order.js"       "assets/drag-order.js"
 link "$RUNTIME/assets/drag-order.css"      "assets/drag-order.css"
+link "$RUNTIME/assets/checkpoint.js"       "assets/checkpoint.js"
+link "$RUNTIME/assets/checkpoint.css"      "assets/checkpoint.css"
 
 echo
 summary="$copied created, $skipped left alone, $linked pointed at the plugin"

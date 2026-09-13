@@ -17,7 +17,7 @@ const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
-const { COMPONENTS, SHARED_STYLES, LESSON_HTML, assetRefs } = require('./helpers/lesson.js');
+const { ALL_COMPONENTS, SHARED_STYLES, PAGES, LESSON_HTML, assetRefs } = require('./helpers/unit.js');
 
 // The two halves of the split this plugin is built on. `runtime/` holds what
 // does not vary by subject, which a Workspace links at rather than copies;
@@ -60,7 +60,7 @@ function sources() {
   return [
     ...skillDocs(),
     { from: 'templates/index.html', text: read(path.join(TEMPLATES, 'index.html')) },
-    { from: 'the fixture Lesson', text: LESSON_HTML },
+    ...PAGES.map((page) => ({ from: page.name, text: page.html })),
     ...shipped,
   ];
 }
@@ -123,7 +123,7 @@ test('the Lesson template links the shared styles from the page head', () => {
 test('every Component the plugin ships is installed as a pair', (t) => {
   const ws = scaffolded(t);
 
-  for (const component of COMPONENTS) {
+  for (const component of ALL_COMPONENTS) {
     assert.ok(ws.exists(`assets/${component.js}`), `${component.name}: behaviour is not installed`);
     assert.ok(ws.exists(`assets/${component.css}`), `${component.name}: styling is not installed`);
   }
@@ -147,7 +147,7 @@ test('every design token a stylesheet uses is defined in the shared styles', () 
 });
 
 test('every Component declares its dependencies at its head', () => {
-  const files = [SHARED_STYLES, ...COMPONENTS.flatMap((c) => [c.js, c.css])];
+  const files = [SHARED_STYLES, ...ALL_COMPONENTS.flatMap((c) => [c.js, c.css])];
 
   for (const file of files) {
     const head = read(path.join(RUNTIME, file)).split('\n').slice(0, 20).join('\n');
@@ -163,7 +163,7 @@ test('no Component needs a server or a network to work', () => {
     [/https?:\/\//, 'a URL — a Component that needs a CDN stops working on a train'],
   ];
 
-  for (const component of COMPONENTS) {
+  for (const component of ALL_COMPONENTS) {
     for (const file of [component.js, component.css]) {
       const text = read(path.join(RUNTIME, file));
       assert.ok(text.length > 0, `${file} is empty`);
@@ -186,7 +186,7 @@ test('a Component only hides what it has taken over', () => {
   // only because a script put it there, and the authoring document tells
   // authors never to write it by hand.
   for (const css of [read(path.join(RUNTIME, SHARED_STYLES))].concat(
-    COMPONENTS.map((c) => read(path.join(RUNTIME, c.css))),
+    ALL_COMPONENTS.map((c) => read(path.join(RUNTIME, c.css))),
   )) {
 
     for (const block of css.split('}')) {

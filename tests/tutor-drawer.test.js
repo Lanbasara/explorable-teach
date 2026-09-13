@@ -22,7 +22,7 @@ const { test } = require('node:test');
 
 const { Workspace } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
-const { LESSON_HTML } = require('./helpers/lesson.js');
+const { LESSON_HTML } = require('./helpers/unit.js');
 
 /** An answer with every piece of Markdown a Tutor actually writes. */
 const ANSWER = [

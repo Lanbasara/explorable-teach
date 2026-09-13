@@ -4,6 +4,32 @@
 
 ### Changed
 
+- **A unit now has a checkpoint, and the navigation slot that always rendered one finally has
+  something behind it.** Checkpoint was named by the nav bar and by the course manifest from the
+  day both were written, and defined nowhere — not what it is, not when to write one, not how it
+  differs from an exercise in a lesson or from an assignment. It is now a page of its own at the
+  end of a unit, `0003b-checkpoint.html` beside `0003-fork-exec.html`, built out of ordinary
+  exercises and gated by `assets/checkpoint.js` — a fifth shipped component, linked into every
+  workspace like the other four. It says how far through the learner is, and once every question
+  is answered it says whether the unit may close and what the score was. A wrong answer sends
+  them back to the part of the lesson it came from rather than leaving them with a red box.
+- **A checkpoint passes only on all of its questions.** There is no pass mark to set: a gate with
+  one is a score, and a score does not answer *may we move on?*. The decision worth making is
+  which questions belong in the gate, so a question that could be got wrong while the unit still
+  closes belongs back in the lesson as an exercise.
+- **The teacher is told when to write one.** A checkpoint is worth the page when a later unit
+  will build on this one and a misunderstanding carried out of it would compound instead of
+  surfacing; a unit nothing later depends on closes on its exercises. `UNIT.md` carries the form
+  — where the file sits, how many questions, both outcomes, and the one link the author writes by
+  hand — and the rest of the linking is one `checkpoint:` entry in the course manifest.
+- **Every artifact of a unit is now under test for being reachable.** `nav.test.js` mounts the
+  bar the way the page bootstrap mounts it and drives it against a manifest holding one unit with
+  a checkpoint and one without: the first links to it and back, the second shows the slot greyed
+  and labelled rather than dropping it, and nothing in the bar points at a file that was never
+  written. The fixture Lesson became a fixture *Unit* of two pages, `tests/helpers/unit.js`,
+  which is what a unit was already defined to be. The fixture DOM grew `href`, `title` and
+  `page.script(file, attrs)` to carry it — the bar builds every link by assigning the first two,
+  so a DOM modelling neither would have reported a working bar as an empty one.
 - **A question in flight says what it is waiting for.** Pressing send used to produce an empty
   bubble and a blinking caret for the several seconds the agent takes to start up and read, so a
   slow answer and a hung one looked identical. The wait is now reported in three stages — the

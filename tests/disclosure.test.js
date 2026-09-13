@@ -92,6 +92,7 @@ const AUTHORING = [
   /lesson-boot\.js/,
   /style\.css/,
   /predict-reveal|step-animation|drag-order/,
+  /checkpoint\.js/,
   /cdnjs|unpkg|jsdelivr/,
   /devicePixelRatio/,
   /is-live/,

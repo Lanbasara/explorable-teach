@@ -24,6 +24,9 @@
  * which the Tutor's in-page drawer needs and no Component does — storage, a
  * service to probe, a stream to read. Naming them at the call site keeps the
  * default set bare, so a Component that starts reaching for one still throws.
+ *
+ * `page.script(file, attrs)` writes the attributes a page writes on the tag,
+ * for the scripts that read their own — `data-unit` on the nav bar.
  */
 
 const fs = require('node:fs');
@@ -275,6 +278,32 @@ class Element extends Node {
   set disabled(on) {
     if (on) this.setAttribute('disabled', '');
     else this.removeAttribute('disabled');
+  }
+
+  /**
+   * Backed by the attribute for the same reason `hidden` and `disabled` are:
+   * a script that assigns one — the nav bar builds every link by assigning
+   * `href` and `title` — would otherwise set an expando, and a test reading
+   * the attribute back would see nothing and report a bar with no links in it.
+   *
+   * A browser's `href` getter answers with an absolute URL resolved against
+   * the document; there is no base URL here, so this answers with what was
+   * written. Assert on `getAttribute` when the distinction matters.
+   */
+  get href() {
+    return this.getAttribute('href') || '';
+  }
+
+  set href(value) {
+    this.setAttribute('href', value);
+  }
+
+  get title() {
+    return this.getAttribute('title') || '';
+  }
+
+  set title(value) {
+    this.setAttribute('title', value);
   }
 
   /** Form-ish value: an authored `value=` until something assigns one. */
@@ -598,11 +627,18 @@ class Page {
     this.context = vm.createContext(win);
   }
 
-  /** Run a shipped Component the way a Lesson's own `<script src>` would. */
-  script(file) {
+  /**
+   * Run a shipped Component the way a Lesson's own `<script src>` would.
+   *
+   * `attrs` are the attributes the page writes on the tag. The nav bar reads
+   * `data-unit` off its own tag to find out which Unit it is rendering, so a
+   * test that could not write one would be driving a bar that never mounted.
+   */
+  script(file, attrs = {}) {
     const source = fs.readFileSync(path.join(this.assetsDir, file), 'utf8');
     const tag = this.document.createElement('script');
     tag.setAttribute('src', `../assets/${file}`);
+    for (const [name, value] of Object.entries(attrs)) tag.setAttribute(name, value);
     this.document.body.appendChild(tag);
     this.document.currentScript = tag;
     try {

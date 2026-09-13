@@ -1,0 +1,66 @@
+/* checkpoint.css — the gate at the end of a Unit.
+   Deps: style.css (design tokens), exercise.css (the questions inside it).
+   Pairs with checkpoint.js.
+
+   Nothing here hides anything. The two outcomes are held back with the
+   `hidden` attribute, which only checkpoint.js sets — so with scripting off
+   the whole gate, both outcomes included, is ordinary text. */
+
+.checkpoint {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fg-faint);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin: 2.2em 0;
+}
+
+.checkpoint-lead {
+  margin: 0 0 1.2em;
+  color: var(--fg-dim);
+  font-size: 14.5px;
+}
+
+/* The questions sit closer together here than in a Lesson: this is a run of
+   them rather than one idea being checked as it lands. */
+.checkpoint .exercise {
+  margin: 1.1em 0;
+  background: var(--bg-soft);
+}
+
+/* ---------- how far through, then the score ---------- */
+
+.checkpoint-progress {
+  margin: 1.4em 0 0;
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.checkpoint.is-passed > .checkpoint-progress { color: var(--accent-good); }
+.checkpoint.is-failed > .checkpoint-progress { color: var(--accent-bad); }
+
+/* ---------- the verdict ---------- */
+
+.checkpoint-pass,
+.checkpoint-again {
+  margin: .8em 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--fg);
+}
+
+.checkpoint-again a { color: var(--accent); }
+
+.checkpoint.is-judged { border-left-width: 3px; }
+.checkpoint.is-passed { border-left-color: var(--accent-good); }
+.checkpoint.is-failed { border-left-color: var(--accent-bad); }
+
+/* On paper the gate is a page of questions, and the verdict belongs to the
+   screen it was given on. */
+@media print {
+  .checkpoint-progress { color: var(--fg-faint); }
+}

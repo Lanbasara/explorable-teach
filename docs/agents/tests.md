@@ -23,7 +23,8 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
-| `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
+| `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the page readable without it |
+| `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, and is safe to re-run either way |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
@@ -107,15 +108,28 @@ disabled would then read `undefined` and pass on a button that is. `hidden` and 
 both backed by the attribute for that reason, and `dom-helper.test.js` holds them to it. A
 property a test reads back as a boolean has to be modelled before it is read.
 
+`href` and `title` joined them when the nav bar came under test: the bar builds every link by
+assigning both, so a DOM modelling neither would have reported a bar with no links in it while
+the bar was working. `page.script(file, attrs)` is the other half of driving it — the bar reads
+`data-unit` off its own tag, so a test that could not write one would be driving a bar that
+never mounted.
+
 The window a script runs against is bare for the same reason, and `Page.load(html, dir, {
 globals })` is the one way to widen it for one test. The Tutor's in-page drawer needs storage, a
 service to probe and a stream to read; no Component needs any of them, so naming them at the call site is
 what keeps a Component that starts reaching for one throwing rather than quietly passing.
 
-`tests/helpers/lesson.js` holds the fixture Lesson — one page written the way the skill's
-Lesson template says to write one, using every shipped Component. Both `assets.test.js` and
-`components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
-and its markup to that page**; every check then covers it without being told separately.
+`tests/helpers/unit.js` holds the fixture Unit — the pages one Unit is made of, written the way
+the skill's authoring document says to write them, using every shipped Component. Two pages,
+because a Unit is more than one file: the Lesson, and the Checkpoint that gates it. `PAGES` is
+what the generic checks iterate, and each page names the Components it is built from — so
+**adding a Component means adding one entry and its markup to the page it belongs on**, and
+`assets.test.js`, `components.test.js` and `nav.test.js` then cover it without being told
+separately.
+
+A Component nested inside another — the Exercises a Checkpoint counts — is walked as itself
+rather than as part of its host, so a class is still checked against the stylesheet of the
+Component that put it there.
 
 ## The Markdown reader
 
@@ -241,6 +255,25 @@ on the page: a stop is only a stop if the stream was let go, because letting it 
 the connection the service is watching. One of them lands the stop before the response has
 arrived at all — the window a learner is most likely to press it in, and the one where there is
 no reader yet to cancel.
+
+## The navigation check
+
+`nav.test.js` holds the claim a Unit's own definition makes: a Unit is more than one file, and
+one nobody can find was not worth writing. The bar is mounted the way `lesson-boot.js` mounts it
+— the course manifest, then the bar carrying the page's Unit id — against a manifest with one
+Unit that has a Checkpoint and one that does not.
+
+**A slot that resolves, and a slot that degrades.** From the Lesson, the Checkpoint is a link;
+from the Checkpoint, the Lesson is a link and the Checkpoint is the page you are on. For the Unit
+with no Checkpoint the slot is still rendered, labelled, and marked unreachable — the failure it
+rules out is a gap the learner has to interpret. That the slot is *visible* is half tree and half
+stylesheet, and the stylesheet half is the one that would break silently, so the rule is read for
+a hiding declaration rather than assumed.
+
+**No page writes a link list.** The bar derives every link from the manifest, so a Checkpoint
+page hand-writes exactly one link — the way back into the Lesson, in the prose of its own verdict
+— and the check fails if the fixture starts writing more. A renamed file is then chased in one
+place rather than through every page of the Unit.
 
 ## The disclosure check
 
@@ -449,6 +482,10 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,
   and `is-live` is exempt because it is the mount marker rather than a visual state — but never
   that it looks right. Judging a lesson's appearance still means opening it.
+- **The Dossier is not driven.** `index.html` renders the same three slots from the same
+  manifest, and degrades the same way, but its script is inline rather than a file — the fixture
+  DOM runs `<script src>` only, so nothing here mounts it. What `assets.test.js` covers is the
+  paths it names; the cover itself is still judged by opening it.
 - **`file://` is inferred, not observed.** `assets.test.js` reads the Components for `fetch`,
   `XMLHttpRequest`, module syntax and URLs; nothing here actually opens a page from disk.
 - **The decoupling check stops at the skill directory.** That is the boundary that matters —

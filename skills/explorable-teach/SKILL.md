@@ -151,8 +151,10 @@ a Checkpoint asks *may we move on?*; an Assignment asks *does it survive contact
 work?* A hard question inside a Lesson is still an Exercise, and a trivial task done at work is
 still an Assignment.
 
-Every Unit earns Exercises; a Checkpoint is worth writing when a later Unit depends on this one
-and a wrong answer now would compound. **Most Units warrant no Assignment at all**: models are
+Every Unit earns Exercises. **A Checkpoint is worth writing when a later Unit will build on this
+one**, and a misunderstanding carried out of it would compound instead of surfacing — the
+questions cost a page, the compounding costs the Units after it. A Unit nothing later depends on
+closes on its Exercises. **Most Units warrant no Assignment at all**: models are
 served by a reflection prompt or by the next Unit building on them, and only skills need
 exercising somewhere real. If you cannot name what the learner would **do differently at work**
 afterwards, do not invent one — and when you can, remember that it is judged later, from the

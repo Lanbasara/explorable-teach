@@ -588,6 +588,39 @@ and told the learner to start the service *and reload*. Offline was the one stat
 not get itself out of, which made a design decision look like a defect. It now polls while
 offline and stops the moment it is online.
 
+## 27. A Checkpoint is a shipped Component, and it passes only on all of them
+
+**Decided:** a Checkpoint is a page of its own at the end of a Unit — `0003b-checkpoint.html`
+beside `0003-fork-exec.html`, carrying the same `data-unit` — built out of ordinary Exercises
+and gated by `assets/checkpoint.js`, which the scaffold links into every Workspace like the four
+Components that came before it. It passes when **every** question is right, and there is no pass
+mark to set.
+
+**Why a Component rather than a page convention.** Decision 18 put the Checkpoint on the ladder:
+judged by the page, at the Unit's end, measuring whether the Unit may close. The first two were
+already true of a page of Exercises — each one judges itself as it is answered. The third was
+not: three green Exercises and a red one is a set of four verdicts, and *may we move on?* is one.
+Leaving the Teacher to write that verdict per Unit would have made the gate as good as whichever
+Session wrote it, which is the failure mode an undefined slot produces and the reason Checkpoint
+was named in the navigation bar and defined nowhere.
+
+**Why all of them, rather than a threshold.** A gate with a pass mark is a score, and a score
+answers a different question. The knob would also have been the wrong seam: the decision worth
+making is *which questions belong in this gate*, and a threshold lets a Session avoid making it
+by adding a question it is willing to see failed. So a question that could be got wrong while the
+Unit still closes is one that belongs back in the Lesson as an Exercise.
+
+**Why it reads its questions rather than being told by them.** The Checkpoint listens on its own
+container, where an Exercise's own click arrives on its way up, and reads the state the Exercise
+has already recorded on itself. Neither file names the other's internals, so the Exercise stays
+the same Component it was for a Lesson — which is what the ladder already said it was, an
+instrument distinguished by when it fires rather than by what it is made of.
+
+**Consequence:** the navigation slot that had been rendered since the bar was written finally
+resolves, and `nav.test.js` holds both halves of it — a Unit with a Checkpoint links to it and
+back, and a Unit without one shows the slot as unreachable rather than dropping it. The fixture
+Lesson became a fixture *Unit* of two pages, which is what a Unit was already defined to be.
+
 ---
 
 ## Where the full record lives

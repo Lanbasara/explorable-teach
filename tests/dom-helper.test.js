@@ -159,6 +159,38 @@ test('a script sees document.currentScript, as a Component relies on', (t) => {
   assert.equal(page.document.currentScript, null, 'currentScript is cleared once the script ends');
 });
 
+test('a script is given the attributes its page writes on the tag', (t) => {
+  const dir = assetsWith(t, 'bar.js', `
+    window.seenUnit = document.currentScript.getAttribute('data-unit');
+  `);
+  const page = Page.load('<body></body>', dir);
+
+  // The nav bar reads its own tag to find out which Unit it is rendering, so a
+  // test that could not write one would be driving a bar that never mounted.
+  page.script('bar.js', { 'data-unit': '0003' });
+
+  assert.equal(page.window.seenUnit, '0003');
+});
+
+test('href and title are backed by the attribute, like hidden and disabled', () => {
+  const doc = parseHTML('<body><a>bare</a></body>');
+  const link = doc.querySelector('a');
+
+  // The quiet way past this subset is a property nothing models: assigning one
+  // succeeds as an expando, and a test reading the attribute back sees nothing
+  // and reports a link that is really there as missing. The nav bar builds
+  // every one of its links by assigning both of these.
+  assert.equal(link.getAttribute('href'), null);
+  assert.equal(link.href, '', 'an unset attribute reads as empty, never undefined');
+
+  link.href = '../lessons/0003b-checkpoint.html';
+  link.title = 'L03 · 验收';
+
+  assert.equal(link.getAttribute('href'), '../lessons/0003b-checkpoint.html');
+  assert.equal(link.getAttribute('title'), 'L03 · 验收');
+  assert.equal(doc.querySelectorAll('[href]').length, 1, 'and a selector can find it by attribute');
+});
+
 test('a throwing script fails the test rather than passing quietly', (t) => {
   const dir = assetsWith(t, 'broken.js', 'nope.this.is.not.defined();');
   const page = Page.load('<body></body>', dir);

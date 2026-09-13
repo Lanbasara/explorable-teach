@@ -60,7 +60,8 @@ The three instruments differ by when they fire, who judges them, and what they m
 **exercise** is judged by the page the instant you answer it; a **checkpoint** is judged by the
 page at the unit's end and decides whether the unit closes; an **assignment** is done in your
 real environment one to three units later and judged by a grader against a stored rubric. Most
-units earn exercises and nothing more.
+units earn exercises and nothing more — a checkpoint is written when a later unit will build on
+this one, and every question in it has to be right, because a gate with a pass mark is a score.
 
 ### Sessions are disposable; the workspace is the memory
 
@@ -87,9 +88,10 @@ question beat a WebGL scene.
 The stack is picked per subject, on the first run. A philosophy course and an algorithms course
 should not end up with the same tooling.
 
-Five things do not vary by subject, so they ship with the plugin and land in `assets/` when you
+Six things do not vary by subject, so they ship with the plugin and land in `assets/` when you
 scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
-answer), **predict-reveal**, **step animations**, and **drag-to-order**. None of them loads a
+answer), **predict-reveal**, **step animations**, **drag-to-order**, and the **checkpoint** that
+gates a unit at its end — built out of the exercises it counts. None of them loads a
 library, so a lesson works from `file://` with no network; each one degrades to plain readable
 text with scripting off; and every interaction has a keyboard and a touch path, not just a drag.
 Every other teaching act on the list is built on demand, for the subject that needs it, so the
@@ -148,7 +150,7 @@ markup, and the tutor itself runs `--restricted` with only `Read`/`Glob`/`Grep`.
 
 One question decides where a file lives: **does it vary by subject?** If it does not — the
 server, the control script, the tutor's role, the in-page widget, the nav bar, the page
-bootstrap, the shared stylesheet, the four components — it lives in the plugin and your workspace
+bootstrap, the shared stylesheet, the five components — it lives in the plugin and your workspace
 holds a **link** at it. A tutor fix therefore reaches every workspace you have, rather than only
 the ones you create afterwards. The flip side is the rule: don't edit one of those in place —
 you'd be editing every course at once. Write a new file beside it. (If a course genuinely has to
@@ -191,7 +193,8 @@ exists in a scaffolded workspace, the scaffold is safe to re-run against a works
 already put work into, the lesson bootstrap tag lands exactly once, and the skill still opens
 on the boot sequence with its reference material behind pointers rather than in front of the
 steps. The shipped components are mounted in a hand-written
-DOM and actually driven — answered, stepped, reordered — rather than merely read.
+DOM and actually driven — answered, stepped, reordered — rather than merely read, and every
+artifact of a unit is checked to be reachable from every other one.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 
 ## Design decisions

@@ -238,6 +238,41 @@ test('the Unit is the spine the Teacher reasons about', () => {
   assert.deepEqual(missing, [], 'the Unit binds these artifacts; its definition should name them');
 });
 
+test('the ladder says when a Unit warrants the instruments it does not always earn', () => {
+  const ladder = sections(SKILL).find((s) => /^the assessment ladder$/i.test(s.title));
+  assert.ok(ladder, 'the skill should carry the assessment ladder in a section of its own');
+
+  // The prose, not the table. The table says what each instrument *is* and
+  // when it fires; an instrument a Unit may or may not earn also needs a
+  // criterion for reaching for it, or the Teacher decides by appetite — and a
+  // Checkpoint that nothing asks for is the slot the navigation bar renders
+  // for a Unit that never got one.
+  const prose = ladder.body.split('\n').filter((line) => !line.trim().startsWith('|')).join('\n');
+
+  // Guard the observer: a ladder that is all table would find no criterion
+  // anywhere, and this check would pass by describing nothing.
+  assert.ok(prose.trim().length > 200, 'expected the ladder to argue in prose, not only tabulate');
+
+  // Sentences rather than lines. A paragraph holds both instruments and every
+  // condition word in the section, so a line-level check passes on a document
+  // that says only "some Units earn a Checkpoint" — measured, not assumed.
+  const sentences = logicalLines(prose)
+    .flatMap(({ text }) => text.split(/(?<=[.?!])\s+/))
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  for (const instrument of ['Checkpoint', 'Assignment']) {
+    const stated = sentences.filter(
+      (sentence) =>
+        new RegExp(instrument, 'i').test(sentence) && /\b(when|unless|only|no|never)\b/i.test(sentence),
+    );
+    assert.ok(
+      stated.length >= 1,
+      `nothing tells the Teacher which Units warrant a ${instrument} and which do not`,
+    );
+  }
+});
+
 test('the assessment ladder separates the three instruments', () => {
   const terms = glossaryTerms('Assessment');
 
