@@ -20,7 +20,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 |-------|--------------------|
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
-| `tests/skill-spine.test.js` | The skill opens on the Boot sequence, hangs everything off the Unit, and names one entry point |
+| `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the Lesson readable without it |
@@ -69,7 +69,7 @@ past that subset: an unsupported selector throws instead of matching nothing, an
 throws on assignment, because a shipped Component must build nodes rather than splice markup.
 Grow the subset on purpose when a Component genuinely needs more.
 
-`tests/helpers/lesson.js` holds the fixture Lesson — one page written the way `SKILL.md`'s
+`tests/helpers/lesson.js` holds the fixture Lesson — one page written the way the skill's
 Lesson template says to write one, using every shipped Component. Both `assets.test.js` and
 `components.test.js` read it, so **adding a Component means adding one entry to `COMPONENTS`
 and its markup to that page**; every check then covers it without being told separately.
@@ -95,8 +95,8 @@ review caught it, which is how a parser ends up disagreeing with itself about wh
 
 Three subtleties, all load-bearing, all pinned by `markdown-helper.test.js`:
 
-**A heading inside a fenced block is not a heading.** `SKILL.md` fences a Lesson template and a
-Markdown skeleton, and a reader fooled by either reports sections nobody ever sees. A fence
+**A heading inside a fenced block is not a heading.** The skill's documents fence a Lesson
+template and a Markdown skeleton, and a reader fooled by either reports sections nobody sees. A fence
 indented inside a list item is still a fence.
 
 **Prose here is hard-wrapped**, so where a line break falls is a typographic accident.
@@ -120,13 +120,27 @@ disclosed does not merely take up room — it buries the steps beside it, and tu
 them into a coin flip. So these are variance checks, not tidiness checks: every one of them is
 about where material *sits*.
 
-**Each disclosed document exists, carries its material, and is pointed at.** `FIRST-RUN.md` and
-`TUTOR.md` each have to hold what they were disclosed for, and `SKILL.md` has to link both.
+**Each disclosed document exists, carries its material, and is pointed at.** `FIRST-RUN.md`,
+`TUTOR.md` and `UNIT.md` each have to hold what they were disclosed for, and `SKILL.md` has to
+link all three.
 Disclosed is not removed: material behind a pointer nobody follows is material that is gone.
 
 **First-run setup is not a section of the main document**, and the Boot sequence branches to it
 by pointer rather than by in-document anchor — the branch is the only route there, so it is the
 one place the pointer has to be.
+
+**Unit authoring is not in the main document.** `UNIT.md` holds the forms, the page conventions,
+the Component catalog and the navigation rules, and the check reads `SKILL.md` for the vocabulary
+only an authoring reference uses — markup, asset filenames, CDN hosts, `is-live`, a Lesson's
+numbering. Same shape as the runbook check below it, and guarded the same way: every pattern must
+be found in `UNIT.md`, or the check is describing no authoring material.
+
+**The skill root is the main document and the documents it points at.** Every `.md` beside
+`SKILL.md` must be one of the disclosed documents, which are already required to exist, carry
+their material and be pointed at. That is what makes the document set legible at a glance, and it
+is a claim about the directory rather than about any one file. The four format specifications sit
+under `formats/`; that each of them is also *reached* is the pointer suite's business, in the
+reverse direction.
 
 **The Tutor runbook is not in the main document.** The check reads for the vocabulary only a
 runbook uses — `tutorctl`, `/api/health`, ports, pids, the idle timeout, `server.js` — and
@@ -169,7 +183,7 @@ argued for it, and fails if the skill still carries them too.
 ## The spine check
 
 `skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
-what an agent reads first is what it attends to. Five claims, each of which was false before
+what an agent reads first is what it attends to. Seven claims, each of which was false before
 the rebuild.
 
 **The Boot sequence is the opening section**, and its first step scaffolds a bare Workspace by
@@ -185,6 +199,22 @@ list it does not own. Naming one — the way the Tutor's design rationale names
 working directory is the learner's Workspace; these scripts live in the plugin, which is never
 copied into it. A bare `scripts/…` reads fine and runs nowhere, which is the worst kind of
 broken pointer — the resolver in `pointers.test.js` resolves it against the repo and is happy.
+
+**The main document is its spine and nothing else.** Every `##` section has to fill one of the
+roles the document exists for — the Boot sequence, the Unit, the teaching steps, the judgement
+criteria, the assessment ladder, the Session-end criterion — and every one of those roles has to
+be a section. A section that is neither is material every Session reads on the way to what it
+came for, which is how the Component catalog got there the first time. The roles match a title
+from its start rather than anywhere in it, so that "Authoring a Unit" is not mistaken for the
+Unit; both near misses guard the observer.
+
+**A Session ends on a verifiable outcome.** "Stop deliberately" is a bound the agent it binds
+cannot evaluate, so the check fails on that phrase anywhere in the document. What replaces it has
+to state the resumption criterion — the next Session resumes without asking — and back it with a
+floor that is a *list* of at least four actions naming what the next Boot sequence reads: the
+Learning Record, the Curriculum's progress marker, `NOTES.md`, and the Dossier. Criterion without
+floor is a judgement an optimistic Teacher passes itself; floor without criterion is a checklist
+that cannot notice what it failed to anticipate.
 
 **There is one entry point.** No document sends a human to a `/explorable-teach:…` command, and
 the plugin ships no command document beside the skill.
@@ -234,6 +264,16 @@ two forms count:
 - a path rooted at a directory this repo owns — `scripts/`, `templates/`, `docs/`, `skills/`,
   `tests/`, `commands` — anywhere in the text, prose or code block. That last part is what
   puts a script a document tells an agent to run, or a template it names, under the check.
+
+Both forms are read from *logical* lines, folded the way the Markdown reader folds them. Prose
+here is hard-wrapped, so a link's text and its target routinely land on different lines — and
+neither line is a link on its own. One pointer hid from this check that way, at a heading that
+had been renamed, so a synthetic wrapped link now guards the extractor.
+
+The check also runs in reverse: **every document under the skill must be reached from another
+one.** `SKILL.md` is the entry point and is exempt. A document nothing points at resolves nothing
+wrongly — it simply sits there, and the Session that needed it never finds out it exists, which
+is the failure disclosure introduces.
 
 A `#fragment` is part of the pointer, and a bare `#anchor` is the same promise made about the
 document it sits in. Both resolve against the headings of the file they land on, slugged the way
@@ -292,7 +332,9 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   job.
 - **Nothing measures how long the main document is.** The checks hold what is *in* it, which is
   the thing that changes behaviour. A document that stayed long by growing material every
-  Session genuinely reads would pass, and should.
+  Session genuinely reads would pass, and should. The tickets state line targets — "around 150"
+  for the main document — and those are outcomes of the disclosure, deliberately not turned into
+  a number a future change has to satisfy.
 - **No Markdown renderer validates the anchors.** `anchorFor` reimplements GitHub's slug rules,
   and is pinned against real headings from this repo — but it is a reimplementation, not the
   renderer. Duplicate headings, which GitHub disambiguates with a numeric suffix, are not

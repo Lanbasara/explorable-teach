@@ -110,6 +110,9 @@ session opens with a fixed boot sequence.
 solve; and quality *decay* inside a long session, which they do not. Only ending sessions solves
 the second.
 
+**Superseded by 21:** "stop deliberately" is not a bound the agent it binds can evaluate. The
+one-unit scope stands; the stopping rule is now an outcome the session can check.
+
 ## 10. Files stay flat; the fix for "I can't find anything" is an entry point
 
 **Decided:** `index.html` as the dossier cover, a nav bar on every page, `units.js` as the single
@@ -309,6 +312,67 @@ check was perfectly happy while the reader landed at the top of a long document.
 now resolves the fragment too — and the slug rule that does it was wrong on first writing, in a
 way that inverted the check: collapsing a run of spaces rather than hyphenating each one rejects
 the correct link at `Tier 4: Retention & Review` and accepts the broken one.
+
+## 20. The main document holds decisions; authoring is reference behind a pointer
+
+**Decided:** Unit authoring — the forms a Lesson, an Exercise, a Checkpoint and an Assignment
+take, the page conventions, the Component catalog and the navigation rules — moves to `UNIT.md`.
+The four format specifications move into `formats/`. What stays in `SKILL.md` is the Boot
+sequence, the judgement criteria every Session uses, the teaching steps, the Session-end
+criterion, and the pointers out.
+
+**Why:** the same variance argument as decision 19, applied to the largest block left. Authoring
+material is read at one step of the teaching loop, by a Session that has already decided what to
+teach; sitting inline, it was read by every Session on the way to the criteria it came for. The
+split is by *when the material is reached*, not by subject — which is why the Component catalog
+travels with the page conventions rather than staying beside the pedagogy that motivates it.
+
+**Rejected:** a document per artifact — a Lesson document, a Checkpoint document, an Assignment
+document. A Session writing a Unit reaches all of them in one sitting, so the split would cost
+four pointers and buy no reduction in what anyone reads.
+
+**Also removed: the Workspace file map.** It listed what a Workspace contains, which is the
+scaffold's list (decision 17) spelled as destinations rather than as sources, and every file on
+it is named where it is used — `RESOURCES.md` under knowledge, `CURRICULUM.md` in the Handoff
+floor, `lessons/` in the authoring document. Nothing failed when it drifted, because the check
+that forbids restating the scaffold's list reads only the `templates/…` spelling; that gap is
+recorded in `docs/agents/tests.md`.
+
+**Consequence:** `SKILL.md` drops by roughly two thirds, to a little over 180 lines. The ticket
+asked for around 150, and the gap is worth naming rather than hiding: that target was set against
+the document as it stood *before* the pedagogy was absorbed into it, and this ticket's own
+criteria keep that pedagogy inline as the judgement criteria every Session uses. What is left is
+the Boot sequence, the Unit, the teaching loop, the judgement criteria, the ladder and the
+Session-end criterion. Cutting further means cutting one of those, which is a different
+decision.
+
+**Found while doing it:** the pointer check could not see a Markdown link whose text wrapped
+before its target. Neither raw line is a link — the opening bracket is on one and the parenthesis
+on the next — so a renamed heading left a broken anchor and nothing failed. The extractor now
+reads logical lines, the way the disclosure checks already did.
+
+## 21. A Session ends on a verifiable outcome
+
+**Decided:** "stop deliberately" is replaced by a criterion the Session can evaluate — *the next
+Session can resume from the Workspace alone, without asking the learner anything* — backed by a
+floor of Handoff actions: the Learning Record written, the progress marker moved and the next
+Unit named, preferences and any Mission change recorded, every file reachable from the Dossier,
+and the learner told where the next Session starts.
+
+**Why:** the old bound could not be evaluated by the agent it bound. A Session that stopped for
+any reason at all can report that it stopped deliberately, so the instruction constrained
+nothing while reading as though it did — and the next Session booted onto whatever state was
+left. The replacement is checkable before stopping, by the cheapest possible test: walk the Boot
+sequence as if you were the next Session and count the questions you would have to ask.
+
+**Why a floor as well as a criterion.** The criterion alone is a judgement about a hypothetical
+Session, and an optimistic Teacher will pass itself. The floor names the artifacts the next Boot
+sequence actually reads, so the two halves check each other: the floor is concrete enough to
+audit, and the criterion catches whatever the floor did not anticipate.
+
+**Consequence:** `skill-spine.test.js` fails a `SKILL.md` that says "stop deliberately" anywhere,
+and fails a Session-end section whose floor does not name the Learning Record, the Curriculum
+marker, `NOTES.md` and the Dossier.
 
 ---
 

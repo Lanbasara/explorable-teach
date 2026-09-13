@@ -62,7 +62,10 @@ units earn exercises and nothing more.
 ### Sessions are disposable; the workspace is the memory
 
 A long learning path must not be one long conversation — quality decays inside a session in a
-way that no amount of note-taking fixes. So deliver one unit per session and stop deliberately.
+way that no amount of note-taking fixes. So a session delivers one unit, and then ends: **when
+the next session could resume from the workspace alone, without asking you anything.** That is
+checkable rather than a matter of taste, and a floor of handoff actions backs it up.
+
 Every session starts by scaffolding whatever is missing, then reading `MISSION.md` →
 `CURRICULUM.md` → recent learning records → `questions.jsonl` → `NOTES.md`, and only then
 proposes what is next.

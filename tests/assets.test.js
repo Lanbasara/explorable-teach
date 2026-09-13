@@ -15,12 +15,23 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
-const { SKILL_DIR } = require('./helpers/docs.js');
+const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
 const { COMPONENTS, SHARED_STYLES, LESSON_HTML, assetRefs } = require('./helpers/lesson.js');
 
 const TEMPLATES = path.join(SKILL_DIR, 'templates');
 
 const read = (abs) => fs.readFileSync(abs, 'utf8');
+
+/**
+ * Every document of the skill, whichever one currently names an asset. Read as
+ * a set rather than by name: disclosure moves this material between documents,
+ * and a check naming one of them stops seeing the material the day it moves.
+ */
+function skillDocs() {
+  return agentDocs()
+    .filter((doc) => doc.startsWith(SKILL_DIR + path.sep))
+    .map((doc) => ({ from: path.relative(SKILL_DIR, doc), text: read(doc) }));
+}
 
 /** Everything that tells a Lesson author, or a Lesson, which assets exist. */
 function sources() {
@@ -30,7 +41,7 @@ function sources() {
     .map((name) => ({ from: `templates/assets/${name}`, text: read(path.join(TEMPLATES, 'assets', name)) }));
 
   return [
-    { from: 'SKILL.md', text: read(path.join(SKILL_DIR, 'SKILL.md')) },
+    ...skillDocs(),
     { from: 'templates/index.html', text: read(path.join(TEMPLATES, 'index.html')) },
     { from: 'the fixture Lesson', text: LESSON_HTML },
     ...shipped,
@@ -60,14 +71,21 @@ test('every asset a shipped document or template names is installed by the scaff
 });
 
 test('the Lesson template links the shared styles from the page head', () => {
-  const skill = read(path.join(SKILL_DIR, 'SKILL.md'));
+  // Found by the template it carries rather than by name, for the reason
+  // skillDocs() exists: which document holds it is a disclosure decision.
+  const carrying = skillDocs().filter(({ text }) => text.includes('<!DOCTYPE html>'));
+  assert.equal(
+    carrying.length,
+    1,
+    `expected one document to carry the Lesson template, found ${carrying.map((d) => d.from)}`,
+  );
 
   // Styling a Lesson must not depend on a script running: the one stylesheet
   // every page needs belongs in <head>, not in lesson-boot.js.
   assert.match(
-    skill,
+    carrying[0].text,
     new RegExp(String.raw`<link rel="stylesheet" href="\.\./assets/${SHARED_STYLES}">`),
-    'SKILL.md\'s Lesson template should link the shared stylesheet',
+    `${carrying[0].from}'s Lesson template should link the shared stylesheet`,
   );
   assert.match(LESSON_HTML, new RegExp(String.raw`<head>[\s\S]*assets/${SHARED_STYLES}[\s\S]*</head>`));
 });
@@ -135,8 +153,8 @@ test('a Component only hides what it has taken over', () => {
   // The shared stylesheet is in scope too, since a hiding rule added there
   // would reach every Lesson at once. Its one blanket rule, `[hidden]`, is the
   // mechanism the Components hide *with*: an element carries that attribute
-  // only because a script put it there, and `SKILL.md` tells authors never to
-  // write it by hand.
+  // only because a script put it there, and the authoring document tells
+  // authors never to write it by hand.
   for (const css of [read(path.join(TEMPLATES, 'assets', SHARED_STYLES))].concat(
     COMPONENTS.map((c) => read(path.join(TEMPLATES, 'assets', c.css))),
   )) {

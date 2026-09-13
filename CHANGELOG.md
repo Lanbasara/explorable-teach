@@ -4,6 +4,27 @@
 
 ### Changed
 
+- **Unit authoring moved out of the skill, and the format specifications were consolidated.**
+  How to write a Unit — the forms a lesson, an exercise, a checkpoint and an assignment take,
+  the page conventions, the component catalog and the navigation rules — is now `UNIT.md`,
+  reached from the teaching loop step that writes a Unit. The four format specifications live in
+  `formats/`. What is left in `SKILL.md` is what a session decides with: the boot sequence, the
+  judgement criteria, the teaching steps, the session-end criterion and the pointers out — 534
+  lines down to 184. The skill's document set is now one entry point, three documents beside it,
+  and one directory of formats.
+- **A session ends on a verifiable outcome.** "Stop deliberately" was a bound no agent could
+  evaluate — any session that stopped could report that it had stopped deliberately — so it
+  constrained nothing while reading as though it did. A session may now end **when the next one
+  could resume from the workspace alone, without asking the learner anything**, backed by a floor
+  of handoff actions: the learning record written, the progress marker moved and the next unit
+  named, preferences and any mission change recorded, every file reachable from the dossier, and
+  the learner told where the next session starts.
+- **The workspace file map is gone from the skill.** It restated what the scaffold installs,
+  spelled as destinations rather than sources, and every file on it is named where it is
+  actually used.
+- **A hard-wrapped Markdown link is now a pointer.** The integrity check read raw lines, so a
+  link whose text wrapped before its target was not a link on either of them — and a renamed
+  heading left a broken anchor with nothing failing. Found by writing exactly that link.
 - **First-run setup and the tutor runbook moved out of the skill, behind pointers.** Setting up
   a workspace fires on roughly one session in twenty and had fifty inline lines under a
   top-level heading; the tutor's ports, start commands and troubleshooting order were an

@@ -114,7 +114,8 @@ _Avoid_: marker, reviewer
 ### Sessions
 
 **Session**:
-One conversation with the Teacher, scoped to deliver one Unit and then end deliberately. Ending
+One conversation with the Teacher, scoped to deliver one Unit and then end. It may end once the
+next Session could resume from the workspace alone, without asking the learner anything. Ending
 is what prevents quality decay; the workspace is what survives.
 
 **Boot sequence**:

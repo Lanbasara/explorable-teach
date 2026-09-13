@@ -37,6 +37,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { REPO_ROOT } = require('./workspace.js');
+const { logicalLines } = require('./markdown.js');
 
 /** Directories this repo owns, so a path starting with one is ours to check. */
 const OWNED_ROOTS = ['scripts', 'templates', 'commands', 'docs', 'skills', 'tests'];
@@ -120,10 +121,14 @@ function pointersIn(doc) {
   const docDir = path.dirname(doc);
   const found = [];
 
-  fs.readFileSync(doc, 'utf8').split('\n').forEach((text, index) => {
+  // Logical lines, not raw ones. Prose here is hard-wrapped, and a link whose
+  // text wrapped before its target — `[Fluency and storage\nstrength](./…)` —
+  // is not a link on either raw line. One escaped this check that way, and a
+  // pointer nobody extracts is a pointer nobody resolves.
+  logicalLines(fs.readFileSync(doc, 'utf8')).forEach(({ line, text }) => {
     const at = (raw, target, root, fragment) => {
       if (MEANT_TO_BE_ABSENT.some((p) => target.startsWith(p))) return;
-      found.push({ doc, line: index + 1, raw, target, root, fragment });
+      found.push({ doc, line, raw, target, root, fragment });
     };
 
     for (const [, href] of text.matchAll(MARKDOWN_LINK)) {

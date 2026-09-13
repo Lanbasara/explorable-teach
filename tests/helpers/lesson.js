@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * The fixture Lesson: one page written the way the Lesson template in
- * `SKILL.md` says to write one, using every Component the plugin ships.
+ * The fixture Lesson: one page written the way the skill's own Lesson template
+ * says to write one, using every Component the plugin ships.
  *
  * It is the shared subject of two different questions:
  *

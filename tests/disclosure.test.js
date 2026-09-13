@@ -45,6 +45,12 @@ const DISCLOSED = [
     // Reached on installation or on failure, and on no other Session.
     carries: [/tutorctl\.sh/, /\/api\/health/, /--resume/, /ROLE\.md/],
   },
+  {
+    file: 'UNIT.md',
+    // Reached while a Unit is being written, which is one step of the teaching
+    // loop rather than a decision the Session makes.
+    carries: [/## The Lesson/, /Exercise/, /Checkpoint/, /Rubric/, /Dossier/],
+  },
 ];
 
 /**
@@ -64,6 +70,27 @@ const RUNBOOK = [
   /\bROLES\b/,
   /server\.js/,
 ];
+
+/**
+ * Unit authoring, as the vocabulary only an authoring reference uses: markup,
+ * the asset filenames a page links, CDN hosts, the numbering of a Lesson file.
+ * A word here sitting in `SKILL.md` means the authoring material came back —
+ * whatever heading it came back under.
+ */
+const AUTHORING = [
+  /<!DOCTYPE/i,
+  /lesson-boot\.js/,
+  /style\.css/,
+  /predict-reveal|step-animation|drag-order/,
+  /cdnjs|unpkg|jsdelivr/,
+  /devicePixelRatio/,
+  /is-live/,
+  /0001-slug/,
+  /Tier \d/,
+];
+
+/** Where the four format specifications live now that they live together. */
+const FORMATS = path.join(SKILL_DIR, 'formats');
 
 const show = (m) => `${m.line}: ${m.text.trim()}`;
 
@@ -92,6 +119,36 @@ test('the main document points at each disclosed document', () => {
     [],
     'a Session that needs this material has no way to find out it is there',
   );
+});
+
+test('the skill root is the main document and the documents it points at', () => {
+  // The document set has to be legible at a glance, which is a claim about the
+  // directory rather than about any one file. Every neighbour of `SKILL.md` is
+  // disclosed above — so it exists, carries its material, and is pointed at —
+  // and a document that is none of those is one nobody is sent to.
+  const atRoot = fs
+    .readdirSync(SKILL_DIR)
+    .filter((name) => name.endsWith('.md') && name !== 'SKILL.md')
+    .sort();
+
+  assert.deepEqual(
+    atRoot,
+    DISCLOSED.map((d) => d.file).sort(),
+    'the documents beside the main one should be exactly the ones it discloses',
+  );
+});
+
+test('the format specifications sit together in one subdirectory', () => {
+  assert.ok(fs.existsSync(FORMATS), 'the format specifications should have a home of their own');
+
+  const specs = fs.readdirSync(FORMATS).filter((name) => name.endsWith('.md'));
+
+  // Guard the observer: an empty directory would satisfy the claim by having
+  // nothing in it to be wrong.
+  assert.ok(specs.length >= 4, `expected the four format specifications, found ${specs.length}`);
+
+  // That they are also *reached* is `pointers.test.js`: every document under
+  // the skill has to be pointed at from another one, and these are documents.
 });
 
 test('first-run setup is not a section of the main document', () => {
@@ -142,6 +199,28 @@ test('the Tutor runbook is not in the main document', () => {
   const found = RUNBOOK.flatMap((re) => lines.filter((l) => re.test(l.text)).map(show));
 
   assert.deepEqual(found, [], 'ports, processes and role files are reached on failure, not on every Session');
+});
+
+test('Unit authoring is not in the main document', () => {
+  const authoring = read(SKILL_DIR, 'UNIT.md');
+
+  // Guard the observer, the way the runbook check above is guarded: a
+  // vocabulary the authoring document itself does not use would find nothing
+  // anywhere and pass by describing no authoring material.
+  const unknown = AUTHORING.filter((re) => !re.test(authoring));
+  assert.deepEqual(unknown.map(String), [], 'this check is looking for words no authoring document uses');
+
+  // Logical lines, for the reason the runbook check reads them: prose here is
+  // hard-wrapped, so a `predict-\nreveal` broken across a line would walk past
+  // a check that read raw ones.
+  const lines = logicalLines(SKILL);
+  const found = AUTHORING.flatMap((re) => lines.filter((l) => re.test(l.text)).map(show));
+
+  assert.deepEqual(
+    found,
+    [],
+    'markup, asset filenames and CDN hosts are read while writing a page, not while deciding what to teach',
+  );
 });
 
 test('exactly two Tutor facts stay inline, and both are teaching facts', () => {

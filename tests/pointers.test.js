@@ -10,8 +10,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { test } = require('node:test');
 
-const { REPO_ROOT } = require('./helpers/workspace.js');
-const { agentDocs, pointersIn, resolvePointer, DOC_ROOTS } = require('./helpers/docs.js');
+const { REPO_ROOT, Workspace } = require('./helpers/workspace.js');
+const { agentDocs, pointersIn, resolvePointer, DOC_ROOTS, SKILL_DIR } = require('./helpers/docs.js');
 const { anchorsIn } = require('./helpers/markdown.js');
 
 const docs = agentDocs();
@@ -40,6 +40,22 @@ test('pointer extraction actually finds pointers', () => {
     'SKILL.md should yield its format specs, the scripts it runs, and more',
   );
   assert.ok(pointers.length >= 30, `expected pointers across the documents, found ${pointers.length}`);
+});
+
+test('a pointer that wrapped mid-link is still a pointer', (t) => {
+  // Prose here is hard-wrapped, so a link's text and its target routinely land
+  // on different lines — and neither line is a link on its own. One pointer
+  // hid from the checks below that way, at a heading that had been renamed.
+  const ws = Workspace.create(t);
+  ws.write('there.md', '# Somewhere\n');
+  ws.write('here.md', 'see [a link that wrapped\nbefore its target](./there.md#somewhere)\n');
+
+  const found = pointersIn(ws.path('here.md'));
+
+  assert.equal(found.length, 1, 'the wrapped link should be extracted as one pointer');
+  assert.equal(found[0].target, './there.md');
+  assert.equal(found[0].fragment, 'somewhere');
+  assert.ok(resolvePointer(found[0]), 'and it should resolve from the document it sits in');
 });
 
 test('every relative pointer resolves to a file that exists', () => {
@@ -76,6 +92,28 @@ test('every anchor resolves to a heading that is actually there', () => {
     [],
     'these pointers name a heading that no longer exists where they send their reader',
   );
+});
+
+test('every document under the skill is reached from another', () => {
+  // The other direction of the same promise, and the one disclosure breaks: a
+  // document that was moved, or written and never linked, resolves nothing
+  // wrongly — it simply sits there, and the Session that needed it never finds
+  // out it exists. `SKILL.md` is the entry point, so nothing has to point at
+  // it.
+  const entry = path.join(SKILL_DIR, 'SKILL.md');
+  const landed = new Set(pointers.map(resolvePointer).filter(Boolean));
+
+  // Guard the observer: a resolver that landed nowhere would report every
+  // document orphaned, which is a failure rather than a free pass — but it
+  // would also report it for the wrong reason.
+  assert.ok(landed.size >= 5, `expected the pointers to land somewhere, found ${landed.size}`);
+
+  const orphans = docs
+    .filter((d) => d.startsWith(SKILL_DIR + path.sep) && d !== entry)
+    .filter((d) => !landed.has(d))
+    .map((d) => path.relative(REPO_ROOT, d));
+
+  assert.deepEqual(orphans, [], 'nothing sends a reader to these, so nobody reads them');
 });
 
 test('the scripts the documents tell an agent to run are executable', () => {

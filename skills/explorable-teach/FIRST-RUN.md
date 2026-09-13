@@ -15,8 +15,9 @@ and that says nothing about whether the learner has already told you why they ar
 Interview on what they said, not on what the directory contains.
 
 If the opening request already carries why they are learning, what they want to be able to do,
-and what they do not want, write `MISSION.md` from it — using [MISSION-FORMAT.md](./MISSION-FORMAT.md)
-— and confirm in one line: *"this is what I think you're after — correct me."*
+and what they do not want, write `MISSION.md` from it — using [the Mission
+format](./formats/mission.md) — and confirm in one line: *"this is what I think you're after —
+correct me."*
 
 Ask only for what is genuinely absent **and** would change the plan; a question whose every
 answer leads to the same first Unit is not worth asking. Interrogating someone who just handed
@@ -29,12 +30,12 @@ you a thorough brief reads as not having read it.
 - Determine which interaction patterns fit — not all subjects need the same tools
 
 Record the sources worth returning to in `RESOURCES.md`, using
-[RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md). Until it is well populated, finding good sources
+[the Resources format](./formats/resources.md). Until it is well populated, finding good sources
 *is* the work.
 
 ## 3. Select the tech stack
 
-Pick from the [Component Catalog](./SKILL.md#component-catalog) what fits this subject, and
+Pick from the [Component Catalog](./UNIT.md#component-catalog) what fits this subject, and
 search for **subject-specific tools** that are not in it — music theory might want the Web Audio
 API; algorithms might want p5.js.
 

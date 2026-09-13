@@ -15,12 +15,40 @@ const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
-const { sections, step } = require('./helpers/markdown.js');
+const { sections, step, logicalLines } = require('./helpers/markdown.js');
 
 const SKILL_MD = path.join(SKILL_DIR, 'SKILL.md');
 const SKILL = fs.readFileSync(SKILL_MD, 'utf8');
 
 const rel = (abs) => path.relative(REPO_ROOT, abs);
+
+/**
+ * What the main document is for, one entry per role it carries. Every section
+ * has to be one of these and every one of these has to be a section: a section
+ * that is neither is material every Session reads on the way to the material it
+ * came for, and a role that is missing is a decision the Session makes with
+ * nothing in front of it.
+ */
+const SPINE = [
+  { role: 'the Boot sequence', re: /^boot sequence$/i },
+  { role: 'the Unit it delivers', re: /^the unit$/i },
+  { role: 'the teaching steps', re: /^the teaching loop$/i },
+  { role: 'the judgement criteria every Session uses', re: /^judging\b/i },
+  { role: 'the assessment ladder', re: /^the assessment ladder$/i },
+  { role: 'the Session-end criterion', re: /^ending a session$/i },
+];
+
+/**
+ * The floor of Handoff actions, one entry per thing the next Boot sequence
+ * reads. Anything here the Session did not write is something the next one has
+ * to ask the learner for, which is the outcome the criterion forbids.
+ */
+const HANDOFF_FLOOR = [
+  { what: 'the Learning Record this Unit produced', re: /Learning Record\b/ },
+  { what: 'the progress marker in the Curriculum', re: /CURRICULUM\.md/ },
+  { what: 'what the learner said about how to teach them', re: /NOTES\.md/ },
+  { what: 'the Unit reachable from the Dossier', re: /index\.html|Dossier/ },
+];
 
 /** The terms `CONTEXT.md` defines under one of its `###` groupings. */
 function glossaryTerms(grouping) {
@@ -55,6 +83,35 @@ test('the Boot sequence is the first thing the Teacher reads', () => {
     top[0].title,
     /boot sequence/i,
     'a Session orients itself first; reference material cannot sit in front of that',
+  );
+});
+
+test('the main document is its spine and nothing else', () => {
+  const top = sections(SKILL);
+
+  // Guard the observer: a parser that found no headings would pass for free.
+  assert.ok(top.length >= 5, `expected the skill's sections, found ${top.length}`);
+
+  // And guard it from the other side, on titles written to be obviously
+  // synthetic: a role list loose enough to match reference material would let
+  // the catalog back in under any name.
+  const matches = (title) => SPINE.some((s) => s.re.test(title));
+  assert.ok(matches('Boot sequence'), 'this check does not recognise the spine');
+  assert.ok(!matches('Catalog of interaction patterns'), 'this check reads reference material as spine');
+  // The near miss that matters: a heading naming the Unit is not the Unit
+  // section, and disclosed authoring material would come back under one.
+  assert.ok(!matches('Authoring a Unit'), 'this check would take authoring material for the spine');
+
+  assert.deepEqual(
+    top.filter((s) => !matches(s.title)).map((s) => s.title),
+    [],
+    'every Session reads this on the way to what it came for',
+  );
+
+  assert.deepEqual(
+    SPINE.filter((s) => !top.some((t) => s.re.test(t.title))).map((s) => s.role),
+    [],
+    'the main document should carry this, and does not',
   );
 });
 
@@ -215,4 +272,34 @@ test('the assessment ladder separates the three instruments', () => {
       `${instrument} leaves one of the three axes blank`,
     );
   }
+});
+
+test('a Session ends on a verifiable outcome, backed by a floor of actions', () => {
+  const end = sections(SKILL).find((s) => /ending a session/i.test(s.title));
+  assert.ok(end, 'the skill should say when a Session is over');
+
+  // "stop deliberately" is a bound no agent can evaluate: a Session that
+  // stopped anywhere at all can report that it stopped deliberately, so the
+  // instruction constrains nothing and the next Session boots onto whatever
+  // state was left. The replacement is an outcome, and outcomes are checkable.
+  const UNEVALUABLE = /stop(?:s|ping|ped)? deliberately/i;
+  assert.ok(UNEVALUABLE.test('deliver one Unit, then stop deliberately'), 'this check cannot see the bound it replaced');
+  assert.ok(!UNEVALUABLE.test(SKILL), 'the Session boundary is back to a judgement call');
+
+  assert.match(end.body, /\bresume\b/i, 'the criterion is about what the next Session can do');
+  assert.match(end.body, /without asking/i, 'and about what it must not have to ask for');
+
+  // A floor is a list of actions rather than a sentence of intent. Logical
+  // lines, so a wrapped item is one item.
+  const items = logicalLines(end.body)
+    .map((l) => l.text)
+    .filter((text) => /^\s*(?:[-*]|\d+\.)\s/.test(text));
+
+  assert.ok(items.length >= 4, `a floor is a list of actions; found ${items.length}`);
+
+  assert.deepEqual(
+    HANDOFF_FLOOR.filter((f) => !items.some((item) => f.re.test(item))).map((f) => f.what),
+    [],
+    'the next Boot sequence reads this, so a Session that did not write it leaves a question to ask',
+  );
 });

@@ -61,7 +61,7 @@ test('sections come back in document order, titled and bodied', () => {
 });
 
 test('a heading inside a fenced block is not a section', () => {
-  // Real case: `SKILL.md` fences both a Lesson template and a Markdown
+  // Real case: the skill's documents fence both a Lesson template and a Markdown
   // skeleton. A parser fooled by either reports a section nobody reads.
   const titles = sections(DOC).map((s) => s.title);
 
