@@ -18,6 +18,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
 const { test } = require('node:test');
 
 const { Workspace } = require('./helpers/workspace.js');
@@ -181,4 +182,54 @@ test('the scaffold creates the target directory when it does not exist', (t) => 
 
   assert.equal(run.status, 0, run.stderr);
   assert.ok(fs.existsSync(target), 'the target directory should have been created');
+});
+
+test('a Workspace has somewhere to put work the page cannot hold', (t) => {
+  const ws = Workspace.create(t);
+  const { directories, created } = report(ws.scaffold().stdout);
+
+  assert.ok(directories.includes('submissions/'), 'a Submission has nowhere to go');
+  assert.ok(directories.includes('assignments/'), 'and an Assignment has nowhere to be written');
+
+  // Placed rather than only mkdir'd. An empty directory is a directory git
+  // never records, so the one place a learner is told to put evidence would not
+  // exist in the history that evidence is supposed to survive in.
+  const placed = created.filter((rel) => rel.startsWith('submissions/'));
+  assert.equal(placed.length, 1, `expected the submissions directory to hold something, found ${placed}`);
+  assert.match(ws.read(placed[0]), /submissions/, 'and to say what belongs there');
+});
+
+test('nothing this plugin ships excludes a Submission from version control', (t) => {
+  const ws = Workspace.create(t);
+  ws.scaffold();
+  ws.write('submissions/0003-pipes/notes.md', '# 我拆的那条管道\n');
+  ws.write('submissions/0003-pipes/run.log', 'ls | wc -l\n');
+
+  const git = (...args) => spawnSync('git', ['-C', ws.dir, ...args], { encoding: 'utf8' });
+
+  const available = git('--version');
+  assert.equal(available.status, 0, 'git is how this claim is checkable at all');
+  assert.equal(git('init', '-q').status, 0);
+
+  // `check-ignore` exits 1 when nothing excludes the path. Asked about each
+  // file rather than the directory, because a rule can catch an extension —
+  // `*.log` would quietly swallow half of what a Submission is made of.
+  const ignored = ['submissions', 'submissions/0003-pipes/notes.md', 'submissions/0003-pipes/run.log'].filter(
+    (rel) => git('check-ignore', '-q', '--', rel).status === 0,
+  );
+  assert.deepEqual(
+    ignored,
+    [],
+    'a Submission is the evidence a verdict was reached on; excluded, nobody can look back at it',
+  );
+
+  // Guard the observer: a `check-ignore` that answered "not ignored" to
+  // everything — a git too old for these flags, say — would pass the above
+  // without checking anything.
+  ws.write('.gitignore', 'submissions/\n');
+  assert.equal(
+    git('check-ignore', '-q', '--', 'submissions/0003-pipes/notes.md').status,
+    0,
+    'this check cannot see an exclusion even when there is one',
+  );
 });

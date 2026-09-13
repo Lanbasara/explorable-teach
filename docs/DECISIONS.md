@@ -627,6 +627,104 @@ resolves, and `nav.test.js` holds both halves of it — a Unit with a Checkpoint
 back, and a Unit without one shows the slot as unreachable rather than dropping it. The fixture
 Lesson became a fixture *Unit* of two pages, which is what a Unit was already defined to be.
 
+## 28. A Submission is evidence, and the Grader reads it where it already is
+
+**Decided:** an Assignment page carries a hand-in built by `assets/assignment.js` — a short-answer
+box, and a box for paths into `submissions/`. Pressing the button hands the composed Submission to
+the in-page drawer, which asks the same `POST /api/ask` in a second role. The Rubric rides in the
+page as a `<script type="application/x-rubric">` block, which is never rendered and never sent.
+The verdict streams back into the page, can be questioned there, and is written into
+`learning-records/` as a numbered record before the page is told the answer.
+
+**Why evidence rather than the work.** The obvious design is an upload: a file input, a multipart
+endpoint, a directory the service writes into. Every part of that is a boundary this plugin does
+not currently have — the server writes exactly two things today, both inside `learning-records/`,
+and the agent it spawns is `--restricted` and read-only. A path into the Workspace buys the same
+outcome with none of it: the Grader's working directory *is* the Workspace, so opening
+`submissions/0003-pipes/notes.md` is one `Read` away, and a submission of any size costs the same
+2000-character request as a one-line answer. Decision 23 already put `submissions/` on the
+learner's side of the split; this is the first thing to use it.
+
+**Why the Rubric is stored and not sent.** Both would work on the day they are written. They
+differ when the page and the request disagree: a Rubric riding the request is whatever the client
+decided on, and a Rubric on disk is what the Session actually wrote. Decision 8 made "the rubric
+travels inside the assignment file" the one hard rule about Assignments precisely so that *any*
+future Grader can judge without the context that set the task — and a Grader handed its criteria
+by a page is being judged-by-proxy by whoever last edited that page. So the payload names the file
+and the block to look for, and nothing else. A Grader that finds no Rubric there is told to refuse
+rather than improvise, and the Component refuses to render a hand-in at all — a task nobody can
+grade should not collect work.
+
+**Why a `<script>` block.** It has to be invisible to the learner and trivially findable by an
+agent reading the file. An HTML comment is findable and fragile to delimit; a sibling `.md` file
+drifts from the task, which is the thing decision 8 exists to prevent. A `<script>` of an unknown
+type is never rendered and never executed, sits inside the element it belongs to, and greps in one
+line.
+
+**Why the same transport, and a second role rather than a second service.** Everything around an
+answer — the thread, the three stages of the wait, the stop, the retry, the clipboard fallback,
+the question log — is the same work whoever wrote it. `ROLES` was written as a map with a
+`// Future: grader` comment in it; this is that entry. What is genuinely different is one role
+file and one payload, so that is all that is different. A thread now carries its role, which is
+what makes a follow-up about a verdict reach the Grader that gave it rather than the Tutor.
+
+**Why the verdict becomes a Learning Record.** The question log is feedback about the *page* —
+three questions about one paragraph means that paragraph is wrong. A verdict is evidence about the
+*learner*, which is the other file, and the one the Boot sequence plans from. Writing it there is
+also the only way the loop closes without the learner: an Assignment is done between Sessions, so
+the Session that set it is gone and the Session that would have written the record has not started
+yet. The record is written before `done` is sent, which is what lets the page name where it landed
+rather than assert that it did. A follow-up writes nothing — it is a conversation about a record,
+not a second one.
+
+**Why grading never runs as the Teacher.** The ladder already said so; what makes it structural is
+that the Grader composes `tutor/GRADER.md` plus `tutor/GRADER-TUNING.md` and nothing else. The
+Tutor's two halves are in the same directory, one file away, and composing either of them in is
+exactly how "the Session that wrote the Assignment grades it" would come back by the side door —
+so `tutor-server.test.js` asserts their absence, not only the Grader's presence. The tuning files
+are separate for the same reason: what a Tutor should say and what counts as done are different
+questions, and one file answering both is a Tutor being asked to mark.
+
+**Why `submissions/` is placed rather than merely created.** The acceptance criterion was that
+submissions are not excluded from version control, and the instinct it guards against is real —
+scratch work looks like something to ignore. But an empty directory is one git never records
+either, so the scaffold puts a README in it. The check is run through `git check-ignore` against
+real files rather than by reading ignore patterns, with a `.gitignore` written afterwards to prove
+the check can see an exclusion when there is one; `*.log` would otherwise have swallowed half of
+what a submission is made of, silently.
+
+**A refusal is not a verdict.** The grader is told to refuse when the assignment stores no rubric,
+and to open that refusal with a fixed line. The service watches for it and writes no record — the
+same arrangement as the transcript heading the tutor's role file promises, a short contract between
+two files the plugin owns. Without it the honest refusal `GRADER.md` mandates would land in
+`learning-records/` looking like a judgement, and the boot sequence plans from those: a record
+asserting a verdict that was never reached is worse than no record. For the same reason the record's
+Evidence line states provenance — which page, which submission, when — and no longer claims which
+criteria were applied, because nothing here can check that.
+
+**Two things left deliberately loose.** A second hand-in writes a *second* record rather than
+replacing the first: what a learner could do in March is what makes a judgement in May mean
+anything, and an overwrite would quietly delete the comparison. And the paths box refuses only what
+escapes the workspace — absolute paths, `..`, URL schemes — rather than confining evidence to
+`submissions/`. That directory is where evidence belongs and every piece of prose says so, but a
+learner pointing at a lesson they annotated or a sheet in `reference/` is doing something
+reasonable, and the grader could read either of those anyway: its working directory is the
+workspace and it is read-only, so confinement would buy no safety and cost a legitimate move.
+
+**What review caught on the way.** The rule that a Component may only hide what it has taken over
+was read by a stylesheet reader that took the *first* `{` in a block as the selector. Inside an
+at-rule there are two, so it reported `@media print` as the selector and never saw the rule
+underneath — which failed the first correctly-scoped print rule a Component ever had. Wrong in the
+safe direction, and invisible until a Component needed one: the reader now takes the last `{`, and
+is guarded on a scoped rule written inside an at-rule.
+
+Review also caught the offline fallback inviting the one thing this decision forbids. The copied
+prompt ended "use the `grader` subagent, *or answer as a grader yourself*" — and the session it is
+most likely to be pasted into is the teacher that wrote the assignment. The alternative is gone;
+the prompt now names the subagent and says not to grade it yourself. Worth recording because it is
+the shape the mistake takes: the rule was enforced everywhere the code runs and then given away in
+a sentence addressed to a reader.
+
 ---
 
 ## Where the full record lives

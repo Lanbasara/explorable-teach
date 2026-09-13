@@ -4,6 +4,52 @@
 
 ### Changed
 
+- **An assignment can be handed in from the page it is written on, and judged there.** It used to
+  be a page with a task and no way to answer it, so the loop dead-ended and the learner had to
+  switch tools to get anything graded. The page now carries a hand-in — `assets/assignment.js`, a
+  sixth shipped component — with a box for a short answer and a box for paths into `submissions/`.
+  The verdict streams back into the same page, can be questioned as a follow-up, and reaches the
+  teacher on its own.
+- **A submission is evidence of the work, not necessarily the work.** Short answers go in the
+  page; anything larger goes into `submissions/` and is named by path. The grader opens those
+  itself with the read-only tools it already has, so there is no upload path, no multipart
+  endpoint and no widening of what the server may touch. The scaffold creates `submissions/` with
+  a README in it, so the directory is a real thing in your version control from day one — a
+  submission excluded from history is a verdict nobody can look back at, and the suite checks that
+  through `git check-ignore` rather than by reading ignore patterns.
+- **The rubric travels inside the assignment, in a block nothing renders.** A
+  `<script type="application/x-rubric">` element: never displayed, never executed, and never sent
+  anywhere. The grader reads it off the file, which is what makes a judgement reproducible from
+  the page alone rather than from whatever the page chose to send. An assignment with no rubric
+  stored in it offers no hand-in at all — a task nobody can grade should not collect work.
+- **Grading is a second role on the service that was already running.** One more entry in the
+  `ROLES` map, so streaming, the three stages of the wait, the stop, the retry, the question log
+  and the offline fallback all behave exactly as they do for a question. A thread now carries its
+  role, which is what makes a follow-up about a verdict reach the grader that gave it.
+- **Grading never runs as the teacher that wrote the assignment.** The grader composes
+  `tutor/GRADER.md` — the plugin's, linked like the tutor's — plus `tutor/GRADER-TUNING.md`, this
+  course's own, and nothing else; there is a `grader` subagent pointed at the same two files in
+  the same order. The tutor's two halves sit one file away in the same directory, so the suite
+  asserts their *absence* from the grader's prompt rather than only the grader's presence.
+- **A verdict is written into `learning-records/` as a record of its own.** The question log is
+  feedback about the page; a verdict is evidence about the learner, which is the other file and
+  the one the boot sequence plans from. It is also the only way the loop closes without the
+  learner: an assignment is done between sessions, so the session that set it is gone and the
+  session that would have written the record has not started. The record lands before the page is
+  told the answer, so the page names where it went rather than asserting that it did. Questioning
+  a verdict writes nothing — that is a conversation about a record, not a second one.
+- **With the service stopped, handing in degrades to the same clipboard fallback a question
+  does** — and says so, rather than reporting work as judged when it was copied instead. The
+  copied prompt puts the submission to the `grader` subagent by name and says not to grade it
+  yourself: the session it is most likely to be pasted into is the one that wrote the assignment.
+- **A grader that refuses to judge is not recorded as having judged.** Asked to grade an
+  assignment storing no rubric, it refuses — and opens the refusal with a line the service watches
+  for, so nothing lands in `learning-records/` looking like a verdict. The record's evidence line
+  states provenance rather than claiming which criteria were applied.
+- **The drawer derives the page it is on instead of assuming `lessons/`.** An assignment does not
+  live there, and a grader sent to the wrong path reads nothing. Pinned answers keep their old
+  storage keys, so nothing a learner had saved moves.
+
 - **A unit now has a checkpoint, and the navigation slot that always rendered one finally has
   something behind it.** Checkpoint was named by the nav bar and by the course manifest from the
   day both were written, and defined nowhere — not what it is, not when to write one, not how it

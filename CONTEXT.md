@@ -28,6 +28,7 @@ _Avoid_: index, home, cover
 **Learning Record**:
 What one Unit demonstrated the learner can now do, written after they engage with it. Numbered
 `0001-slug.md`. It is evidence rather than a diary, and it is what the next Session plans from.
+Usually the Teacher writes it; a graded Assignment writes its own.
 _Avoid_: log, journal, session notes
 
 **Progress marker**:
@@ -91,8 +92,9 @@ _Avoid_: criteria, marking scheme
 
 **Submission**:
 The evidence a learner offers for an Assignment — written in the page for short answers, or
-dropped into the workspace for anything the page cannot hold. Evidence of the work, not
-necessarily the work itself.
+dropped into `submissions/` and named by path for anything the page cannot hold. Evidence of the
+work, not necessarily the work itself, which is why nothing is ever uploaded: the Grader reads
+what is already in the Workspace.
 _Avoid_: answer, upload, hand-in
 
 ### Agents
@@ -115,7 +117,8 @@ _Avoid_: custom prompt, override, local role
 
 **Grader**:
 A read-only agent that judges one Assignment submission against its Rubric. Carries no memory of
-the session that set the Assignment.
+the session that set the Assignment, and reads the Rubric off the Assignment page rather than
+being handed it. Its verdict becomes a Learning Record, so it reaches the next Session.
 _Avoid_: marker, reviewer
 
 ### Sessions

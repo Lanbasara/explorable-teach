@@ -175,6 +175,35 @@ test('no Component needs a server or a network to work', () => {
   }
 });
 
+/**
+ * Every selector in `css` that takes something off the page.
+ *
+ * The last `{` before the declarations, not the first: a rule inside an at-rule
+ * — `@media print { .x.is-live .y { display: none } }` — has two, and reading
+ * the first one reports the at-rule as the selector and never sees the rule
+ * that actually hides. That is the wrong answer in the safe direction, which is
+ * why it went unnoticed until a Component had a print rule at all.
+ */
+function hidingSelectors(css) {
+  const found = [];
+  for (const block of css.split('}')) {
+    const brace = block.lastIndexOf('{');
+    if (brace < 0) continue;
+
+    const body = block.slice(brace + 1);
+    if (!/display:\s*none|visibility:\s*hidden/.test(body)) continue;
+
+    found.push(
+      block
+        .slice(0, brace)
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^[\s\S]*\{/, '') // whatever at-rule this sits inside
+        .trim(),
+    );
+  }
+  return found;
+}
+
 test('a Component only hides what it has taken over', () => {
   // Progressive enhancement, made checkable. A stylesheet that hides content
   // outright hides it from the learner whose scripting is off too — so every
@@ -185,18 +214,22 @@ test('a Component only hides what it has taken over', () => {
   // mechanism the Components hide *with*: an element carries that attribute
   // only because a script put it there, and the authoring document tells
   // authors never to write it by hand.
+
+  // Guard the observer, on both sides and inside an at-rule, which is where it
+  // was blind: a reader that saw no hiding rule would pass every stylesheet
+  // below for free, and one that read the at-rule as the selector would fail
+  // every scoped rule written inside one.
+  assert.deepEqual(hidingSelectors('.steps-stage { color: red; }'), []);
+  assert.deepEqual(hidingSelectors('.predict-answer { display: none; }'), ['.predict-answer']);
+  assert.deepEqual(
+    hidingSelectors('@media print {\n  .steps.is-live .steps-nav { display: none; }\n}'),
+    ['.steps.is-live .steps-nav'],
+  );
+
   for (const css of [read(path.join(RUNTIME, SHARED_STYLES))].concat(
     ALL_COMPONENTS.map((c) => read(path.join(RUNTIME, c.css))),
   )) {
-
-    for (const block of css.split('}')) {
-      const brace = block.indexOf('{');
-      if (brace < 0) continue;
-
-      const selector = block.slice(0, brace).replace(/\/\*[\s\S]*?\*\//g, '').trim();
-      const body = block.slice(brace + 1);
-      if (!/display:\s*none|visibility:\s*hidden/.test(body)) continue;
-
+    for (const selector of hidingSelectors(css)) {
       if (selector === '[hidden]') continue;
 
       assert.match(

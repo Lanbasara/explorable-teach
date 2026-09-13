@@ -35,15 +35,17 @@ NOTES.md              how you want to be taught (the tutor treats this as bindin
 TECH-STACK.md         which components this subject actually needs
 lessons/              0001-slug.html — the lessons themselves
 assignments/          the ones that earn an assignment, with the rubric inside
+submissions/          what you hand in when it is too big for the page
 reference/            compressed cheat-sheets you will actually revisit
 learning-records/     what you demonstrably know; drives what gets taught next
   questions.jsonl     every question you asked the tutor
 assets/               reusable interactive components — the shared ones are links
                       into the plugin; units.js and anything built for this
                       subject are yours
-tutor/                the in-page tutor service — links into the plugin, plus
-                      TUNING.md, which is this course's own
-.claude/agents/       the tutor subagent
+tutor/                the in-page tutor and grader service — links into the
+                      plugin, plus the two tuning files, which are this
+                      course's own
+.claude/agents/       the tutor and grader subagents
 ```
 
 ## Three ideas hold the whole thing together
@@ -90,8 +92,9 @@ should not end up with the same tooling.
 
 What does not vary by subject ships with the plugin and lands in `assets/` when you
 scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
-answer), **predict-reveal**, **step animations**, **drag-to-order**, and the **checkpoint** that
-gates a unit at its end — built out of the exercises it counts. None of them loads a
+answer), **predict-reveal**, **step animations**, **drag-to-order**, the **checkpoint** that
+gates a unit at its end — built out of the exercises it counts — and the **assignment** hand-in,
+the one whose verdict does not come from the page. None of them loads a
 library, so a lesson works from `file://` with no network; each one degrades to plain readable
 text with scripting off; and every interaction has a keyboard and a touch path, not just a drag.
 Every other teaching act on the list is built on demand, for the subject that needs it, so the
@@ -170,6 +173,33 @@ subagents only in `.claude/agents/`, never inside a skill or a plugin's skill fo
 registers **globally**, and subagents have no `disable-model-invocation` equivalent, so it would
 be auto-routable in every unrelated project you open. Project scoping is the only invocation
 control a subagent has. This spends it where it counts.
+
+## Handing in an assignment
+
+An assignment is a page with a task on it and a hand-in under the task: a box for a short answer,
+and a box for paths to anything too big for a box. Press the button and the verdict streams into
+the same page, where you can argue with it.
+
+**What crosses is evidence, not the work.** Put the real thing in `submissions/0003-pipes/` and
+write the path in. Nothing is uploaded — the grader's working directory is the workspace, so it
+opens the file itself, with the same read-only tools the tutor has. A submission of any size costs
+the same request as a one-line answer.
+
+**The rubric is stored in the assignment page**, in a `<script type="application/x-rubric">` block
+that is never rendered, never executed and never sent. The grader reads it off the file, so the
+judgement is reproducible from the page alone rather than from the session that set the task — and
+an assignment with no rubric in it offers no hand-in at all, because a task nobody can grade should
+not collect work.
+
+**The grader is never the teacher that wrote the assignment.** It is the same service in a second
+role, composed from `tutor/GRADER.md` plus this course's `tutor/GRADER-TUNING.md` and nothing else,
+with a `grader` subagent pointed at the same two files for when the server is down.
+
+**The verdict becomes a learning record.** `questions.jsonl` is feedback about the page; a verdict
+is evidence about you, which is the file the next session plans from. That is also the only way
+the loop closes without you: an assignment is done between sessions, so nobody is around to write
+it down. Questioning a verdict writes nothing — that is a conversation about a record, not another
+one.
 
 ## `questions.jsonl` is the point
 

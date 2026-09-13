@@ -99,9 +99,10 @@ test('the health probe reports what the control script reads off it', async (t) 
   assert.ok(health.idleSec >= 0);
   assert.ok(health.idleTimeoutSec > 0);
 
-  // One role today. The Grader is a second entry in the same map, and this is
-  // where the drawer would find out it exists.
-  assert.deepEqual(health.roles, ['tutor']);
+  // Both roles, from the one map. The page reads this to find out what it may
+  // ask for, so a role that is installed and not announced is a role no
+  // Assignment page can reach.
+  assert.deepEqual(health.roles.sort(), ['grader', 'tutor']);
 });
 
 test('the health probe is GET only, and no other /api/ path answers', async (t) => {
@@ -318,7 +319,7 @@ test('a malformed question is rejected before any agent is spawned', async (t) =
   const service = await TutorService.start(t, ws);
 
   const rejected = [
-    { what: 'an unknown role', body: { role: 'grader', question: '为什么？' }, error: /Unknown role: grader/ },
+    { what: 'an unknown role', body: { role: 'examiner', question: '为什么？' }, error: /Unknown role: examiner/ },
     { what: 'no question at all', body: {}, error: /question is required/ },
     { what: 'a blank question', body: { question: '   \n  ' }, error: /question is required/ },
     { what: 'an oversized question', body: { question: 'x'.repeat(2001) }, error: /question exceeds 2000/ },
@@ -676,4 +677,207 @@ test('a malformed turn is dropped rather than costing the learner their answer',
   assert.ok(payload, 'the service never spawned the agent');
   assert.ok(payload.includes('kept-this'), 'the one well-formed turn should survive');
   assert.ok(!payload.includes('kept-none'), 'a turn with an unknown role should not');
+});
+
+// ---------------------------------------------------------------- grading
+
+const ASSIGNMENT = 'assignments/0003-pipe-audit.html';
+const RUBRIC = '算做完了：\n- 指出了每一段的 stdin 是谁的 stdout\n';
+const GRADER_TUNING = '# 评分调校\n\n这门课不考 Windows 上的等价物。\n';
+const SUBMISSION =
+  'ls | grep x | wc -l：第二段读的是第一段的 stdout。\n\n' +
+  '做出来的东西我放在工作区里了，请自己读：\n- submissions/0003-pipes/notes.md';
+const VERDICT = '过了。你说清楚了每一段的 stdin 是谁的 stdout。';
+
+/**
+ * The fixture Workspace with an Assignment in it. The Rubric sits in the page
+ * exactly as the Component stores it — in a block the page never renders — so
+ * that what the Grader is pointed at here is what it would be pointed at there.
+ */
+function graded(t) {
+  const ws = workspace(t);
+  ws.write(
+    ASSIGNMENT,
+    '<!doctype html>\n<div class="assignment" data-assignment>\n<p class="assignment-task">拆一条管道。</p>\n' +
+      `<script type="application/x-rubric">\n${RUBRIC}</script>\n</div>\n`,
+  );
+  ws.write('tutor/GRADER-TUNING.md', GRADER_TUNING);
+  return ws;
+}
+
+/** The Learning Records in the Workspace, in the order their numbers put them. */
+function records(ws) {
+  return fs.readdirSync(ws.path('learning-records')).filter((name) => name.endsWith('.md')).sort();
+}
+
+test('grading is its own role, tuned on its own, and is never the Tutor wearing a hat', async (t) => {
+  const ws = graded(t);
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result(VERDICT)] });
+
+  await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+
+  const prompt = service.agentFlag('--append-system-prompt');
+  assert.equal(
+    prompt,
+    `${ws.read('tutor/GRADER.md').trim()}\n\n${GRADER_TUNING.trim()}`,
+    'the same two halves in the same order the Tutor gets, out of the Grader\'s own two files',
+  );
+
+  // The thing a Grader must not be. Both of the Tutor's halves are in this
+  // Workspace, one file away, and composing either of them in would be how
+  // "the Session that wrote the Assignment grades it" returns by the side door.
+  assert.ok(!prompt.includes(ws.read('tutor/ROLE.md').trim()), 'the Tutor definition reached the Grader');
+  assert.ok(!prompt.includes(TUNING.trim()), 'and so did the Tutor tuning');
+
+  // Split the way everything else is: the definition is the plugin's, so a fix
+  // reaches every Workspace, and the tuning is this course's own.
+  assert.ok(fs.lstatSync(ws.path('tutor/GRADER.md')).isSymbolicLink(), 'the definition should not be a copy');
+  assert.ok(fs.lstatSync(ws.path('tutor/GRADER-TUNING.md')).isFile(), 'the tuning is this Workspace\'s own');
+
+  const subagent = ws.read('.claude/agents/grader.md');
+  assert.ok(subagent.includes('tutor/GRADER.md'), 'the subagent should be pointed at the shared definition');
+  assert.ok(subagent.includes('tutor/GRADER-TUNING.md'), 'and at this Workspace\'s tuning');
+  assert.ok(
+    subagent.indexOf('tutor/GRADER.md') < subagent.indexOf('tutor/GRADER-TUNING.md'),
+    'in the order the service composes them',
+  );
+});
+
+test('the Grader is sent to the page holding the Rubric, never sent the Rubric', async (t) => {
+  const ws = graded(t);
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result(VERDICT)] });
+
+  await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+
+  const payload = service.agentFlag('-p');
+  assert.ok(payload, 'the service never spawned the agent');
+
+  assert.ok(payload.includes(ASSIGNMENT), 'the page it has to read');
+  assert.ok(payload.includes('x-rubric'), 'and what to look for inside it');
+  assert.ok(payload.includes(SUBMISSION), 'the Submission, as the learner wrote it');
+  assert.ok(payload.includes('submissions/'), 'and where to look for what the page could not hold');
+
+  // The criteria stay on disk and the Grader goes and gets them. A Rubric
+  // riding the request would be whatever the page that sent it decided on,
+  // which is the opposite of a judgement reproducible from the Workspace.
+  assert.ok(!payload.includes(RUBRIC.trim()), 'the Rubric itself was sent, so it no longer has to be stored');
+
+  // The same context the Tutor is handed, for the same reason: what counts as
+  // done for this learner is not separable from why they are here.
+  assert.ok(payload.includes(NOTES.trim()), 'NOTES.md should be inlined');
+  assert.ok(payload.includes(MISSION.trim()), 'MISSION.md should be inlined');
+});
+
+test('a graded Submission becomes a Learning Record, on disk before the page is told', async (t) => {
+  const ws = graded(t);
+  ws.write('learning-records/0001-processes.md', '# 进程\n');
+
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result(VERDICT)] });
+
+  const res = await service.ask({
+    role: 'grader',
+    question: SUBMISSION,
+    lesson: ASSIGNMENT,
+    threadId: 'grade/1',
+  });
+  assert.deepEqual(res.sequence(), ['open', 'done']);
+
+  const written = 'learning-records/0002-0003-pipe-audit.md';
+  assert.deepEqual(records(ws), ['0001-processes.md', '0002-0003-pipe-audit.md'], 'numbered after what was there');
+  assert.equal(res.events()[1].data.record, written, 'the page is told where it landed, and is right');
+
+  const record = ws.read(written);
+  assert.match(record, /^# 作业判定：0003-pipe-audit$/m, 'a record opens on what it is a record of');
+  assert.ok(record.includes(VERDICT), 'the verdict is the record');
+  assert.ok(record.includes(ASSIGNMENT), 'and it names the page it was reached against');
+  assert.ok(
+    !/依据.*Rubric/.test(record),
+    'a record states where a verdict came from; asserting what it applied is a claim nothing checked',
+  );
+  assert.ok(record.includes('第二段读的是第一段的 stdout'), 'with the evidence it was reached on');
+
+  // Both, not one or the other: the question log is feedback about the page,
+  // and the record is evidence about the learner.
+  const lines = await waitFor('the question log to be appended', () => questionLog(ws));
+  const entry = JSON.parse(lines[0]);
+  assert.equal(entry.role, 'grader');
+  assert.equal(entry.lesson, ASSIGNMENT);
+  assert.equal(entry.record, written);
+
+  // A second hand-in is a second record rather than an overwrite. What a
+  // learner could do last month is what makes the next judgement mean anything.
+  await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+  assert.deepEqual(records(ws), [
+    '0001-processes.md',
+    '0002-0003-pipe-audit.md',
+    '0003-0003-pipe-audit.md',
+  ]);
+});
+
+test('questioning a verdict is a conversation about a record, not a second one', async (t) => {
+  const ws = graded(t);
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result('因为你没提中间那一段。')] });
+
+  const res = await service.ask({
+    role: 'grader',
+    question: '中间那一段为什么算没答？',
+    lesson: ASSIGNMENT,
+    history: [
+      { role: 'user', content: SUBMISSION },
+      { role: 'assistant', content: VERDICT },
+    ],
+  });
+
+  assert.deepEqual(res.sequence(), ['open', 'done']);
+  assert.equal(res.events()[1].data.record, undefined, 'nothing new was recorded');
+  assert.deepEqual(records(ws), [], 'and nothing was written');
+
+  const payload = service.agentFlag('-p');
+  assert.ok(payload.includes('本次对话的前几轮'), 'the verdict is replayed, so the answer is about that verdict');
+  assert.ok(payload.includes('评分：' + VERDICT), 'labelled as the Grader\'s own turn rather than the Tutor\'s');
+  assert.ok(!payload.includes('他交上来的作业'), 'and the follow-up is not framed as a fresh hand-in');
+});
+
+test('a Grader that refuses to judge is not recorded as having judged', async (t) => {
+  // GRADER.md tells it to refuse when the page stores no Rubric, opening with a
+  // fixed line. That line is a contract between two files the plugin owns — the
+  // same arrangement as the transcript heading — and it exists because the Boot
+  // sequence plans from Learning Records: a record saying a verdict was reached
+  // when none was is worse than no record at all.
+  const ws = graded(t);
+  const refusal = '无法判定：这份作业页里没有存评分标准，请回去找出题的老师补上。';
+  const service = await TutorService.start(t, ws, { agent: [agentSays.result(refusal)] });
+
+  const res = await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+
+  assert.deepEqual(res.sequence(), ['open', 'done'], 'the learner is still told, and told why');
+  assert.equal(res.events()[1].data.answer, refusal);
+  assert.equal(res.events()[1].data.record, undefined, 'and the page does not claim it was filed');
+  assert.deepEqual(records(ws), [], 'nothing about the learner was demonstrated, so nothing is evidence');
+
+  // Guard the observer, against the same fixture: the only difference is what
+  // the agent said, so a check that recorded nothing either way would pass this
+  // by doing nothing at all.
+  const judging = await TutorService.start(t, ws, { agent: [agentSays.result(VERDICT)] });
+  await judging.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+  assert.equal(records(ws).length, 1, 'a verdict in the same Workspace is still recorded');
+
+  // The opening the service watches for is the one the role definition asks
+  // for, read out of the file rather than restated here.
+  assert.match(ws.read('tutor/GRADER.md'), /无法判定：/, 'the Grader is no longer told to say this');
+});
+
+test('a grading that produced no verdict leaves nothing behind', async (t) => {
+  const ws = graded(t);
+  const service = await TutorService.start(t, ws, { agent: [agentSays.failure('rate limited')] });
+
+  const res = await service.ask({ role: 'grader', question: SUBMISSION, lesson: ASSIGNMENT });
+
+  assert.deepEqual(res.sequence(), ['open', 'error']);
+  assert.deepEqual(records(ws), [], 'a verdict nobody gave is not evidence about anybody');
+
+  await assert.rejects(
+    waitFor('a log line that should never arrive', () => questionLog(ws), { timeout: 500 }),
+    /timed out/,
+  );
 });

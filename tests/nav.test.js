@@ -34,7 +34,8 @@ window.TEACH_UNITS = [
     id: '${UNIT.id}', num: '${UNIT.num}', status: 'done',
     title: '${UNIT.title}',
     lesson: '${UNIT.lesson}',
-    checkpoint: '${UNIT.checkpoint}'
+    checkpoint: '${UNIT.checkpoint}',
+    assignment: '${UNIT.assignment}'
   },
   {
     id: '${BARE.id}', num: '${BARE.num}', status: 'teaching',
@@ -88,7 +89,7 @@ test('a Lesson whose Unit has a Checkpoint links to it', (t) => {
     unit: UNIT.id,
   });
 
-  const [lesson, checkpoint] = slots(page);
+  const [lesson, checkpoint, assignment] = slots(page);
 
   assert.equal(lesson.localName, 'span', 'the Lesson is the page they are on');
   assert.ok(lesson.classList.contains('tnav-here'));
@@ -97,6 +98,9 @@ test('a Lesson whose Unit has a Checkpoint links to it', (t) => {
   assert.equal(checkpoint.getAttribute('href'), `../${UNIT.checkpoint}`);
   assert.ok(checkpoint.textContent.trim().length > 0, 'and it is labelled');
 
+  assert.equal(assignment.localName, 'a', 'and so does the Assignment');
+  assert.equal(assignment.getAttribute('href'), `../${UNIT.assignment}`);
+
   // The bar is derived and always there; the Lesson still sends the learner on
   // at the point in the page where they have finished reading it, which is the
   // sibling rule the authoring document states.
@@ -104,6 +108,34 @@ test('a Lesson whose Unit has a Checkpoint links to it', (t) => {
   assert.ok(
     sibling.includes(path.basename(UNIT.checkpoint)),
     'the Lesson should point at its own Checkpoint where it ends, not only from the bar',
+  );
+  assert.ok(
+    sibling.includes(`../${UNIT.assignment}`),
+    'and at its own Assignment, which does not sit in the same directory it does',
+  );
+});
+
+test('an Assignment reaches back into the Unit it draws on', (t) => {
+  // An Assignment fires one to three Units after the material, from a directory
+  // of its own. So it is the page most likely to be opened cold — and the one
+  // where "which Lesson was this?" has to be one click rather than a search.
+  const page = opened(t, {
+    html: fixture('assignment').html,
+    at: UNIT.assignment,
+    unit: UNIT.id,
+  });
+
+  const [lesson, , assignment] = slots(page);
+
+  assert.equal(lesson.localName, 'a', 'the Lesson it draws on is reachable from here');
+  assert.equal(lesson.getAttribute('href'), `../${UNIT.lesson}`);
+
+  assert.ok(assignment.classList.contains('tnav-here'), 'and this is the page they are on');
+  assert.equal(assignment.getAttribute('aria-current'), 'page');
+
+  assert.ok(
+    hrefs(page).some((href) => href.endsWith('index.html')),
+    'every page of a Unit is reachable from the Dossier, and reaches it back',
   );
 });
 
@@ -135,8 +167,9 @@ test('a Unit with no Checkpoint shows the slot as missing rather than hiding it'
     unit: BARE.id,
   });
 
-  const [, checkpoint] = slots(page);
+  const [, checkpoint, assignment] = slots(page);
 
+  assert.ok(assignment.classList.contains('tnav-off'), 'a Unit with no Assignment degrades the same way');
   assert.ok(checkpoint.classList.contains('tnav-off'), 'the slot degrades rather than disappearing');
   assert.ok(!checkpoint.hidden, 'a slot the learner cannot see tells them nothing');
   assert.ok(checkpoint.textContent.trim().length > 0, 'it still says which artifact is missing');

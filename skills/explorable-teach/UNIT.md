@@ -101,6 +101,7 @@ yourself in is a Component this Unit does not need.
 | Walk one process through its stages — `fork`/`exec`, a TCP handshake, a request's life | Step animation | Shipped |
 | Teach an order that *is* the knowledge — pipeline stages, protocol steps, a proof's line | Drag ordering | Shipped |
 | Find out whether a Unit may be closed, once it is over | Checkpoint | Shipped |
+| Send a task out into the learner's real work and get it judged | Assignment | Shipped |
 | Let the learner run the thing being taught — a shell, a query, a snippet, a synth | A playground for that subject, which unconstrained is also the sandbox a Lesson ends on | You build it |
 | Show a structure they have to hold in their head — a process tree, a memory layout | A diagram they can manipulate | You build it |
 | Show how a set of things relate — dependencies, a state machine, an architecture | A graph they can rearrange | You build it |
@@ -133,12 +134,17 @@ the scaffold reads that as a deliberate override and leaves it alone from then o
 | **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | Multi-stage processes |
 | **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | Sequences where the order is the knowledge |
 | **Checkpoint** | `assets/checkpoint.js` + `assets/checkpoint.css` | Gating a Unit at its end — see [Checkpoints](#checkpoints) |
+| **Assignment** | `assets/assignment.js` + `assets/assignment.css` | Handing in a task done elsewhere — see [Assignments](#assignments) |
 
 Each file's head comment holds the markup its author writes — **read that before using one**, and
 do not re-derive the markup from this table. Every one of them degrades to plain text with
 scripting off, and none of them touch the network, so a Lesson works opened from `file://` on a
-plane. All but the Checkpoint build a Lesson; that one gates the Unit from a page of its own,
-once the Lesson is behind the learner.
+plane. The first four build a Lesson; the last two have pages of their own, reached once the
+Lesson is behind the learner — the Checkpoint gates the Unit, and the Assignment sends a task out
+of it. The Assignment is the one whose verdict does not come from the page: it hands what the
+learner wrote to the in-page drawer and lets that carry it, so with the service stopped it still
+collects a Submission and still hands it over — to the clipboard instead of to a Grader, and it
+says which of the two happened rather than reporting work as judged when it was copied.
 
 `assets/style.css` is not a Component: every page links it from `<head>`, and it owns the design
 tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none. It is linked
@@ -264,15 +270,49 @@ Two things are worth being strict about:
 2. **Space and interleave them.** An Assignment from Unit 2 is often best given after Unit 4,
    and one task forcing two Units together is worth more than two separate tasks.
 
-One HTML file per Assignment, in `./assignments/`. They are HTML for the same reason Lessons
-are: a `.md` file is invisible from the browser the learner is already in. Keep the Rubric inside
-that same HTML in a non-rendered block, so the task and its grading criteria never drift apart.
+Whether this Unit earns one at all was settled before you got here — see [the assessment
+ladder](./SKILL.md#the-assessment-ladder). What is left is the form it takes.
 
-The learner's Submission is whatever evidence they offer for the task, and a Grader holding none
-of your context has to be able to read it alongside the task and the Rubric.
+**One page of its own, in `./assignments/`.** `assignments/0003-pipe-audit.html`, numbered to the
+Unit it draws on, built like any other page — [the page](#the-page) above, with
+`assets/assignment.css` in the head and `assets/assignment.js` before the bootstrap — and
+carrying the same `data-unit`, so the two read as one Unit to every piece of infrastructure that
+meets them. HTML for the reason a Lesson is: a `.md` file is invisible from the browser the
+learner is already in.
+
+**The task, and what to do without the page.** Both are required, and the Component refuses to
+mount rather than offer a hand-in above half of them. The second is what the hand-in form
+replaces, so it is also what a learner whose scripts never ran is left reading: say where to put
+the work and to tell you about it next Session. Its head comment holds the markup, as every
+Component's does — read that before writing one.
+
+**The Rubric goes in the page, in a block nothing renders.** A `<script type="application/x-rubric">`
+element: never displayed, never executed, and read straight off the file by the Grader, which is
+what makes a judgement reproducible from the page alone rather than from the Session that set it.
+Write what counts as done and the likely failure modes, in the terms you would use to argue the
+verdict. **Without one the page offers no hand-in at all** — a Rubric that is not there would have
+to be remembered, and remembering is the one thing grading may not do.
+
+**The Submission is evidence of the work, not necessarily the work.** Short answers go in the box
+on the page. Anything larger goes into `./submissions/` — one directory per Assignment — and the
+learner names the paths beside their answer; the Grader opens them itself, with the read-only
+tools it already has. Nothing is uploaded and no boundary moves. Say so in the task when the work
+will obviously be too big for a box: *put it in `submissions/0003-pipes/` and write the path in.*
+
+**Then the links.** Add `assignment:` to this Unit's entry in `assets/units.js`, which lights the
+third slot the navigation bar and the Dossier have always had a place for. Write one link
+yourself, from the Lesson to the Assignment, where the Lesson ends — and remember the two sit in
+different directories, so it is `../assignments/…` from a Lesson and `../lessons/…` back.
 
 Grading is done by a **fresh Grader** reading the stored Rubric, never by recalling the Session
-that wrote the Assignment. Standing one up is one more role file — see [TUTOR.md](./TUTOR.md).
+that wrote the Assignment. The verdict streams into the page, can be questioned there, and is
+written into `learning-records/` as a record of its own — so it reaches you through the [Boot
+sequence](./SKILL.md#boot-sequence) rather than through the learner remembering to report it. How
+that is wired, and what to tune for this subject, is in [TUTOR.md](./TUTOR.md).
+
+With the service stopped the page says so and puts a well-formed prompt on the clipboard instead
+of claiming the work was judged. That is a normal state: never write an Assignment whose task
+only makes sense if something is running.
 
 ## A Unit is navigable, or it does not exist
 

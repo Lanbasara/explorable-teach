@@ -5,9 +5,11 @@
  * own authoring document says to write them, using every Component the plugin
  * ships.
  *
- * Two pages, because a Unit is more than one file. The Lesson is the body; the
- * Checkpoint is the gate at its end, on a page of its own, linking back to the
- * Lesson it closes.
+ * Three pages, because a Unit is more than one file. The Lesson is the body;
+ * the Checkpoint is the gate at its end, on a page of its own, linking back to
+ * the Lesson it closes; the Assignment is the task that goes out to the
+ * learner's real work, carrying its own Rubric in a block the page never
+ * renders.
  *
  * It is the shared subject of three different questions:
  *
@@ -73,8 +75,20 @@ const CHECKPOINT = {
   root: '.checkpoint',
 };
 
+/**
+ * The other one that is not built into a Lesson: the hand-in on the
+ * Assignment's own page, which is the only Component whose verdict does not
+ * come from the page at all.
+ */
+const ASSIGNMENT = {
+  name: 'assignment',
+  css: 'assignment.css',
+  js: 'assignment.js',
+  root: '.assignment',
+};
+
 /** Every Component the plugin ships, wherever on a Unit's pages it is used. */
-const ALL_COMPONENTS = [...LESSON_COMPONENTS, CHECKPOINT];
+const ALL_COMPONENTS = [...LESSON_COMPONENTS, CHECKPOINT, ASSIGNMENT];
 
 /** Shared styles are not a Component, but no page renders without them. */
 const SHARED_STYLES = 'style.css';
@@ -90,7 +104,17 @@ const UNIT = {
   title: 'fork 与 exec',
   lesson: 'lessons/0003-fork-exec.html',
   checkpoint: 'lessons/0003b-checkpoint.html',
+  assignment: 'assignments/0003-pipe-audit.html',
 };
+
+/** The Rubric the fixture Assignment stores, and the Grader is meant to find. */
+const RUBRIC = [
+  '算做完了：',
+  '- 指出了管道每一段的 stdin 是上一段的 stdout',
+  '- 说清楚了中间那段为什么不需要临时文件',
+  '常见的错法：',
+  '- 只把命令抄了一遍，没说数据是怎么流的',
+].join('\n');
 
 const LESSON_HTML = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -151,6 +175,8 @@ ${LESSON_COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}"
 </div>
 
 <p><a href="0003b-checkpoint.html">做一下这一课的验收 →</a></p>
+
+<p><a href="../assignments/0003-pipe-audit.html">这一课的作业在这里 →</a></p>
 
 </div>
 
@@ -224,6 +250,47 @@ const CHECKPOINT_HTML = `<!DOCTYPE html>
 </html>
 `;
 
+const ASSIGNMENT_HTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignment 03: 拆一条自己的管道</title>
+<link rel="stylesheet" href="../assets/${SHARED_STYLES}">
+<link rel="stylesheet" href="../assets/${ASSIGNMENT.css}">
+</head>
+<body>
+<div class="lesson">
+
+<header class="lesson-header">
+  <div class="lesson-num">Unit 03 · 作业</div>
+  <h1>拆一条自己的管道</h1>
+  <p class="lesson-sub">在你自己每天用的命令里找一条,把数据的走向说清楚。</p>
+</header>
+
+<div class="assignment" data-assignment>
+  <p class="assignment-task">从你自己的 shell 历史里挑一条带管道的命令,逐段说清楚每一段的
+     输入是从哪里来的,以及中间那一段为什么不需要落成临时文件。</p>
+
+  <p class="assignment-fallback">写好之后放进 <code>submissions/</code>,下次上课时告诉老师
+     放在哪了。</p>
+
+  <script type="application/x-rubric">
+${RUBRIC}
+  </script>
+</div>
+
+<p>不确定管道怎么接的,回<a href="../lessons/0003-fork-exec.html#exec">正文讲 exec 的那一段</a>。</p>
+
+</div>
+
+<script src="../assets/${ASSIGNMENT.js}"></script>
+
+<script src="../assets/lesson-boot.js" data-unit="${UNIT.id}"></script>
+</body>
+</html>
+`;
+
 /**
  * The pages of the fixture Unit, each with the Components it is built from.
  * The Checkpoint runs the Exercise Component too: its questions are Exercises,
@@ -244,6 +311,13 @@ const PAGES = [
     html: CHECKPOINT_HTML,
     components: [EXERCISE, CHECKPOINT],
   },
+  {
+    key: 'assignment',
+    name: 'the fixture Assignment',
+    file: UNIT.assignment,
+    html: ASSIGNMENT_HTML,
+    components: [ASSIGNMENT],
+  },
 ];
 
 /**
@@ -259,4 +333,4 @@ function assetRefs(text) {
   return [...found].sort();
 }
 
-module.exports = { ALL_COMPONENTS, SHARED_STYLES, UNIT, LESSON_HTML, PAGES, assetRefs };
+module.exports = { ALL_COMPONENTS, SHARED_STYLES, UNIT, RUBRIC, LESSON_HTML, PAGES, assetRefs };

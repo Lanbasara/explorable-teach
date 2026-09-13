@@ -93,7 +93,8 @@ Both read `tutor/ROLE.md` and then `tutor/TUNING.md`, in that order, so neither 
 The service composes the two into one system prompt; the subagent at `.claude/agents/tutor.md` is
 pointed at the same two files in the same order and reads them itself. That is the whole of the
 arrangement — the subagent definition holds no role text of its own, because a second copy is a
-second thing to keep in step.
+second thing to keep in step. [The Grader](#the-grader) is the same arrangement over its own two
+files.
 
 ## Operating it
 
@@ -137,12 +138,33 @@ Restart the service after tuning it: `./tutor/tutorctl.sh restart`.
 
 Every question is logged to `learning-records/questions.jsonl`, which the Boot sequence reads.
 
-## Adding the Grader
+## The Grader
 
-Grading an Assignment is mechanically the Tutor with a different role file: one more entry in the
-service's `ROLES` map, pointing at a role definition beside the server and, if the subject needs
-one, a tuning file in the Workspace. It reaches the learner over the same transport, so
-streaming, logging and the offline fallback behave identically.
+Grading an Assignment is mechanically this service with a different role file: a second entry in
+its `ROLES` map. It reaches the learner over the same transport, so streaming, the wait, the
+question log and the offline fallback behave identically — and there is nothing to install or
+start beyond what is already running.
 
 The Grader is a *fresh* agent reading the stored Rubric, never the Session that wrote the
 Assignment. See [the assessment ladder](./SKILL.md#the-assessment-ladder).
+
+**Same shape, four files along.** `tutor/GRADER.md` is the plugin's definition, linked like
+`ROLE.md`; `tutor/GRADER-TUNING.md` is this Workspace's, and empty is a normal state; the
+subagent at `.claude/agents/grader.md` is pointed at those two, in that order. The two paths
+compose the same prompt, so neither is a downgrade — and the tuning files are separate on purpose:
+what a Tutor should say and what counts as done are different questions, and one file answering
+both would be a Tutor being asked to mark.
+
+**Where a verdict goes.** A submission's verdict is written into `learning-records/` as a
+numbered record of its own, beside the ones you write, before the page is told the answer. That
+is what makes grading reach the next Session through the [Boot
+sequence](./SKILL.md#boot-sequence) rather than through the learner remembering to mention it.
+A follow-up about a verdict is a conversation about a record rather than a second one, so nothing
+is written for it.
+
+**What it is never handed.** The Rubric. It is stored in the Assignment page, and the payload
+does no more than name that page and say what block to look for — so what the Grader judges is
+what is on disk, not what a page chose to send. A Grader that finds no Rubric there is told to
+refuse rather than to improvise.
+
+Tuning the Grader is the same loop as tuning the Tutor, and takes the same restart.

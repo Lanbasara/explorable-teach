@@ -1,0 +1,118 @@
+/* assignment.css — the hand-in on an Assignment page.
+   Deps: style.css (design tokens).
+   Pairs with assignment.js.
+
+   Nothing here hides anything of its own. The fallback paragraph is held back
+   with the `hidden` attribute, which only assignment.js sets — so with
+   scripting off the task and what to do about it are ordinary text, and the
+   Rubric is a <script> block a browser never renders either way. */
+
+.assignment {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-warm);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin: 2.2em 0;
+}
+
+.assignment-task {
+  margin: 0 0 1.2em;
+  color: var(--fg);
+}
+
+/* What to do without this page's help. Shown until the form replaces it. */
+.assignment-fallback {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: 14.5px;
+}
+
+/* ---------- the hand-in ---------- */
+
+.assignment-handin {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 1.4em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--border);
+}
+
+.assignment-label {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.assignment-label + .assignment-box { margin-bottom: 9px; }
+
+.assignment-box {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.assignment-box:focus {
+  outline: none;
+  border-color: var(--border-hi);
+}
+.assignment-box + .assignment-label { margin-top: 4px; }
+
+.assignment-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--fg-faint);
+}
+
+.assignment-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.assignment-send {
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: var(--bg-card);
+  color: var(--accent);
+}
+.assignment-send:hover { border-color: var(--accent); }
+
+.assignment-say {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-dim);
+}
+
+/* Handed in, and refused: the two things the button can say back. Both are
+   states this file's own script sets, and neither takes anything off the page —
+   a refusal has to leave the learner looking at what it refused. */
+.assignment.is-sent {
+  border-left-color: var(--accent-good);
+}
+.assignment.is-sent .assignment-say { color: var(--accent-good); }
+
+.assignment.is-refused .assignment-say { color: var(--accent-bad); }
+.assignment.is-refused .assignment-box { border-color: color-mix(in srgb, var(--accent-bad) 45%, var(--border)); }
+
+/* On paper there is nothing to type into, so the form goes and the task and
+   its fallback stay. Scoped to the mounted state, like every other hiding rule
+   here: a page whose scripts never ran has no form to take away. */
+@media print {
+  .assignment.is-live .assignment-handin { display: none; }
+}

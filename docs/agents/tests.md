@@ -23,13 +23,13 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
-| `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the page readable without it |
+| `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the page readable without it — including the hand-in on an Assignment page, which refuses what it cannot grade |
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
-| `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, and is safe to re-run either way |
+| `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
-| `tests/tutor-server.test.js` | The Tutor service serves, refuses and streams what it says it does — asked over HTTP |
+| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — and grades in a role composed from the Grader's own two files, never the Tutor's |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
-| `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, and recovers from a service that is stopped or failing |
+| `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
@@ -206,6 +206,14 @@ above does not cross-guard, so `tutor-helper.test.js` pins it — from the stub'
 where it cut, not from the chunks that came back. Where the stub cut is the stub's to promise;
 whether a reader sees those cuts as separate chunks is the pipe's, and a reader that stalls long
 enough gets the lot in one.
+
+**Grading is asked of the same fixture**, because it is the same endpoint: `service.ask({ role:
+'grader', … })`. What the grading checks look at is the part that differs — the composed system
+prompt, which must be the Grader's two files and must *not* contain either of the Tutor's; the
+payload, which names the Assignment page and never carries the Rubric; and the Workspace on disk
+afterwards, where a verdict has become a numbered Learning Record. That last one needs no
+`waitFor`: the record is written before `done` is sent, which is the ordering that lets the page
+name where it landed.
 
 **Each test gets its own service**, because the stub's transcript is fixed when the process
 starts. A port is picked by asking the OS for a free one — which makes it free a moment ago rather
@@ -476,9 +484,10 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   writes resolve *there*. `assets.test.js` covers the part that matters — every `assets/…` path
   either one names must exist in a scaffolded Workspace.
 - **The Components the Teacher builds are not checked**, because there is nothing there to
-  check. Every file the selection guide names is one the plugin ships — the four Components, the
-  shared stylesheet, the bootstrap — and every other row names a teaching act and what to reach
-  for, which resolves to no file at all. The underlying rule is unchanged and still enforced: an
+  check. Every file the selection guide names is one the plugin ships — the shipped Components,
+  the shared stylesheet, the bootstrap — and every other row names a teaching act and what to
+  reach for, which resolves to no file at all. (No count here on purpose: a number written into
+  prose is a fact this file does not own, and it was already one behind before it was two.) The underlying rule is unchanged and still enforced: an
   `assets/…` path in any shipped document is a promise that the scaffold installs it, so writing
   a row with that prefix is how a Component opts into `assets.test.js`. Nothing stops a future
   row naming `scrolly.js` as a bare filename — that would be invisible here, and it is also what
@@ -488,6 +497,11 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,
   and `is-live` is exempt because it is the mount marker rather than a visual state — but never
   that it looks right. Judging a lesson's appearance still means opening it.
+- **The Grader's judgement is not tested, and cannot be.** The stub agent replays a fixed
+  transcript, so every grading check here is about what the Grader is *asked* and what happens to
+  what it *said* — never about whether the verdict is right. That it judges against the stored
+  Rubric is a property of `tutor/GRADER.md` plus the payload, and both are checked; whether it
+  judges well is read by opening `learning-records/`.
 - **The Dossier is not driven.** `index.html` renders the same three slots from the same
   manifest, and degrades the same way, but its script is inline rather than a file — the fixture
   DOM runs `<script src>` only, so nothing here mounts it. What `assets.test.js` covers is the

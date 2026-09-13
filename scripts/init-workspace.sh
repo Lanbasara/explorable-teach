@@ -74,7 +74,7 @@ link() { # link <src> <dest-relative>   — the plugin's own, pointed at
 echo "Scaffolding teaching workspace at $TARGET"
 echo
 
-for d in lessons learning-records reference assets tutor; do
+for d in lessons assignments submissions learning-records reference assets tutor; do
   [ -d "$TARGET/$d" ] || { mkdir -p "$TARGET/$d"; echo "  mkdir   $d/"; }
 done
 
@@ -83,8 +83,11 @@ link  "$RUNTIME/tutor/server.js"    "tutor/server.js"
 link  "$RUNTIME/tutor/tutorctl.sh"  "tutor/tutorctl.sh"
 link  "$RUNTIME/tutor/README.md"    "tutor/README.md"
 link  "$RUNTIME/tutor/ROLE.md"      "tutor/ROLE.md"
-place "$TPL/tutor/TUNING.md"    "tutor/TUNING.md"
+link  "$RUNTIME/tutor/GRADER.md"    "tutor/GRADER.md"
+place "$TPL/tutor/TUNING.md"        "tutor/TUNING.md"
+place "$TPL/tutor/GRADER-TUNING.md" "tutor/GRADER-TUNING.md"
 place "$TPL/agents/tutor.md"    ".claude/agents/tutor.md"
+place "$TPL/agents/grader.md"   ".claude/agents/grader.md"
 
 # Page infrastructure: the widget, the nav bar, the bootstrap. The manifest is
 # the one file here that describes this course rather than any course.
@@ -96,6 +99,12 @@ link  "$RUNTIME/assets/nav.css"        "assets/nav.css"
 link  "$RUNTIME/assets/lesson-boot.js" "assets/lesson-boot.js"
 place "$TPL/assets/units.js"       "assets/units.js"
 place "$TPL/index.html"            "index.html"
+
+# Where a submission too large for the assignment page is put. Placed rather
+# than merely mkdir'd so the directory is a real thing in the learner's version
+# control from day one: a submission is the evidence a verdict was reached on,
+# and an empty directory git never records is one nobody can look back at.
+place "$TPL/submissions/README.md" "submissions/README.md"
 
 # Shared styles, then the Components that do not vary by subject. Every page
 # in the workspace links style.css; a lesson links only the Components it uses.
@@ -110,6 +119,8 @@ link "$RUNTIME/assets/drag-order.js"       "assets/drag-order.js"
 link "$RUNTIME/assets/drag-order.css"      "assets/drag-order.css"
 link "$RUNTIME/assets/checkpoint.js"       "assets/checkpoint.js"
 link "$RUNTIME/assets/checkpoint.css"      "assets/checkpoint.css"
+link "$RUNTIME/assets/assignment.js"       "assets/assignment.js"
+link "$RUNTIME/assets/assignment.css"      "assets/assignment.css"
 
 echo
 summary="$copied created, $skipped left alone, $linked pointed at the plugin"
@@ -118,7 +129,8 @@ echo "$summary."
 echo
 echo "Still to author (these depend on the subject and the learner):"
 echo "  (assets/units.js was installed empty — fill it in so index.html has content)"
-echo "  (tutor/TUNING.md is a placeholder — tune it for this subject; tutor/ROLE.md is the plugin's)"
+echo "  (tutor/TUNING.md and tutor/GRADER-TUNING.md are placeholders — tune them for this subject;"
+echo "   tutor/ROLE.md and tutor/GRADER.md are the plugin's)"
 echo
 for f in MISSION.md CURRICULUM.md RESOURCES.md TECH-STACK.md NOTES.md; do
   [ -e "$TARGET/$f" ] && echo "  have    $f" || echo "  MISSING $f"

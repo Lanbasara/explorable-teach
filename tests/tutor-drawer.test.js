@@ -22,7 +22,9 @@ const { test } = require('node:test');
 
 const { Workspace } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
-const { LESSON_HTML } = require('./helpers/unit.js');
+const { LESSON_HTML, UNIT, PAGES } = require('./helpers/unit.js');
+
+const ASSIGNMENT_HTML = PAGES.find((page) => page.key === 'assignment').html;
 
 /** An answer with every piece of Markdown a Tutor actually writes. */
 const ANSWER = [
@@ -184,6 +186,9 @@ function clipboard() {
  */
 function mount(assetsDir, options = {}) {
   const {
+    html = LESSON_HTML,
+    at = '/lessons/0003-fork-exec.html',
+    before = [],
     chunks = chunksFor(ANSWER),
     ends = true,
     withRenderer = true,
@@ -198,9 +203,9 @@ function mount(assetsDir, options = {}) {
   const clocks = timers();
   const pad = clipboard();
 
-  const page = Page.load(LESSON_HTML, assetsDir, {
+  const page = Page.load(html, assetsDir, {
     globals: {
-      location: { protocol: 'http:', pathname: '/lessons/0003-fork-exec.html' },
+      location: { protocol: 'http:', pathname: at },
       localStorage: store,
       setTimeout,
       setInterval: clocks.setInterval,
@@ -226,6 +231,9 @@ function mount(assetsDir, options = {}) {
 
   if (withRenderer) page.script('rich-text.js');
   page.script('tutor.js');
+  // After the drawer, the way lesson-boot.js loads it: a Component that looked
+  // for `window.Tutor` at mount would find nothing on a real page either.
+  for (const file of before) page.script(file);
 
   page.asked = asked;
   page.store = store;
@@ -241,6 +249,27 @@ function lesson(t, options) {
   const ws = Workspace.create(t);
   ws.scaffold();
   return mount(ws.path('assets'), options);
+}
+
+/** The Assignment page of the same Unit, with its hand-in mounted over the drawer. */
+function assignment(t, options) {
+  const ws = Workspace.create(t);
+  ws.scaffold();
+  return mount(ws.path('assets'), {
+    html: ASSIGNMENT_HTML,
+    at: '/' + UNIT.assignment,
+    before: ['assignment.js'],
+    ...options,
+  });
+}
+
+/** Hand in a short answer the way a learner does: write it, press the button. */
+async function hand(page, answer = '第二段读的是第一段的 stdout。') {
+  await settle(); // the health probe, which is what puts the drawer online
+  page.type(page.query('#assignment-1-answer'), answer);
+  page.click(page.query('.assignment-send'));
+  await settle();
+  return page.query('.tutor-msg.tutor .tutor-msg-body');
 }
 
 /** Let the drawer's promise chain run to the end of the stream. */
@@ -618,4 +647,133 @@ test('the widget finds a service started after the Lesson was opened, without a 
   assert.equal(page.text('.tutor-send'), '发送');
   assert.equal(page.text('.tutor-hint'), '', 'the instructions for starting it are gone');
   assert.equal(page.timers.live.size, 0, 'and it stops asking');
+});
+
+/* ------------------------------------------------------------- grading */
+
+// The other role the drawer carries. Everything around the answer is the same
+// code, which is the point — so what is driven here is the part that is not:
+// the request goes out as a grading, the thread stays a grading, and a service
+// that is not running degrades the same way it does for a question.
+
+const VERDICT = [
+  '**过了。**',
+  '',
+  '- 你说清楚了每一段的 `stdin` 是上一段的 `stdout`',
+  '- 中间那段为什么不落成文件,也答到了',
+  '',
+  '下次试试三段以上的管道。',
+].join('\n');
+
+test('a Submission handed in from the page is graded in the same page', async (t) => {
+  const page = assignment(t, { chunks: chunksFor(VERDICT) });
+
+  const body = await hand(page, '第二段读的是第一段的 stdout。');
+
+  assert.equal(page.asked.length, 1, 'pressing the button is what asks');
+  const request = page.asked[0];
+  assert.equal(request.role, 'grader', 'a Submission is judged by the Grader, never by the Tutor');
+  assert.equal(request.lesson, UNIT.assignment, 'and against the Rubric stored on the page it came from');
+  assert.equal(request.question, '第二段读的是第一段的 stdout。');
+  assert.deepEqual(request.history, [], 'a hand-in opens a line of questioning rather than joining one');
+
+  assert.ok(page.query('.tutor-drawer').classList.contains('open'), 'the verdict arrives where the learner is');
+  assert.ok(body.querySelector('strong'), 'and as the rich text it was written as');
+  assert.match(body.textContent, /过了/);
+
+  // Labelled as the role that gave it, in the message and in the header: "助教"
+  // over a verdict would be the one thing this design exists to rule out, said
+  // in the page — and the drawer is the same drawer, so the header is the only
+  // thing saying who the composer underneath it now reaches.
+  assert.equal(page.text('.tutor-msg.tutor .tutor-msg-role'), '评分');
+  assert.match(page.text('.tutor-title'), /作业评分/);
+  assert.match(page.text('.tutor-suggest'), /没过|判定|改/, 'and what to ask next suits a verdict');
+  assert.ok(page.query('.assignment').classList.contains('is-sent'));
+});
+
+test('a verdict can be questioned, and the follow-up reaches the Grader that gave it', async (t) => {
+  const page = assignment(t, {
+    reply: (n) =>
+      Promise.resolve({
+        ok: true,
+        body: { getReader: () => readerFor(chunksFor(n === 1 ? VERDICT : '因为你没提中间那一段。')) },
+      }),
+  });
+
+  await hand(page);
+
+  page.type(page.query('.tutor-input'), '中间那一段为什么算没答？');
+  page.click(page.query('.tutor-send'));
+  await settle();
+
+  assert.equal(page.asked.length, 2);
+  const followUp = page.asked[1];
+  assert.equal(followUp.role, 'grader', 'a question about a verdict goes to whoever gave the verdict');
+  assert.equal(followUp.lesson, UNIT.assignment);
+  assert.equal(followUp.threadId, page.asked[0].threadId, 'and stays in the thread the Submission opened');
+  assert.deepEqual(
+    followUp.history.map((turn) => turn.role),
+    ['user', 'assistant'],
+    'with the Submission and the verdict replayed, because that is what it is about',
+  );
+
+  const answers = page.queryAll('.tutor-msg.tutor .tutor-msg-body');
+  assert.equal(answers.length, 2, 'the verdict stays, and the answer about it lands under it');
+  assert.match(answers[1].textContent, /中间那一段/);
+});
+
+test('where a verdict was recorded is said in the page that asked for it', async (t) => {
+  const recorded = 'learning-records/0004-0003-pipe-audit.md';
+  const page = assignment(t, {
+    chunks: [event('done', { answer: VERDICT, durationMs: 9, record: recorded })],
+  });
+
+  await hand(page);
+
+  assert.match(page.text('.tutor-recorded'), new RegExp(recorded.replace(/[/.]/g, '\\$&')));
+
+  // A lesson question is not a record, so nothing claims one was written.
+  const asking = lesson(t);
+  await ask(asking);
+  assert.equal(asking.queryAll('.tutor-recorded').length, 0);
+});
+
+test('with the service stopped, handing in degrades to the same clipboard fallback', async (t) => {
+  const page = assignment(t, { health: () => false });
+
+  await hand(page, '第二段读的是第一段的 stdout。');
+
+  assert.equal(page.asked.length, 0, 'there is nothing running to ask');
+
+  const prompt = page.clipboard.text;
+  assert.match(prompt, /第二段读的是第一段的 stdout。/, 'the Submission is in the prompt');
+  assert.match(prompt, new RegExp(UNIT.assignment), 'and so is the page whose Rubric judges it');
+  assert.match(prompt, /\.claude\/agents\/grader\.md/, 'and it is put to the Grader, by name');
+
+  // The one thing this prompt must not do. It is pasted into whichever session
+  // the learner has open, and the likeliest one is the Teacher that wrote the
+  // Assignment — so an "or just answer as a grader yourself" alternative is how
+  // the rule the whole arrangement exists for gets broken by the fallback.
+  assert.match(prompt, /不要自己判/, 'the prompt refuses the session it lands in');
+  assert.ok(
+    !/或者以作业评分员的身份/.test(prompt),
+    'the fallback offers the reader a way to grade the Assignment itself',
+  );
+
+  // The page must not claim the work was judged when it was copied instead.
+  assert.match(page.text('.assignment-say'), /复制/);
+  assert.doesNotMatch(page.text('.assignment-say'), /判定会出现/);
+
+  // And the Submission is not lost: it is the first turn of a thread that is
+  // still there when the service comes up.
+  assert.match(page.text('.tutor-msg.user'), /第二段读的是第一段的 stdout。/);
+});
+
+test('a lesson question is still the Tutor\'s, and still names the Lesson it came from', async (t) => {
+  const page = lesson(t);
+  await ask(page);
+
+  assert.equal(page.asked[0].role, 'tutor');
+  assert.equal(page.asked[0].lesson, UNIT.lesson, 'the path is derived from the page, not assumed');
+  assert.match(page.text('.tutor-title'), /问答助教/, 'and the drawer says so');
 });

@@ -4,8 +4,12 @@
  *
  * Responsibilities:
  *   1. Serve the workspace statically so lessons run over http:// instead of file://
- *   2. POST /api/ask  -> stream an answer from headless `claude` as SSE
+ *   2. POST /api/ask  -> stream an answer from headless `claude` as SSE, in
+ *      whichever role the page asked for
  *   3. Append every Q&A to learning-records/questions.jsonl (curriculum signal)
+ *   4. Write a graded assignment's verdict into learning-records/ as a record
+ *      of its own, because that is evidence about the learner rather than
+ *      feedback about a lesson
  *
  * This file lives in the plugin and serves whichever workspace it is pointed
  * at, so a fix here reaches every workspace rather than only the ones
@@ -74,7 +78,8 @@ const MAX_BODY_BYTES = 128 * 1024;
 const CLAUDE_TIMEOUT_MS = 120_000;
 const IDLE_TIMEOUT_MS = Number(process.env.IDLE_TIMEOUT_MS) || 8 * 60 * 60_000;
 
-const QUESTION_LOG = path.join(WORKSPACE_ROOT, 'learning-records', 'questions.jsonl');
+const RECORDS_DIR = path.join(WORKSPACE_ROOT, 'learning-records');
+const QUESTION_LOG = path.join(RECORDS_DIR, 'questions.jsonl');
 
 // ---------------------------------------------------------------- roles
 
@@ -82,30 +87,75 @@ const QUESTION_LOG = path.join(WORKSPACE_ROOT, 'learning-records', 'questions.js
  * Role prompts live in files, not in this source, and each one is read in two
  * halves: the shared definition that ships beside this server, then whatever
  * the workspace adds for its own subject. The Claude Code subagent at
- * .claude/agents/tutor.md is pointed at the same two files in the same order,
- * so there is exactly one definition of how the tutor behaves and neither path
+ * .claude/agents/<role>.md is pointed at the same two files in the same order,
+ * so there is exactly one definition of how each role behaves and neither path
  * is a degraded version of the other.
  *
  *   roleFile    next to this server, in the plugin. Required.
  *   tuningFile  relative to the workspace. Optional — a workspace that has not
  *               been tuned yet gets the shared definition alone.
+ *   replyLabel  what this role is called when its own turns are replayed back
+ *               to it.
+ *   records     true when a first turn is teaching signal the next boot
+ *               sequence has to see, rather than one more question in the log.
  */
 const ROLES = {
   tutor: {
     roleFile: 'ROLE.md',
     tuningFile: path.join('tutor', 'TUNING.md'),
-    buildPayload({ lesson, selection, question, inlined, history }) {
+    replyLabel: '助教：',
+    buildPayload({ page, selection, question, inlined, history }) {
       const parts = [];
       if (inlined) parts.push(inlined);
-      if (lesson) parts.push(`学生正在读这一课：${lesson}`);
+      if (page) parts.push(`学生正在读这一课：${page}`);
       if (selection) parts.push(`他选中了这段原文：\n"""\n${selection}\n"""`);
-      const transcript = renderHistory(history);
+      const transcript = renderHistory(history, this.replyLabel);
       if (transcript) parts.push(transcript);
       parts.push(`他的问题：${question}`);
       return parts.join('\n\n');
     },
   },
-  // Future: grader: { roleFile: 'GRADER.md', buildPayload(...) { ... } }
+
+  /**
+   * The same transport, the same stream, the same log — and a different role
+   * file, which is the whole of the difference. Grading is never the session
+   * that wrote the assignment: the criteria come from the rubric stored in the
+   * assignment page, which this payload does no more than point at. The rubric
+   * itself never rides the request, so what the grader judges is what is on
+   * disk rather than what a page chose to send.
+   */
+  grader: {
+    roleFile: 'GRADER.md',
+    tuningFile: path.join('tutor', 'GRADER-TUNING.md'),
+    replyLabel: '评分：',
+    records: true,
+    buildPayload({ page, selection, question, inlined, history }) {
+      const parts = [];
+      if (inlined) parts.push(inlined);
+      if (page) {
+        parts.push(
+          `这份作业的页面是：${page}\n` +
+            '先把它读掉。里面有一段不渲染的 <script type="application/x-rubric"> 块，那就是这次要用的' +
+            '评分标准；页面上看不到它，学生也没见过。',
+        );
+      }
+      if (selection) parts.push(`他指着作业里的这一段：\n"""\n${selection}\n"""`);
+      const transcript = renderHistory(history, this.replyLabel);
+      if (transcript) parts.push(transcript);
+
+      // A thread's first turn is the submission; everything after it is the
+      // learner arguing with a verdict that is already on the record.
+      if (history && history.length) parts.push(`他对你刚才的判定还有话问：${question}`);
+      else {
+        parts.push(
+          `这是他交上来的作业：\n"""\n${question}\n"""\n\n` +
+            '按页面里存着的 Rubric 判，别凭印象。提交里提到工作区里的文件或目录，自己去读——' +
+            '大件的成果通常在 submissions/ 底下。',
+        );
+      }
+      return parts.join('\n\n');
+    },
+  },
 };
 
 /**
@@ -131,10 +181,10 @@ function sanitizeHistory(raw) {
   return turns;
 }
 
-/** Heading must match what ROLE.md promises the tutor it will receive. */
-function renderHistory(history) {
+/** Heading must match what the role definitions promise they will receive. */
+function renderHistory(history, replyLabel) {
   if (!history || !history.length) return '';
-  const lines = history.map((t) => (t.role === 'user' ? '学生：' : '助教：') + t.content);
+  const lines = history.map((t) => (t.role === 'user' ? '学生：' : replyLabel) + t.content);
   return `## 本次对话的前几轮\n\n${lines.join('\n\n')}`;
 }
 
@@ -369,6 +419,95 @@ async function logQuestion(entry) {
   }
 }
 
+// ------------------------------------------------------- learning records
+
+const MAX_RECORD_EXCERPT = 1200;
+const RECORD_ATTEMPTS = 20;
+
+/**
+ * How a grader says it did not grade — the opening GRADER.md tells it to write
+ * when the assignment stores no rubric, or the page cannot be read at all.
+ *
+ * Same arrangement as renderHistory's heading: a short contract between this
+ * file and the role definition beside it, both the plugin's. It exists because
+ * a refusal is not evidence about the learner, and a learning record claiming
+ * a verdict that was never reached is worse than no record — the next boot
+ * sequence plans from these.
+ */
+const CANNOT_GRADE = /^无法判定[：:]/;
+
+/** `assignments/0003-pipe-audit.html` -> `0003-pipe-audit`. */
+function slugOf(page) {
+  const base = path.basename(String(page || '')).replace(/\.[^.]*$/, '');
+  const slug = base.toLowerCase().replace(/[^a-z0-9一-鿿-]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug || 'assignment';
+}
+
+/** The next free number in the records directory, as the format specifies it. */
+async function nextRecordNumber() {
+  let highest = 0;
+  let names = [];
+  try {
+    names = await fsp.readdir(RECORDS_DIR);
+  } catch {
+    return 1; // No directory yet, so nothing has been numbered.
+  }
+  for (const name of names) {
+    const m = /^(\d{4})-/.exec(name);
+    if (m) highest = Math.max(highest, Number(m[1]));
+  }
+  return highest + 1;
+}
+
+/**
+ * A verdict, written where the next boot sequence already looks.
+ *
+ * The question log is read as feedback about the *lesson*; a learning record is
+ * read as evidence about the *learner*, and that is what a graded assignment
+ * produces. Written here rather than left to a session because the session that
+ * would have written it is the one that ended before the assignment was done.
+ *
+ * `wx` and a retry, because the number is chosen from a directory listing and
+ * two verdicts landing together would otherwise pick the same one. Returns the
+ * workspace-relative path, or null if nothing could be written — a verdict the
+ * learner can read beats a request failed over a file.
+ */
+async function writeLearningRecord({ page, question, answer }) {
+  try {
+    const slug = slugOf(page);
+    const excerpt = question.length > MAX_RECORD_EXCERPT
+      ? question.slice(0, MAX_RECORD_EXCERPT) + '…（已截断）'
+      : question;
+
+    // Provenance, not a claim about what was applied. The verdict itself is the
+    // body; this says only where it came from, so a record never asserts a
+    // rubric was used on the strength of the grader having answered.
+    const body =
+      `# 作业判定：${slug}\n\n` +
+      `${answer}\n\n` +
+      '## Evidence\n\n' +
+      `- 作业：${page || '（提交时没有说是哪一份）'}\n` +
+      `- 提交：\n\n${excerpt.split('\n').map((line) => `  > ${line}`).join('\n')}\n\n` +
+      `- 判定：Grader 给出，${new Date().toISOString()}\n`;
+
+    await fsp.mkdir(RECORDS_DIR, { recursive: true });
+    let n = await nextRecordNumber();
+    for (let attempt = 0; attempt < RECORD_ATTEMPTS; attempt++, n++) {
+      const rel = path.join('learning-records', `${String(n).padStart(4, '0')}-${slug}.md`);
+      try {
+        await fsp.writeFile(path.join(WORKSPACE_ROOT, rel), body, { encoding: 'utf8', flag: 'wx' });
+        return rel;
+      } catch (err) {
+        if (err.code !== 'EEXIST') throw err;
+      }
+    }
+    throw new Error(`no free number after ${RECORD_ATTEMPTS} tries`);
+  } catch (err) {
+    console.error('[tutor] failed to write the learning record:', err.message);
+    return null;
+  }
+}
+
 async function handleAsk(req, res) {
   let body;
   try {
@@ -401,7 +540,10 @@ async function handleAsk(req, res) {
     return send(res, 400, 'application/json', JSON.stringify({ error: `selection exceeds ${MAX_SELECTION} chars` }));
 
   const inlined = await buildInlinedContext();
-  const payload = spec.buildPayload({ lesson, selection, question, inlined, history });
+  // `lesson` on the wire and in the log, because that is what a tutor request
+  // has always called it; `page` to the role, because a grader is handed an
+  // assignment rather than a lesson and the field means "what is open".
+  const payload = spec.buildPayload({ page: lesson, selection, question, inlined, history });
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -441,17 +583,41 @@ async function handleAsk(req, res) {
     const durationMs = Date.now() - started;
     const answer = (finalText || streamed).trim();
 
-    if (status === 'done') {
-      sse(res, 'done', { answer, durationMs });
+    const close = () => {
+      res.end();
+      if (!child.killed) child.kill('SIGTERM');
+    };
+
+    if (status !== 'done') {
+      sse(res, 'error', { message: extra || 'tutor failed', durationMs });
+      return close();
+    }
+
+    // The record is written before the verdict is delivered, so the page can
+    // name where it landed and be telling the truth. A record that could not be
+    // written costs the learner nothing: the verdict goes out either way.
+    //
+    // The *sanitized* history, not `turn`. They answer different questions:
+    // `turn` is the learner's place in the thread, counted before capping, and
+    // this is "did the agent see a verdict of its own above this?". A request
+    // whose whole replay was malformed showed the agent nothing, so it produced
+    // a first verdict and that verdict is a record.
+    const recording =
+      spec.records && answer && !history.length && !CANNOT_GRADE.test(answer)
+        ? writeLearningRecord({ page: lesson, question, answer })
+        : Promise.resolve(null);
+
+    const deliver = (record) => {
+      sse(res, 'done', record ? { answer, durationMs, record } : { answer, durationMs });
       logQuestion({
         timestamp: new Date().toISOString(),
         role, threadId, turn, lesson, selection, question, answer, durationMs,
+        ...(record ? { record } : {}),
       });
-    } else {
-      sse(res, 'error', { message: extra || 'tutor failed', durationMs });
-    }
-    res.end();
-    if (!child.killed) child.kill('SIGTERM');
+      close();
+    };
+
+    recording.then(deliver);
   };
 
   const timer = setTimeout(() => finish('error', '老师思考超时（120 秒）'), CLAUDE_TIMEOUT_MS);

@@ -15,14 +15,17 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 
 const { Workspace } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
-const { SHARED_STYLES, PAGES } = require('./helpers/unit.js');
+const { SKILL_DIR } = require('./helpers/docs.js');
+const { SHARED_STYLES, PAGES, RUBRIC } = require('./helpers/unit.js');
 
 const LESSON = PAGES.find((p) => p.key === 'lesson');
 const GATE = PAGES.find((p) => p.key === 'checkpoint');
+const TASK = PAGES.find((p) => p.key === 'assignment');
 
 /**
  * A stylesheet minus its print rules. A class styled only when the lesson is
@@ -34,11 +37,11 @@ function onScreen(css) {
 }
 
 /** One page of the fixture Unit, in a Workspace scaffolded the way a learner's is. */
-function open(t, fixture, { run = fixture.components.map((c) => c.js) } = {}) {
+function open(t, fixture, { run = fixture.components.map((c) => c.js), globals } = {}) {
   const ws = Workspace.create(t);
   ws.scaffold();
 
-  const page = Page.load(fixture.html, ws.path('assets'));
+  const page = Page.load(fixture.html, ws.path('assets'), globals ? { globals } : undefined);
   page.workspace = ws;
   for (const file of run) page.script(file);
   return page;
@@ -52,6 +55,38 @@ function lesson(t, options) {
 /** The Checkpoint page: the Exercises it is built from, then the gate itself. */
 function checkpoint(t, options) {
   return open(t, GATE, options);
+}
+
+/**
+ * The Assignment page, with a stand-in for the drawer it hands a Submission to.
+ *
+ * The Component is deliberately incapable of asking anything itself — it has no
+ * `fetch`, and `assets.test.js` holds every Component to that — so what it does
+ * at the end is call one function on `window.Tutor`. Recording that call is the
+ * whole of what there is to observe here; what happens after it is the drawer's,
+ * and `tutor-drawer.test.js` drives that end.
+ */
+function assignment(t, options = {}) {
+  const handed = [];
+  const drawer = {
+    grade: (submission) => {
+      handed.push(submission);
+      return options.outcome === undefined ? 'sent' : options.outcome;
+    },
+  };
+  // `grade` answers with one of four words. The page has something different to
+  // say for each, and the stub can be told to give back any of them.
+  const page = open(t, TASK, { ...options, globals: { Tutor: options.drawer === null ? undefined : drawer } });
+  page.handed = handed;
+  return page;
+}
+
+/** Fill the hand-in in and press the button. */
+function handIn(page, { answer = '', paths = '' } = {}) {
+  if (answer) page.type(page.query('#assignment-1-answer'), answer);
+  if (paths) page.type(page.query('#assignment-1-paths'), paths);
+  page.click(page.query('.assignment-send'));
+  return page;
 }
 
 test('every page of the Unit reads as prose before a single Component runs', (t) => {
@@ -412,6 +447,221 @@ test('a Checkpoint that cannot give one of its verdicts gives neither', (t) => {
   assert.equal(page.query('.checkpoint-progress'), null, 'and no score is reported for a verdict never given');
 });
 
+/* ------------------------------------------------------------- assignment */
+
+test('an Assignment offers a hand-in in place of the note telling the Learner to go elsewhere', (t) => {
+  const page = assignment(t);
+
+  assert.ok(page.query('.assignment').classList.contains('is-live'));
+  assert.ok(page.query('.assignment-handin'), 'a task with no way to hand it in dead-ends on this page');
+  assert.ok(page.query('#assignment-1-answer'), 'short answers are written here');
+  assert.ok(page.query('#assignment-1-paths'), 'and anything larger is named by where it was put');
+
+  const fallback = page.query('.assignment-fallback');
+  assert.equal(fallback.hidden, true, 'what the form replaces is what the form takes over');
+  assert.ok(
+    page.query('.assignment-handin').nextSibling === fallback,
+    'and it goes where that note was, rather than somewhere else on the page',
+  );
+});
+
+test('a short answer is handed over as the Submission it is', (t) => {
+  const page = assignment(t);
+
+  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+
+  assert.equal(page.handed.length, 1, 'one press, one Submission');
+  assert.equal(page.handed[0].text, '第一段的 stdout 就是第二段的 stdin。');
+  assert.ok(page.query('.assignment').classList.contains('is-sent'));
+  assert.match(page.text('.assignment-say'), /已交/);
+});
+
+test('work the page cannot hold is handed over as paths into the Workspace', (t) => {
+  const page = assignment(t);
+
+  handIn(page, {
+    answer: '细节写在笔记里了。',
+    paths: 'submissions/0003-pipes/notes.md\n- submissions/0003-pipes/run.log\n\n',
+  });
+
+  assert.equal(page.handed.length, 1);
+  const submission = page.handed[0].text;
+
+  assert.match(submission, /细节写在笔记里了。/, 'the short answer still travels');
+  assert.match(submission, /- submissions\/0003-pipes\/notes\.md/, 'and so does where the rest of it is');
+  assert.match(submission, /- submissions\/0003-pipes\/run\.log/, 'a bullet the Learner typed is not a second bullet');
+
+  // Nothing is read, packed or uploaded here: what crosses is the path, and the
+  // Grader opens it with the read-only tools it already has.
+  assert.ok(!/notes\.md contents|base64/i.test(submission));
+});
+
+test('a Submission with nothing in it is refused, and says what would fix it', (t) => {
+  const page = assignment(t);
+
+  handIn(page);
+
+  assert.deepEqual(page.handed, [], 'nothing was handed over');
+  assert.ok(page.query('.assignment').classList.contains('is-refused'));
+  assert.ok(page.text('.assignment-say').length > 0, 'a button that does nothing silently is a broken button');
+});
+
+test('a path out of the Workspace is refused rather than quietly rewritten', (t) => {
+  const page = assignment(t);
+
+  for (const escape of ['../../etc/passwd', '/etc/passwd', 'file:///etc/passwd']) {
+    page.type(page.query('#assignment-1-paths'), escape);
+    page.click(page.query('.assignment-send'));
+
+    assert.deepEqual(page.handed, [], `${escape} should not have been handed to the Grader`);
+    assert.ok(page.query('.assignment').classList.contains('is-refused'));
+    assert.match(page.text('.assignment-say'), /相对路径/, 'and the Learner is told what a path looks like here');
+  }
+
+  // The other half of the same claim: a path that stays inside is handed over,
+  // so this is a boundary rather than a blanket refusal of anything with a dot.
+  page.type(page.query('#assignment-1-paths'), 'submissions/0003-pipes/notes.md');
+  page.click(page.query('.assignment-send'));
+  assert.equal(page.handed.length, 1);
+  assert.ok(!page.query('.assignment').classList.contains('is-refused'));
+});
+
+test('an answer too large for the page is sent to the Workspace instead of being cut', (t) => {
+  const page = assignment(t);
+
+  // The service caps one question at 2000 characters. The Learner finds that
+  // out here, while the answer is still in front of them and the paths box is
+  // one line down — rather than as a 400 after they pressed send.
+  page.query('#assignment-1-answer').value = 'x'.repeat(2100);
+  page.click(page.query('.assignment-send'));
+
+  assert.deepEqual(page.handed, [], 'a truncated Submission is a Submission judged on half the work');
+  assert.match(page.text('.assignment-say'), /submissions\//, 'and it says where the rest of it goes');
+});
+
+test('the Rubric travels with the Assignment, rendered nowhere and sent nowhere', (t) => {
+  const page = assignment(t);
+
+  const stored = page.query('.assignment script');
+  assert.ok(stored, 'the criteria live in the file that sets the task, or a later Grader has none');
+  assert.equal(
+    stored.getAttribute('type'),
+    'application/x-rubric',
+    'a type no browser executes, so the block is data the page carries rather than code it runs',
+  );
+  assert.match(stored.textContent, new RegExp(RUBRIC.split('\n')[1]), 'and it is all there to be read');
+
+  // A <script> is never rendered, whatever its type — so the Learner does not
+  // read the criteria they are about to be judged against. What would break
+  // that is the Component copying the text somewhere that *is* rendered.
+  const shown = page
+    .queryAll('.assignment *')
+    .filter((node) => node.localName !== 'script')
+    .filter((node) => node.textContent.includes(RUBRIC.split('\n')[1]));
+  assert.deepEqual(shown.map((node) => node.localName), [], 'the Rubric reached the page as something readable');
+
+  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+  assert.ok(
+    !page.handed[0].text.includes(RUBRIC.split('\n')[1]),
+    'the Rubric stays on disk — a Grader reads the page rather than being handed its own criteria',
+  );
+});
+
+test('an Assignment with no stored Rubric offers no hand-in at all', (t) => {
+  const page = assignment(t, { run: [] });
+
+  const stored = page.query('.assignment script');
+  assert.ok(stored, 'expected the fixture Assignment to carry a Rubric to take away');
+  stored.remove();
+
+  page.script('assignment.js');
+
+  const root = page.query('.assignment');
+  assert.ok(!root.classList.contains('is-live'), 'there is nothing here to judge a Submission against');
+  assert.equal(page.query('.assignment-handin'), null, 'so nothing invites one');
+  assert.equal(page.query('.assignment-fallback').hidden, false, 'and the way round it is still on the page');
+});
+
+test('an Assignment with no way round it offers no hand-in either', (t) => {
+  const page = assignment(t, { run: [] });
+
+  const fallback = page.query('.assignment-fallback');
+  assert.ok(fallback, 'expected the fixture Assignment to say what to do without this page');
+  fallback.remove();
+
+  page.script('assignment.js');
+
+  const root = page.query('.assignment');
+  assert.ok(!root.classList.contains('is-live'), 'a form is not a plan for the Learner whose scripts never ran');
+  assert.equal(page.query('.assignment-handin'), null);
+});
+
+test('the page speaks for every answer the drawer can give, including one it cannot', (t) => {
+  // `grade` reports what became of the Submission, and the page says a
+  // different thing for each. The last case is the one worth pinning: a drawer
+  // that grew a fifth answer must not leave the button looking like nothing
+  // happened, so an unrecognised one still refuses out loud.
+  for (const [outcome, expected] of [
+    ['sent', /已交出去/],
+    ['copied', /复制/],
+    ['busy', /还在判/],
+    ['nonsense-from-a-future-drawer', /再试/],
+  ]) {
+    const page = assignment(t, { outcome });
+    handIn(page, { answer: '第二段读的是第一段的 stdout。' });
+
+    assert.match(page.text('.assignment-say'), expected, `nothing is said for "${outcome}"`);
+    assert.equal(
+      page.query('.assignment').classList.contains('is-sent'),
+      outcome === 'sent' || outcome === 'copied',
+      `"${outcome}" is reported as a hand-in when it was not, or the reverse`,
+    );
+  }
+});
+
+test('the page refuses at the Submission size the service refuses at', () => {
+  // A copy of `MAX_QUESTION`, because a Component has no imports and has to
+  // work from file:// where there is no service to ask. Held equal here rather
+  // than trusted: drifted apart, the page would wave through a Submission the
+  // service then rejects, after the Learner pressed the button.
+  const server = fs.readFileSync(
+    path.join(SKILL_DIR, 'runtime', 'tutor', 'server.js'),
+    'utf8',
+  );
+  const component = fs.readFileSync(
+    path.join(SKILL_DIR, 'runtime', 'assets', 'assignment.js'),
+    'utf8',
+  );
+
+  const capOf = (text, name) => {
+    const found = new RegExp(String.raw`\b${name}\s*=\s*(\d+)`).exec(text);
+    assert.ok(found, `${name} is no longer a plain number; this check cannot read it`);
+    return Number(found[1]);
+  };
+
+  assert.equal(
+    capOf(component, 'MAX_SUBMISSION'),
+    capOf(server, 'MAX_QUESTION'),
+    'the page and the service disagree about how much a Submission may hold',
+  );
+});
+
+test('a Submission the drawer cannot take is not a Submission the Learner loses', (t) => {
+  // lesson-boot.js loads the drawer asynchronously and carries on past a script
+  // that failed, so "not there yet" and "never arrived" are both real states.
+  const page = assignment(t, { drawer: null });
+
+  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+
+  assert.ok(page.query('.assignment').classList.contains('is-refused'));
+  assert.ok(!page.query('.assignment').classList.contains('is-sent'), 'nothing was handed over, so nothing was sent');
+  assert.equal(
+    page.query('#assignment-1-answer').value,
+    '第一段的 stdout 就是第二段的 stdin。',
+    'and what they wrote is still in the box',
+  );
+});
+
 /* ------------------------------------------------------- styles cover them */
 
 test('every class a Component puts on the page is styled', (t) => {
@@ -427,6 +677,12 @@ test('every class a Component puts on the page is styled', (t) => {
     },
     checkpoint(page) {
       sit(page, { wrong: [2] });
+    },
+    assignment(page) {
+      // Refused rather than handed over: this page is opened with the bare
+      // globals every other Component gets, so there is no drawer to hand a
+      // Submission to — which is exactly the state the refusal exists for.
+      page.click(page.query('.assignment-send'));
     },
   };
 

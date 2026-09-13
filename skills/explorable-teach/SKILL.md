@@ -27,7 +27,9 @@ Begin every Session here, in this order, before proposing anything.
 2. `MISSION.md` — why they are here.
 3. `CURRICULUM.md` — the plan, and the progress marker on each Unit.
 4. The last two or three `learning-records/` — where the learner actually is, rather than where
-   the plan says they are.
+   the plan says they are. Some of them you did not write: an Assignment handed in between
+   Sessions leaves the Grader's verdict here, so this is where a task set two Units ago comes
+   back to you.
 5. `learning-records/questions.jsonl` — every question the learner put to the Tutor since you
    last looked. This is the highest-signal feedback the Workspace produces: three questions
    about one paragraph means that Lesson is wrong, not that the learner is slow.
@@ -158,7 +160,9 @@ closes on its Exercises. **Most Units warrant no Assignment at all**: models are
 served by a reflection prompt or by the next Unit building on them, and only skills need
 exercising somewhere real. If you cannot name what the learner would **do differently at work**
 afterwards, do not invent one — and when you can, remember that it is judged later, from the
-learner's Submission, by a Grader holding none of the context that set it.
+learner's Submission, by a Grader holding none of the context that set it. The verdict is written
+back as a Learning Record, so it reaches the next Session whether or not the learner thinks to
+mention it; an Assignment nobody needed therefore costs attention later as well as now.
 
 The forms all three take on the page are in [Authoring a Unit](./UNIT.md).
 

@@ -275,6 +275,16 @@
   color: var(--fg-faint);
 }
 
+/* Where a verdict landed. Quieter than the verdict, because it is a fact about
+   the workspace rather than part of the judgement. */
+.tutor-recorded {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--fg-faint);
+  border-left: 2px solid var(--border);
+  padding-left: 9px;
+}
+
 /* ---------- what a learner can do with an answer ---------- */
 
 .tutor-actions {

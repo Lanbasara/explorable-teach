@@ -4,18 +4,71 @@
    Backend : tutor/server.js   ->  node tutor/server.js
    Degrades: if the server is unreachable (e.g. opened via file://),
              the send button becomes "copy a well-formed prompt".
+
+   Two roles reach the learner through this one drawer, because everything
+   around an answer — the thread, the wait, the stop, the retry, the clipboard
+   fallback — is the same work whoever wrote it. A thread carries the role it
+   belongs to: a lesson question is the tutor's, and a submission handed in
+   from an assignment page (assets/assignment.js, via window.Tutor.grade) is
+   the grader's. Follow-ups stay with the role that answered, so questioning a
+   verdict reaches the agent that gave it.
    ============================================================ */
 
 (function () {
   'use strict';
 
-  var SUGGESTIONS = ['这段什么意思', '换个类比讲', '为什么不是这样', '和前面哪节课有关'];
+  // The roles this drawer carries, mirroring the service's own ROLES map — one
+  // entry each rather than a `convo.role === 'grader'` test wherever the two
+  // differ, so a third role is one entry here and not a fourth branch to find.
+  //
+  //   title    who the composer underneath is reaching, in the header
+  //   reply    what that role is called above an answer it gave
+  //   ask      the openings worth offering; a verdict is not a passage
+  //   lead     how the clipboard prompt opens, when there is no service
+  //   brief    what the clipboard prompt asks for at the end. It restates what
+  //            the role file says because on this path nothing loads a role
+  //            file: the learner is pasting into a session that has none.
+  var ROLES = {
+    tutor: {
+      title: '🎓 问答助教',
+      reply: '助教',
+      ask: ['这段什么意思', '换个类比讲', '为什么不是这样', '和前面哪节课有关'],
+      lead: '我正在读这一课：',
+      brief: '（请以问答助教的身份回答：先读 NOTES.md 和 MISSION.md 了解我的偏好和目标，'
+        + '渐进式披露，只讲我问的这一点。）'
+    },
+    grader: {
+      title: '📝 作业评分',
+      reply: '评分',
+      ask: ['这一条为什么没过', '我不同意这个判定', '下次该怎么改', '举个做对了的例子'],
+      lead: '我在做这份作业：',
+      // The subagent, and nothing else. Offering "or answer as a grader
+      // yourself" would invite whichever session this is pasted into to grade —
+      // and the session most likely to be open is the one that wrote the
+      // assignment, which is the one thing grading may never be.
+      brief: '（请用 grader 子 agent 判这份作业——它在 .claude/agents/grader.md，就在这个教案目录里。'
+        + '不要自己判：出题的老师不判自己出的作业。）'
+    }
+  };
   var START_CMD = 'node tutor/server.js';
 
   var lessonPath = (function () {
     var m = location.pathname.match(/[^/]+$/);
     return m ? decodeURIComponent(m[0]) : 'lesson';
   })();
+
+  // What the learner has open, as the service names it: the directory as well
+  // as the file, because an assignment does not live in lessons/ and a grader
+  // told to read the wrong path reads nothing. The storage keys stay on the
+  // bare filename — they are this page's own, and rekeying them would orphan
+  // every answer a learner had already pinned.
+  var pagePath = (function () {
+    var parts = location.pathname.split('/').filter(Boolean);
+    parts.pop();
+    var dir = parts.length ? decodeURIComponent(parts[parts.length - 1]) : '';
+    return dir ? dir + '/' + lessonPath : lessonPath;
+  })();
+
   var STORE_KEY = 'tutor-notes::' + lessonPath;
   var THREADS_KEY = 'tutor-threads::' + lessonPath;
   var MAX_THREADS = 20;
@@ -50,9 +103,10 @@
   // waits for the service to say so, which is what the `open` event is.
   var SENDING = '正在发送…';
 
-  // One thread = one line of questioning. Turns ride along in each request
-  // (bounded replay), so the server stays stateless and never resumes a session.
-  var convo = { id: null, selection: null, turns: [] };
+  // One thread = one line of questioning, put to one role. Turns ride along in
+  // each request (bounded replay), so the server stays stateless and never
+  // resumes a session.
+  var convo = { id: null, role: 'tutor', selection: null, turns: [] };
   var SEND_LAST_TURNS = 8; // server caps to 6; this just keeps the body small
 
   function newThreadId() {
@@ -80,7 +134,13 @@
   function persistConvo() {
     if (!convo.id || !convo.turns.length) return;
     var s = loadStore();
-    var rec = { id: convo.id, selection: convo.selection || '', turns: convo.turns, at: Date.now() };
+    var rec = {
+      id: convo.id,
+      role: convo.role,
+      selection: convo.selection || '',
+      turns: convo.turns,
+      at: Date.now()
+    };
     var i = s.threads.map(function (t) { return t.id; }).indexOf(convo.id);
     if (i === -1) s.threads.push(rec); else s.threads[i] = rec;
     s.threads.sort(function (a, b) { return b.at - a.at; });
@@ -96,11 +156,15 @@
   }
 
   // Archives whatever is live, then opens a clean thread. Nothing is discarded.
-  function startThread(sel) {
+  // `asRole` rather than `role`, which in here is the function naming whoever
+  // answers the live thread — shadowing it once already cost an afternoon.
+  function startThread(sel, asRole) {
     persistConvo();
     convo.id = newThreadId();
+    convo.role = asRole || 'tutor';
     convo.selection = sel || '';
     convo.turns = [];
+    renderRole();
     renderThread();
     renderHistory();
   }
@@ -108,13 +172,20 @@
   function loadThread(rec) {
     persistConvo();
     convo.id = rec.id;
+    convo.role = rec.role || 'tutor';
     convo.selection = rec.selection || '';
     convo.turns = (rec.turns || []).slice();
     currentSelection = convo.selection;
     setActive(convo.id);
+    renderRole();
     renderThread();
     renderQuote();
     renderHistory();
+  }
+
+  /** Whoever is answering the live thread. An unknown role reads as the Tutor. */
+  function role() {
+    return ROLES[convo.role] || ROLES.tutor;
   }
 
   function renderThread() {
@@ -208,7 +279,11 @@
 
   var head = el('div', 'tutor-head');
   var title = el('div', 'tutor-title');
-  title.appendChild(document.createTextNode('🎓 问答助教'));
+  // Who is on the other end, which changes under the learner: a Submission
+  // opens a Grader thread, and a header still reading 问答助教 over a verdict
+  // would be the one confusion this whole arrangement exists to avoid.
+  var titleText = document.createTextNode('');
+  title.appendChild(titleText);
   var status = el('span', 'tutor-status', '检测中');
   title.appendChild(status);
   var histBtn = el('button', 'tutor-newtopic tutor-hist-btn', '历史');
@@ -229,11 +304,21 @@
 
   var foot = el('div', 'tutor-foot');
   var suggestions = el('div', 'tutor-suggestions');
-  SUGGESTIONS.forEach(function (s) {
-    var b = el('button', 'tutor-suggest', s);
-    b.addEventListener('click', function () { input.value = s; send(); });
-    suggestions.appendChild(b);
-  });
+
+  // Rebuilt whenever the live thread changes role: the header says who is
+  // answering, and the openings offered are the ones that make sense against
+  // whoever is about to read them.
+  function renderRole() {
+    titleText.textContent = role().title;
+
+    while (suggestions.firstChild) suggestions.removeChild(suggestions.firstChild);
+    role().ask.forEach(function (s) {
+      var b = el('button', 'tutor-suggest', s);
+      b.addEventListener('click', function () { input.value = s; send(); });
+      suggestions.appendChild(b);
+    });
+  }
+  renderRole();
 
   var inputRow = el('div', 'tutor-input-row');
   var input = el('textarea', 'tutor-input');
@@ -286,9 +371,11 @@
     }
     if (!rec) rec = s.threads[0];
     convo.id = rec.id;
+    convo.role = rec.role || 'tutor';
     convo.selection = rec.selection || '';
     convo.turns = (rec.turns || []).slice();
     currentSelection = convo.selection;
+    renderRole();
     renderThread();
     renderQuote();
   }
@@ -489,11 +576,15 @@
 
   // ---------------------------------------------------------------- messages
 
-  function addMsg(role, text) {
-    var wrap = el('div', 'tutor-msg ' + role);
-    wrap.appendChild(el('div', 'tutor-msg-role', role === 'user' ? '你' : '助教'));
+  // `side` is which end of the thread this is — the learner or whoever is
+  // answering — and deliberately not called `role`, which in here means the
+  // agent on the other end. The answering side keeps the class name `tutor`
+  // whoever fills it, so every rule written against the drawer still applies.
+  function addMsg(side, text) {
+    var wrap = el('div', 'tutor-msg ' + side);
+    wrap.appendChild(el('div', 'tutor-msg-role', side === 'user' ? '你' : role().reply));
     var body = el('div', 'tutor-msg-body');
-    if (role === 'tutor') showRich(body, text);
+    if (side === 'tutor') showRich(body, text);
     else showPlain(body, text);
     wrap.appendChild(body);
     thread.appendChild(wrap);
@@ -622,38 +713,97 @@
     return { question: question, selection: selection || '' };
   }
 
+  /**
+   * The same question, written out for whatever tool the learner has instead.
+   * Role-aware for the reason the request is: a submission taken to a Claude
+   * Code session has to arrive as a submission, naming the page whose stored
+   * Rubric is the only thing it may be judged against.
+   */
   function buildCopyPrompt(asked) {
-    var parts = ['我正在读这一课：lessons/' + lessonPath];
+    var parts = [role().lead + pagePath];
+
     if (asked.selection) parts.push('选中的原文：\n"""\n' + asked.selection + '\n"""');
     if (convo.turns.length) {
       parts.push('我们前面已经聊过：\n' + convo.turns.slice(-SEND_LAST_TURNS).map(function (t) {
-        return (t.role === 'user' ? '我：' : '助教：') + t.content;
+        return (t.role === 'user' ? '我：' : role().reply + '：') + t.content;
       }).join('\n\n'));
     }
-    parts.push('我的问题：' + asked.question);
-    parts.push('（请以问答助教的身份回答：先读 NOTES.md 和 MISSION.md 了解我的偏好和目标，渐进式披露，只讲我问的这一点。）');
+
+    // The one place the two prompts differ in shape rather than in wording: the
+    // first thing handed to a Grader is work, and everything else is a question.
+    if (convo.role === 'grader' && !convo.turns.length) {
+      parts.push('这是我交上来的作业：\n"""\n' + asked.question + '\n"""');
+    } else {
+      parts.push('我的问题：' + asked.question);
+    }
+
+    parts.push(role().brief);
     return parts.join('\n\n');
+  }
+
+  /**
+   * One thing the learner is handing over, online or not. `send` and a
+   * submission from an assignment page both land here, so the clipboard
+   * fallback is the same fallback rather than a second one written for grading.
+   */
+  function handIn(asked) {
+    if (!online) {
+      copyText(buildCopyPrompt(asked), function () {
+        flash(sendBtn, '✓ 已复制', '📋 复制提问');
+      });
+      addMsg('user', asked.question);
+      convo.turns.push({ role: 'user', content: asked.question });
+      persistConvo();
+      renderHistory();
+      return;
+    }
+    ask(asked, {});
   }
 
   function send() {
     var question = input.value.trim();
     if (!question || busy) return;
 
-    if (!online) {
-      copyText(buildCopyPrompt(askedAbout(question, currentSelection)), function () {
-        flash(sendBtn, '✓ 已复制', '📋 复制提问');
-      });
-      addMsg('user', question);
-      convo.turns.push({ role: 'user', content: question });
-      persistConvo();
-      renderHistory();
-      input.value = '';
-      return;
-    }
-
     input.value = '';
-    ask(askedAbout(question, currentSelection), {});
+    handIn(askedAbout(question, currentSelection));
   }
+
+  /**
+   * What an Assignment page hands in. The drawer owns everything past this
+   * point — the thread, the transport, the wait, the fallback — so the
+   * Component that collects a Submission never talks to the service itself.
+   *
+   * A submission always opens a thread of its own: it is the start of a line of
+   * questioning, and folding it into whatever was open would leave a verdict
+   * answering a lesson question.
+   */
+  window.Tutor = {
+    /**
+     * Hand in a Submission. Answers with what became of it, always as one of
+     * these four words — never a boolean beside a string, because the caller
+     * has something to say to the learner in each case and `false` says
+     * nothing:
+     *
+     *   'sent'    it is with the Grader; the verdict is coming into the drawer
+     *   'copied'  no service, so it went to the clipboard instead
+     *   'busy'    a Submission is already in flight
+     *   'empty'   there was nothing to hand in
+     */
+    grade: function (submission) {
+      var text = ((submission && submission.text) || '').trim();
+      if (!text) return 'empty';
+      if (busy) return 'busy';
+
+      startThread('', 'grader');
+      open('');
+      // Read before handing over, because that is the question the caller is
+      // really asking: a Submission that went to the clipboard instead of to a
+      // Grader has not been graded, and the page must not say it has.
+      var reached = online;
+      handIn(askedAbout(text, ''));
+      return reached ? 'sent' : 'copied';
+    }
+  };
 
   /**
    * One question, from the request to whatever it ends in.
@@ -718,9 +868,9 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        role: 'tutor',
+        role: convo.role,
         threadId: convo.id,
-        lesson: 'lessons/' + lessonPath,
+        lesson: pagePath,
         selection: asked.selection,
         question: asked.question,
         history: convo.turns.slice(-SEND_LAST_TURNS)
@@ -799,6 +949,12 @@
         endRequest();
         acc = data.answer || acc;
         showRich(out.body, acc);
+        // A verdict is teaching signal, and the service has already written it
+        // where the next Session reads. Saying so is what stops the learner
+        // reporting it by hand, or assuming nobody will ever see it.
+        if (data.record) {
+          out.wrap.appendChild(el('div', 'tutor-recorded', '判定已记进 ' + data.record + '，下次上课老师会读到。'));
+        }
         // Recorded as a pair only on success, so history never holds a dangling turn.
         convo.turns.push({ role: 'user', content: asked.question });
         convo.turns.push({ role: 'assistant', content: acc });
