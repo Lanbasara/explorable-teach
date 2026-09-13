@@ -297,10 +297,17 @@ added, which is the defect the arrangement exists to have removed. So every asse
 in the suite that used to name a label now goes through `tests/helpers/learner-text.js`, which
 runs the shipped lookup and answers with what a page in that language would say.
 
-**The pseudolocale check is the one that earns its keep.** Every Component is mounted under a
+**The pseudolocale check is the one that earns its keep.** The drawer is mounted under a
 synthetic `lang` whose table holds nothing but sentinels — each key transliterated into fullwidth
 Latin, which no natural-language string carries — and the rendered tree is then asserted to hold
-no character outside that alphabet. That catches a string hardcoded in *any* language, including
+no character outside that alphabet.
+
+The drawer, and so far only the drawer. It is not a Component — `CONTEXT.md` reserves that word
+for a reusable interaction pattern a Lesson is built from — and every Component the plugin ships
+still holds its own strings. Widening this check to cover them, and the non-ASCII scan with it,
+is the ticket that follows. Read the suite for what is covered rather than this paragraph: the
+keys are derived from the sources handed to the check, so the day a Component is added to it,
+nothing here has to be edited to say so. That catches a string hardcoded in *any* language, including
 English, which no scan of the bytes can see, and it never needs rewriting when a language is
 added. Three things make it work, and all three were found the hard way:
 
@@ -325,8 +332,13 @@ beyond ASCII, so a letter, a digit or an emoji in shared source is a finding. It
 guarded from both sides: it has to recognise the three shapes this has actually taken (a label, a
 comment, a decorative glyph) and it has to let an ordinary English sentence through.
 
-**Two consistency contracts, both derived rather than listed.** Every key a Component asks for is
-read out of the Component's own source — the keys are written as literals, and no source builds
+**Two consistency contracts here, both derived rather than listed**, and two more that arrive
+with the Tutor service: the Grader's refusal token, read out of the role definition that mandates
+it, and the service's stream-failure codes, read out of the service. Decision 30 describes all
+four as one set because they are one argument; only the two that need no service are in this
+suite yet.
+
+Every key a Component asks for is read out of the Component's own source — the keys are written as literals, and no source builds
 one by concatenation, which is what makes this derivable — and checked against the table English
 falls back to, so a missing translation fails before a Learner meets a raw key. And the shipped
 tables are checked against each other, so a typo in one is not a silent hole. Neither check names

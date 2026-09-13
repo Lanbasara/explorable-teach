@@ -19,8 +19,8 @@
  *     }
  *   };
  *
- * The keys live in the plugin's assets/learner-text.js — read that file for the
- * full list, and for which {name} slots each entry may use.
+ * The keys live at the head of the plugin's assets/lesson-boot.js — read that
+ * file for the full list, and for which {name} slots each entry may use.
  */
 
 window.TEACH_STRINGS = {};

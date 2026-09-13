@@ -1,12 +1,12 @@
 /* ============================================================
    In-page tutor widget
-   Requires: assets/tutor.css, assets/rich-text.js, assets/learner-text.js
+   Requires: assets/tutor.css, assets/rich-text.js, assets/lesson-boot.js
    Backend : tutor/server.js   ->  node tutor/server.js
    Degrades: if the server is unreachable (e.g. opened via file://),
              the send button becomes "copy a well-formed prompt".
 
-   Every string this file puts on screen is a key into the table in
-   assets/learner-text.js, looked up against the page's own <html lang>. There
+   Every string this file puts on screen is a key into the table at the head of
+   assets/lesson-boot.js, looked up against the page's own <html lang>. There
    is no learner-facing text below — a literal here would be one learner's
    language written into every workspace, which is the defect this arrangement
    exists to have removed.

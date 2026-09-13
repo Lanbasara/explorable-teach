@@ -876,6 +876,25 @@ catches any hardcoded string in any language and never has to be rewritten when 
 added. Both checks ship: they fail on different things. Per the observer rule, the pseudolocale
 check first asserts that sentinels appeared at all.
 
+**Refined while building it (#17).** Two things this decision states turned out to need saying
+more precisely, and both are visible in the code rather than only here.
+
+The lookup chain above reads "Workspace override → the plugin's table for the exact tag → the
+plugin's table for the base language → `en`", which leaves open which rung a Workspace override
+is consulted at. It is consulted at *every* rung: override then plugin for the exact tag, then
+override then plugin for the base language, then for `en`. The four steps listed still happen in
+the order listed; what is added is that a Workspace supplying `ja` does not have to guess whether
+a page declaring `ja-JP` will find it. Truncation is unchanged, and `zh-TW` still reaches English
+rather than `zh-CN`.
+
+And the tables the plugin ships live at the head of `lesson-boot.js` rather than in a file of
+their own. "No migration" is what forced it: a Workspace holds symlinks, so a file the plugin
+*newly adds* does not exist there until the scaffold next runs, while a file already linked
+follows the plugin the moment it updates. A shipped table in a new file is therefore a table an
+existing Workspace cannot reach — and the drawer, whose own link had updated, rendered its keys
+on screen. `assets/strings.js` is unaffected: it is the Workspace's own, placed rather than
+linked, and its absence was always the harmless case this decision describes.
+
 **Consequence:** the server keeps no Learner-facing string. Its stream errors carry a `code` the
 drawer renders; the record it writes for a verdict uses ASCII field keys, because the Boot
 sequence reads it. `slugOf`'s character class — `[^a-z0-9\u4e00-\u9fff-]` — was the same defect

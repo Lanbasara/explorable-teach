@@ -14,8 +14,8 @@
  * the drawer goes through, and what they pin is the *key* — the split — while
  * the word itself stays the table's business.
  *
- * `assets/learner-text.js` is a browser script rather than a module, so this
- * runs it in a `vm` context holding a document stub that declares one language.
+ * The table is a browser script rather than a module, so this runs it in a `vm`
+ * context holding a document stub that declares one language.
  * That stub is the whole of what the lookup reads: `<html lang>` is the single
  * authority, and a lookup reaching for anything else would throw here.
  *
@@ -34,9 +34,15 @@ const vm = require('node:vm');
 
 const { REPO_ROOT } = require('./workspace.js');
 
+/**
+ * Where the tables live: inside the bootstrap, because that is the one file an
+ * existing Workspace already links, and a table it cannot reach renders keys on
+ * a Learner's screen. Loading it here runs only its first part — the second
+ * returns at once, having no `currentScript` to resolve paths against.
+ */
 const SOURCE = path.join(
   REPO_ROOT,
-  'skills/explorable-teach/runtime/assets/learner-text.js',
+  'skills/explorable-teach/runtime/assets/lesson-boot.js',
 );
 
 /**
@@ -49,16 +55,39 @@ const SOURCE = path.join(
  */
 const SENTINEL = /^[\uFF01-\uFF5E0-9\s]*$/;
 
-/** Run the shipped lookup against one language and one Workspace table. */
-function speaking(lang, workspaceStrings) {
+/** A key as a source writes one: a namespace, then dotted lowercase. */
+const KEY = /'(tutor\.[a-z0-9.]+)'/g;
+
+/**
+ * The shipped lookup, run against one language and one Workspace table, in a
+ * window holding nothing else. The one way this suite gets at it — a test that
+ * built its own would be asserting against a copy of the thing under test.
+ */
+function speaking(lang, workspaceStrings, alsoOnTheWindow) {
   const win = {
-    document: { documentElement: { getAttribute: (name) => (name === 'lang' ? lang : null) } },
+    document: {
+      currentScript: null,
+      documentElement: { getAttribute: (name) => (name === 'lang' ? lang : null) },
+    },
+    ...alsoOnTheWindow,
   };
   win.window = win;
   if (workspaceStrings) win.TEACH_STRINGS = workspaceStrings;
   vm.createContext(win);
-  new vm.Script(fs.readFileSync(SOURCE, 'utf8'), { filename: 'learner-text.js' }).runInContext(win);
+  new vm.Script(fs.readFileSync(SOURCE, 'utf8'), { filename: 'lesson-boot.js' }).runInContext(win);
   return win.LearnerText;
+}
+
+/**
+ * The half of `SOURCE` that holds the lookup, cut at the banner the file
+ * divides itself with. A claim about what the lookup reads is a claim about
+ * this half; the bootstrap below it answers for itself.
+ */
+function lookupSource() {
+  const whole = fs.readFileSync(SOURCE, 'utf8');
+  const at = whole.indexOf('Part two — the bootstrap');
+  if (at < 0) throw new Error(`${SOURCE} no longer divides itself into parts`);
+  return whole.slice(0, at);
 }
 
 const TABLES = speaking('en').TABLES;
@@ -77,13 +106,23 @@ function say(lang, key, values) {
  * The keys are written as literals on purpose — no source builds one by
  * concatenation — which is what makes this derivable at all, and what keeps
  * the completeness check from being a second copy of the table.
+ *
+ * The prefix is the namespace a key lives under, and the drawer's is the only
+ * one so far. A Component brought onto the table adds its own here, which is
+ * the whole of what widening this costs.
  */
 function keysAskedBy(source) {
-  return [...new Set([...source.matchAll(/'((?:tutor)\.[a-z0-9.]+)'/gi)].map((m) => m[1]))].sort();
+  return [...new Set([...source.matchAll(KEY)].map((m) => m[1]))].sort();
 }
 
-/** Latin text as its fullwidth twin: `tutor.send` → `ｔｕｔｏｒ．ｓｅｎｄ`. */
-function widen(text) {
+/**
+ * Latin text as its fullwidth twin: `tutor.send` → `ｔｕｔｏｒ．ｓｅｎｄ`.
+ *
+ * Both what a sentinel table is built from and what a test writes its own
+ * content in — a question, an answer, a file path — because content the test
+ * fed in is otherwise the one part of a rendered tree the check cannot read.
+ */
+function sentinel(text) {
   return text.replace(/[\x21-\x7e]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
 }
 
@@ -92,14 +131,9 @@ function pseudoTable(table) {
   const sentinels = {};
   for (const [key, value] of Object.entries(table)) {
     const slots = [...value.matchAll(/\{\w+\}/g)].map((m) => m[0]).join('');
-    sentinels[key] = widen(key) + slots;
+    sentinels[key] = sentinel(key) + slots;
   }
   return sentinels;
 }
 
-/** Text a test feeds a Component, in the alphabet its assertions allow. */
-function sentinel(text) {
-  return widen(text);
-}
-
-module.exports = { TABLES, say, keysAskedBy, pseudoTable, sentinel, widen, SENTINEL, SOURCE };
+module.exports = { TABLES, say, speaking, lookupSource, keysAskedBy, pseudoTable, sentinel, SENTINEL, SOURCE };

@@ -267,7 +267,11 @@ function mount(assetsDir, options = {}) {
   const { withRenderer = true, before = [] } = options;
   const page = pageFor(assetsDir, options);
 
-  page.script('learner-text.js');
+  // lesson-boot.js for its first part, which is the string table every label is
+  // looked up in. Its second part finds no chain to run here — the fixture DOM
+  // does not execute a script somebody appends to it — so the rest of the order
+  // is written out, matching the order that file declares.
+  page.script('lesson-boot.js');
   if (withRenderer) page.script('rich-text.js');
   page.script('tutor.js');
   for (const file of before) page.script(file);

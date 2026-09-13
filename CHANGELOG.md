@@ -11,15 +11,20 @@
   component reads; `assets/lesson-boot.js` writes the workspace's language onto any page that did
   not declare its own, so a forgotten attribute is not a silent fall back to English, and
   `scripts/wire-lessons.sh` fills it into the pages it already rewrites.
-- **Learner-facing text comes from a table, looked up at run time.** `assets/learner-text.js` is a
-  new linked asset holding what the plugin ships for `en` and `zh-CN`. Lookup runs the workspace's
-  own table, then the plugin's for the exact tag, then the base language, then English, then the
-  key itself — truncation and nothing else, so `zh-TW` never falls sideways to `zh-CN`. Handing
-  someone the wrong script is worse than handing them English.
+- **Learner-facing text comes from a table, looked up at run time.** The tables the plugin ships,
+  for `en` and `zh-CN`, sit at the head of `assets/lesson-boot.js`. Not in a file of their own, and
+  that is the point: a workspace holds symlinks, so a file the plugin newly adds does not exist
+  there until the scaffold next runs, while a file already linked follows the plugin the moment it
+  updates — and a table nobody can reach renders raw keys on a learner's screen. Lookup runs the
+  workspace's own table, then the plugin's, for the exact tag, then the base language, then
+  English, then the key itself. Truncation is the only cleverness, so `zh-TW` reaches English
+  rather than sliding into `zh-CN`: handing someone the wrong script is worse than handing them
+  English.
 - **`assets/strings.js`, placed by the scaffold, is the workspace's own table.** It is where a
   language the plugin has not collected is supplied, or an entry overridden. Its absence degrades
-  harmlessly, so an existing workspace needs no migration step — it simply gains the file on its
-  next scaffold run.
+  harmlessly, so an existing workspace needs no migration step: it reads exactly as it did before,
+  in its own language, and simply gains the file on its next scaffold run. A workspace scaffolded
+  by the previous version is upgraded and read in the suite, which is what holds that.
 - **A pseudolocale check, which fails on a hardcoded string in any language.** The drawer is
   mounted under a made-up language whose table holds nothing but sentinels, and the rendered tree
   is asserted to contain no character outside that alphabet. A hardcoded English `'Passed'` breaks

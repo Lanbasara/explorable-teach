@@ -95,16 +95,16 @@ place "$TPL/agents/grader.md"   ".claude/agents/grader.md"
 #
 # Learner-facing text splits the same way everything else here does. What a
 # button is called varies by language and by nothing else, so the tables live in
-# the plugin and every workspace follows them; strings.js is this workspace's
-# own table, for a language the plugin does not ship or an entry it disagrees
-# with.
+# the plugin — inside lesson-boot.js, which every workspace already links, so an
+# upgrade reaches an existing one with nothing to run. strings.js is this
+# workspace's own table, for a language the plugin does not ship or an entry it
+# disagrees with.
 link  "$RUNTIME/assets/rich-text.js"    "assets/rich-text.js"
 link  "$RUNTIME/assets/tutor.js"        "assets/tutor.js"
 link  "$RUNTIME/assets/tutor.css"       "assets/tutor.css"
 link  "$RUNTIME/assets/nav.js"          "assets/nav.js"
 link  "$RUNTIME/assets/nav.css"         "assets/nav.css"
 link  "$RUNTIME/assets/lesson-boot.js"  "assets/lesson-boot.js"
-link  "$RUNTIME/assets/learner-text.js" "assets/learner-text.js"
 place "$TPL/assets/units.js"       "assets/units.js"
 place "$TPL/assets/strings.js"     "assets/strings.js"
 place "$TPL/index.html"            "index.html"

@@ -19,9 +19,15 @@
 //                      that catches a hardcoded *English* string
 //   a non-ASCII scan   the drawer's own source, which catches the other thing:
 //                      one Learner's language creeping back into shared code
-//   two contracts      every key a Component asks for has an entry, and the
+//   two contracts      every key the drawer asks for has an entry, and the
 //                      shipped tables agree about which keys exist — both
 //                      derived from source, never listed here
+//
+// The drawer, and so far only the drawer. It is not a Component — `CONTEXT.md`
+// keeps that word for a reusable interaction pattern a Lesson is built from —
+// and the Components the plugin ships still hold their own strings. Nothing
+// below names one, so widening these to cover them is adding a source to the
+// list they are derived from.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -34,6 +40,8 @@ const { drawerIn, event, mount, pageFor, settle } = require('./helpers/drawer.js
 const {
   TABLES,
   say,
+  speaking,
+  lookupSource,
   keysAskedBy,
   pseudoTable,
   sentinel,
@@ -46,6 +54,27 @@ const read = (abs) => fs.readFileSync(abs, 'utf8');
 
 /** A synthetic tag no Workspace has, and no plugin table answers for. */
 const PSEUDO = 'qps-ploc';
+
+/**
+ * The Workspace's own table, in a scaffolded Workspace — found by the two
+ * things that make it one rather than by a filename this suite does not own:
+ * it *assigns* the global the lookup reads, and it is a copy rather than a link
+ * into the plugin. `docs/agents/tests.md` bans restating what a script
+ * installs, and a path written here is that list, a line at a time.
+ *
+ * Both halves are load-bearing. The bootstrap reads the same global, so the
+ * name alone finds two files; and a link is the plugin's, which is the opposite
+ * of what a Workspace's own table is.
+ */
+function ownTable(ws) {
+  const found = Object.keys(ws.snapshot())
+    .filter((rel) => rel.startsWith('assets/') && !rel.endsWith('/'))
+    .filter((rel) => fs.lstatSync(ws.path(rel)).isFile())
+    .filter((rel) => /window\.TEACH_STRINGS\s*=/.test(ws.read(rel)));
+
+  assert.equal(found.length, 1, `expected one Workspace string table, found ${found}`);
+  return found[0];
+}
 
 /* ------------------------------------------------------------- the mechanism */
 
@@ -64,16 +93,20 @@ test('the scaffold places the Workspace\'s own table, and says so', (t) => {
   // found by the one thing that makes it the table — the name the lookup reads
   // — rather than by its filename, which is the scaffold's to change.
   const placed = [...run.stdout.matchAll(/^\s{2}create\s+(assets\/\S+)/gm)].map((m) => m[1]);
-
   assert.ok(placed.length >= 1, 'the scaffold reported placing nothing under assets/');
-  const table = placed.find((rel) => /window\.TEACH_STRINGS/.test(ws.read(rel)));
 
-  assert.ok(table, `the scaffold placed no Workspace string table; it placed ${placed}`);
+  const table = ownTable(ws);
+  assert.ok(placed.includes(table), `the scaffold placed ${table} without reporting it`);
   assert.ok(fs.lstatSync(ws.path(table)).isFile(), 'it is the Workspace\'s own, so it is a copy');
 
   // A Teacher has to be told where to set the language, or the one place it
-  // lives is a place nobody finds.
-  assert.match(run.stdout, /lang/, 'the report should say where the language is set');
+  // lives is a place nobody finds. Read out of the paragraph the scaffold
+  // writes about what is still to author — a bare scan of the whole report
+  // would pass on the word turning up anywhere in it, filenames included.
+  const stillToAuthor = run.stdout.slice(run.stdout.indexOf('Still to author'));
+  assert.ok(stillToAuthor.length > 0, 'the scaffold no longer says what is left to author');
+  assert.match(stillToAuthor, /\blang\b/, 'it should say where the language is set');
+  assert.ok(stillToAuthor.includes(table), `it should point at ${table}`);
 });
 
 test('the wiring script fills in the language, and leaves a page that stated one alone', (t) => {
@@ -231,7 +264,7 @@ test('lookup runs exact tag, then base language, then English, then the key', ()
   // Truncation is the second rung, and the only cleverness there is. Shown
   // against a language the plugin does not ship, because that is where the case
   // lives: a page in `ja-JP` reaching a table written for `ja`.
-  const japanese = mountedSay('ja-JP', { ja: { 'tutor.send': 'OKURU' } });
+  const japanese = speaking('ja-JP', { ja: { 'tutor.send': 'OKURU' } }).say;
   assert.equal(japanese('tutor.send'), 'OKURU', 'no exact table, so the base language');
   assert.equal(say('fr', 'tutor.send'), TABLES.en['tutor.send'], 'no table at all, so English');
   assert.equal(say('', 'tutor.send'), TABLES.en['tutor.send'], 'nothing recorded, so English');
@@ -247,29 +280,16 @@ test('a regional tag never falls back to a different region of its language', ()
 
 test('a Workspace can override an entry, or supply a language the plugin does not ship', () => {
   const table = { 'zh-CN': { 'tutor.send': 'GO' }, ja: { 'tutor.send': 'OKURU' } };
-  const speaking = (lang) => mountedSay(lang, table);
+  const speaks = (lang) => speaking(lang, table).say;
 
-  assert.equal(speaking('zh-CN')('tutor.send'), 'GO', 'the Workspace wins over the plugin');
-  assert.equal(speaking('zh-CN')('tutor.status.online'), TABLES['zh-CN']['tutor.status.online'],
+  assert.equal(speaks('zh-CN')('tutor.send'), 'GO', 'the Workspace wins over the plugin');
+  assert.equal(speaks('zh-CN')('tutor.status.online'), TABLES['zh-CN']['tutor.status.online'],
     'and everything it does not cover still comes from the plugin');
 
-  assert.equal(speaking('ja')('tutor.send'), 'OKURU', 'a language the plugin never shipped');
-  assert.equal(speaking('ja')('tutor.status.online'), TABLES.en['tutor.status.online'],
+  assert.equal(speaks('ja')('tutor.send'), 'OKURU', 'a language the plugin never shipped');
+  assert.equal(speaks('ja')('tutor.status.online'), TABLES.en['tutor.status.online'],
     'and a gap in it is English rather than somebody else\'s language');
 });
-
-/** The shipped lookup, run against a Workspace table, in a bare window. */
-function mountedSay(lang, strings) {
-  const vm = require('node:vm');
-  const win = {
-    document: { documentElement: { getAttribute: (name) => (name === 'lang' ? lang : null) } },
-    TEACH_STRINGS: strings,
-  };
-  win.window = win;
-  vm.createContext(win);
-  new vm.Script(read(SOURCE), { filename: 'learner-text.js' }).runInContext(win);
-  return win.LearnerText.say;
-}
 
 test('the page is the only place a language is read from', () => {
   // Not the browser. The requirement is that the Learner's *recorded*
@@ -277,31 +297,59 @@ test('the page is the only place a language is read from', () => {
   // clothes — it would also make one Workspace read differently on two
   // machines. Asserted from both sides, the way `rich-text.test.js` asserts its
   // own interface claim.
-  const vm = require('node:vm');
-  const win = {
-    document: { documentElement: { getAttribute: () => null } },
-    navigator: { language: 'zh-CN', languages: ['zh-CN'] },
-  };
-  win.window = win;
-  vm.createContext(win);
-  new vm.Script(read(SOURCE), { filename: 'learner-text.js' }).runInContext(win);
+  const browser = { navigator: { language: 'zh-CN', languages: ['zh-CN'] } };
+  const asked = speaking('', null, browser);
 
   assert.equal(
-    win.LearnerText.say('tutor.send'),
+    asked.say('tutor.send'),
     TABLES.en['tutor.send'],
     'a browser that asked for Chinese still got English, because the page named none',
   );
-  assert.doesNotMatch(read(SOURCE), /navigator|Intl\b/, 'and nothing in it reaches for one');
+  assert.doesNotMatch(lookupSource(), /navigator|Intl\b/, 'and nothing in it reaches for one');
+});
+
+test('a Workspace upgraded to this plugin reads exactly as it did before', async (t) => {
+  // The claim that costs the most if it is wrong: an existing Workspace holds
+  // symlinks, so a file the plugin *already* links follows an upgrade the
+  // moment it lands, and a file the plugin has newly added simply is not there
+  // until the scaffold next runs. A table nobody can reach renders its own keys
+  // on a Learner's screen — which is what this caught, and why the tables live
+  // in the bootstrap rather than in a file of their own.
+  //
+  // So: scaffold, then take away everything this change added, and read the
+  // drawer. Nothing may have moved.
+  const ws = Workspace.create(t);
+  ws.scaffold();
+  fs.rmSync(ws.path(ownTable(ws)));
+  ws.write('assets/units.js', "window.TEACH_COURSE = { title: 'x' };\n");
+
+  const page = pageFor(ws.path('assets'), { html: lessonHtml(FIXTURE_LANG) });
+  boot(page, ws.path('assets'));
+  await settle();
+
+  for (const [selector, key] of [
+    ['.tutor-status', 'tutor.status.online'],
+    ['.tutor-send', 'tutor.send'],
+    ['.tutor-fab', 'tutor.fab'],
+    ['.tutor-title', 'tutor.role.tutor.title'],
+  ]) {
+    const shown = page.text(selector);
+    assert.notEqual(shown, key, `${selector} is showing a raw key — the table never reached the page`);
+    assert.ok(
+      shown.includes(TABLES[FIXTURE_LANG][key]),
+      `${selector} should read ${TABLES[FIXTURE_LANG][key]}, not ${shown}`,
+    );
+  }
 });
 
 test('a Workspace with no table of its own still reads in its language', async (t) => {
   // What every existing Workspace is: pages declaring `zh-CN`, a manifest with
-  // no `lang` in it, and no `assets/strings.js` anywhere. Nothing is run to
+  // no `lang` in it, and no table of its own anywhere. Nothing is run to
   // migrate it, so the absence has to be what degrades.
   const ws = Workspace.create(t);
   ws.scaffold();
   ws.write('assets/units.js', "window.TEACH_COURSE = { title: 'x' };\n");
-  fs.rmSync(ws.path('assets/strings.js'));
+  fs.rmSync(ws.path(ownTable(ws)));
 
   // Booted rather than hand-mounted, because the absence is the point: the
   // bootstrap has to carry on past the file that is not there.
