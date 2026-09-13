@@ -30,6 +30,19 @@
   is asserted to contain no character outside that alphabet. A hardcoded English `'Passed'` breaks
   the split exactly as badly as a Chinese one, and no scan of the bytes can see it. A non-ASCII
   scan over the drawer's source ships alongside it, because the two fail on different things.
+- **The pseudolocale check now mounts a whole unit, not just the drawer.** All three of its pages,
+  every component on them and the navigation bar, driven through every state each one has — a
+  guess nudged and then revealed, a question answered wrong, a gate part way through and then
+  judged, an order checked wrong and then right, a hand-in refused every way it can be refused and accepted once.
+  Nothing in it names a component: the pages come from the fixture unit, which says what each is
+  built from and carries each component's own drive beside its selector — so a component added
+  there is mounted, driven and read without the check being edited, and the check that every
+  class a component reaches is styled drives it through the same states. The non-ASCII scan reads
+  every script the plugin puts on a page, found by listing the directory for the same reason, and
+  the key-completeness check reads its sources the same way — down to which prefixes count as
+  keys, which it reads off the table. The bar is mounted twice, first in the curriculum and then
+  last in it, because its neighbour slots each have two states and one placement shows one of
+  each; every entry under `nav.` has to have reached a screen across the two.
 
 ### Changed
 
@@ -37,6 +50,25 @@
   panel, its failures, and the prompt it composes for you to copy when the service is not running
   all come from the table. The prompt is the one piece of scaffolding that is deliberately in the
   learner's language: its reader is the learner, who has to read and may edit it before sending.
+- **Nor does any component, nor the navigation bar.** Predict-reveal's nudge and its buttons, the
+  step controls and their count, drag-order's move buttons and its verdict, an exercise's right
+  and wrong, a checkpoint's progress and its score, and the whole of the hand-in on an assignment
+  page — its two labels, its two placeholders, its note, its button, the five things it says back
+  and every path it refuses — all come from the table now, in `en` and `zh-CN`. The bar's dossier
+  link, its three artifact slots, the slot for an artifact that does not exist yet and both
+  neighbour links go with them. A lesson has no untranslated island left in it.
+- **A component waits for the bootstrap before it mounts.** A lesson writes its component tags
+  above the one `lesson-boot.js` tag, so a component runs before the tables exist and well before
+  the workspace's own `assets/strings.js` — and a component that rendered at once would have
+  rendered raw keys in exactly the workspace `strings.js` is for. Each one hands its mount over
+  instead; the bootstrap runs what is waiting once the last table has had its chance to load. A
+  page with no bootstrap tag now mounts nothing, which is the page a learner with scripting off
+  already reads: plain text, in order, all of it there.
+- **A checkpoint's two verdicts stay the author's own prose.** *Which* passage to go back and read
+  is a sentence about one unit and nothing else, so no table could hold it — it is in the
+  learner's language because the whole page is. What comes off the table is the score beside it.
+  The pseudolocale check tells the two apart by subtracting what the page said before anything
+  ran, so it never has to name a selector.
 - **The dossier cover takes its language from the manifest too**, rather than declaring one of its
   own. An existing workspace's cover is its own file and is untouched.
 - **Assertions across the suite stopped pinning words and started pinning keys**, so that adding a

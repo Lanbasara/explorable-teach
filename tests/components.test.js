@@ -21,7 +21,25 @@ const { test } = require('node:test');
 const { Workspace } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
 const { SKILL_DIR } = require('./helpers/docs.js');
-const { SHARED_STYLES, PAGES, RUBRIC } = require('./helpers/unit.js');
+const {
+  GUESS,
+  SUBMISSION,
+  SHARED_STYLES,
+  PAGES,
+  RUBRIC,
+  FIXTURE_LANG,
+  handInBoxes,
+} = require('./helpers/unit.js');
+const { say } = require('./helpers/learner-text.js');
+
+/**
+ * What this fixture's pages say for `key` — read through the shipped lookup
+ * rather than written out here. `docs/agents/tests.md` states the rule: assert
+ * the split, never the strings. A check naming a word would have to be
+ * rewritten the day a language was added, which is the defect the table exists
+ * to have removed.
+ */
+const said = (key, values) => say(FIXTURE_LANG, key, values);
 
 const LESSON = PAGES.find((p) => p.key === 'lesson');
 const GATE = PAGES.find((p) => p.key === 'checkpoint');
@@ -36,7 +54,21 @@ function onScreen(css) {
   return css.replace(/@media\s+print\s*\{[\s\S]*?\n\}/g, '');
 }
 
-/** One page of the fixture Unit, in a Workspace scaffolded the way a learner's is. */
+/**
+ * One page of the fixture Unit, in a Workspace scaffolded the way a learner's
+ * is, loaded in the order the page loads it.
+ *
+ * A Component's own tag comes first and only hands its mount over; what runs it
+ * is `lesson-boot.js`, once the tables every label is looked up in have had
+ * their chance to load. `release` is that step of the bootstrap's chain, called
+ * here because the fixture DOM does not fetch the scripts the chain appends —
+ * `language.test.js` drives the whole chain for real, which is what holds the
+ * order this stands in for.
+ *
+ * A Component scripted after this returns finds the text already there and
+ * mounts at once, which is what the checks that take a page apart first rely
+ * on.
+ */
 function open(t, fixture, { run = fixture.components.map((c) => c.js), globals } = {}) {
   const ws = Workspace.create(t);
   ws.scaffold();
@@ -44,6 +76,8 @@ function open(t, fixture, { run = fixture.components.map((c) => c.js), globals }
   const page = Page.load(fixture.html, ws.path('assets'), globals ? { globals } : undefined);
   page.workspace = ws;
   for (const file of run) page.script(file);
+  page.script('lesson-boot.js');
+  page.window.LearnerText.release();
   return page;
 }
 
@@ -81,10 +115,16 @@ function assignment(t, options = {}) {
   return page;
 }
 
-/** Fill the hand-in in and press the button. */
+/**
+ * Fill the hand-in in and press the button. The boxes are found through their
+ * labels rather than by id: the id is minted from a counter inside
+ * `assignment.js`, and `docs/agents/tests.md` bans a test restating a fact it
+ * does not own.
+ */
 function handIn(page, { answer = '', paths = '' } = {}) {
-  if (answer) page.type(page.query('#assignment-1-answer'), answer);
-  if (paths) page.type(page.query('#assignment-1-paths'), paths);
+  const box = handInBoxes(page);
+  if (answer) page.type(box.answer, answer);
+  if (paths) page.type(box.paths, paths);
   page.click(page.query('.assignment-send'));
   return page;
 }
@@ -216,12 +256,12 @@ test('a written guess reveals the answer at once and is kept', (t) => {
   const page = lesson(t, { run: ['predict-reveal.js'] });
   const guess = page.query('textarea.predict-guess');
 
-  page.type(guess, '管道右边的先创建');
+  page.type(guess, GUESS);
   page.click(page.query('button.predict-reveal'));
 
   assert.equal(page.query('.predict-answer').hidden, false);
   assert.ok(page.query('.predict').classList.contains('is-revealed'));
-  assert.equal(guess.value, '管道右边的先创建', 'the prediction stays visible next to the answer');
+  assert.equal(guess.value, GUESS, 'the prediction stays visible next to the answer');
   assert.ok(guess.hasAttribute('readonly'), 'and cannot be quietly rewritten afterwards');
 });
 
@@ -235,7 +275,7 @@ test('a step animation starts at the first step and shows only its stage', (t) =
   assert.ok(steps[0].classList.contains('is-current'));
   assert.ok(steps[1].classList.contains('is-ahead'));
   assert.equal(page.query('[data-step="2"]').hidden, true, 'a later stage is not on screen yet');
-  assert.match(page.text('.steps-count'), /1\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 1, of: 4 }));
 });
 
 test('stepping forward moves the current step and its stage with it', (t) => {
@@ -248,7 +288,7 @@ test('stepping forward moves the current step and its stage with it', (t) => {
   assert.ok(steps[1].classList.contains('is-current'));
   assert.equal(page.query('[data-step="2"]').hidden, false, 'stage 2 belongs to step 2');
   assert.equal(page.query('[data-step="3"]').hidden, true);
-  assert.match(page.text('.steps-count'), /2\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 2, of: 4 }));
 });
 
 test('a step with nothing to stage shows no empty frame', (t) => {
@@ -268,7 +308,7 @@ test('a step animation cannot run off either end', (t) => {
 
   for (let i = 0; i < 6; i++) page.click(page.query('.steps-next'));
 
-  assert.match(page.text('.steps-count'), /4\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 4, of: 4 }));
   assert.ok(page.query('.steps-next').hasAttribute('disabled'));
 });
 
@@ -277,11 +317,11 @@ test('a step can be jumped to by click or by keyboard', (t) => {
   const steps = page.queryAll('.steps-step');
 
   page.click(steps[2]);
-  assert.match(page.text('.steps-count'), /3\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 3, of: 4 }));
 
   assert.equal(steps[0].getAttribute('tabindex'), '0', 'a clickable step must also be reachable');
   page.press(steps[0], 'Enter');
-  assert.match(page.text('.steps-count'), /1\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 1, of: 4 }));
 });
 
 test('a step animation is drivable from the keyboard', (t) => {
@@ -289,10 +329,10 @@ test('a step animation is drivable from the keyboard', (t) => {
   const root = page.query('.steps');
 
   page.press(root, 'ArrowRight');
-  assert.match(page.text('.steps-count'), /2\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 2, of: 4 }));
 
   page.press(root, 'ArrowLeft');
-  assert.match(page.text('.steps-count'), /1\s*\/\s*4/);
+  assert.equal(page.text('.steps-count'), said('steps.count', { at: 1, of: 4 }));
 });
 
 /* -------------------------------------------------------------- drag-order */
@@ -318,7 +358,11 @@ test('drag ordering is checked against the authored order', (t) => {
 
   assert.ok(page.query('.drag-order').classList.contains('is-wrong'), 'as authored, the order is wrong');
   assert.ok(page.query('.drag-order-item').classList.contains('is-misplaced'));
-  assert.ok(page.text('.drag-order-verdict').length > 0, 'a verdict has to say something');
+  assert.equal(
+    page.text('.drag-order-verdict'),
+    said('drag.wrong', { n: 2 }),
+    'a verdict has to say how far off the order is',
+  );
 
   page.click(page.queryAll('.drag-order-item')[1].querySelector('.drag-order-up'));
   page.click(check);
@@ -355,12 +399,16 @@ test('a Checkpoint says nothing until every question has been answered', (t) => 
   assert.equal(page.queryAll('.exercise').length, 3, 'the gate is built out of its questions');
   assert.equal(page.query('.checkpoint-pass').hidden, true, 'a verdict before the answers is not a verdict');
   assert.equal(page.query('.checkpoint-again').hidden, true);
-  assert.match(page.text('.checkpoint-progress'), /0\s*\/\s*3/, 'the learner is told how far through they are');
+  assert.equal(
+    page.text('.checkpoint-progress'),
+    said('checkpoint.answered', { n: 0, of: 3 }),
+    'the learner is told how far through they are',
+  );
 
   page.click(page.queryAll('.exercise')[0].querySelectorAll('.exercise-option')[1]);
 
   assert.ok(!page.query('.checkpoint').classList.contains('is-judged'), 'one answer is not the Unit');
-  assert.match(page.text('.checkpoint-progress'), /1\s*\/\s*3/);
+  assert.equal(page.text('.checkpoint-progress'), said('checkpoint.answered', { n: 1, of: 3 }));
   assert.equal(page.query('.checkpoint-pass').hidden, true);
 });
 
@@ -383,7 +431,11 @@ test('a Checkpoint answered right says the Unit may close', (t) => {
   assert.ok(root.classList.contains('is-passed'));
   assert.equal(page.query('.checkpoint-pass').hidden, false, 'the learner finds out they may move on');
   assert.equal(page.query('.checkpoint-again').hidden, true, 'and is not also told to go back');
-  assert.match(page.text('.checkpoint-progress'), /3\s*\/\s*3/, 'the score is what they report to the Teacher');
+  assert.equal(
+    page.text('.checkpoint-progress'),
+    said('checkpoint.right', { n: 3, of: 3 }),
+    'the score is what they report to the Teacher',
+  );
 });
 
 test('one wrong answer holds the Unit open, and says where to go back to', (t) => {
@@ -396,7 +448,7 @@ test('one wrong answer holds the Unit open, and says where to go back to', (t) =
   assert.ok(root.classList.contains('is-failed'), 'a gate with a pass mark is a score, not a gate');
   assert.equal(page.query('.checkpoint-again').hidden, false);
   assert.equal(page.query('.checkpoint-pass').hidden, true);
-  assert.match(page.text('.checkpoint-progress'), /2\s*\/\s*3/);
+  assert.equal(page.text('.checkpoint-progress'), said('checkpoint.right', { n: 2, of: 3 }));
 
   const back = page.query('.checkpoint-again a');
   assert.ok(back, 'being sent back without being told where teaches nothing');
@@ -454,8 +506,8 @@ test('an Assignment offers a hand-in in place of the note telling the Learner to
 
   assert.ok(page.query('.assignment').classList.contains('is-live'));
   assert.ok(page.query('.assignment-handin'), 'a task with no way to hand it in dead-ends on this page');
-  assert.ok(page.query('#assignment-1-answer'), 'short answers are written here');
-  assert.ok(page.query('#assignment-1-paths'), 'and anything larger is named by where it was put');
+  assert.ok(handInBoxes(page).answer, 'short answers are written here');
+  assert.ok(handInBoxes(page).paths, 'and anything larger is named by where it was put');
 
   const fallback = page.query('.assignment-fallback');
   assert.equal(fallback.hidden, true, 'what the form replaces is what the form takes over');
@@ -468,12 +520,12 @@ test('an Assignment offers a hand-in in place of the note telling the Learner to
 test('a short answer is handed over as the Submission it is', (t) => {
   const page = assignment(t);
 
-  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+  handIn(page, { answer: SUBMISSION });
 
   assert.equal(page.handed.length, 1, 'one press, one Submission');
-  assert.equal(page.handed[0].text, '第一段的 stdout 就是第二段的 stdin。');
+  assert.equal(page.handed[0].text, SUBMISSION);
   assert.ok(page.query('.assignment').classList.contains('is-sent'));
-  assert.match(page.text('.assignment-say'), /已交/);
+  assert.equal(page.text('.assignment-say'), said('assignment.sent'));
 });
 
 test('work the page cannot hold is handed over as paths into the Workspace', (t) => {
@@ -510,17 +562,21 @@ test('a path out of the Workspace is refused rather than quietly rewritten', (t)
   const page = assignment(t);
 
   for (const escape of ['../../etc/passwd', '/etc/passwd', 'file:///etc/passwd']) {
-    page.type(page.query('#assignment-1-paths'), escape);
+    page.type(handInBoxes(page).paths, escape);
     page.click(page.query('.assignment-send'));
 
     assert.deepEqual(page.handed, [], `${escape} should not have been handed to the Grader`);
     assert.ok(page.query('.assignment').classList.contains('is-refused'));
-    assert.match(page.text('.assignment-say'), /相对路径/, 'and the Learner is told what a path looks like here');
+    assert.equal(
+      page.text('.assignment-say'),
+      said('assignment.path.outside', { path: escape }),
+      'and the Learner is told what a path looks like here, naming the one that was not',
+    );
   }
 
   // The other half of the same claim: a path that stays inside is handed over,
   // so this is a boundary rather than a blanket refusal of anything with a dot.
-  page.type(page.query('#assignment-1-paths'), 'submissions/0003-pipes/notes.md');
+  page.type(handInBoxes(page).paths, 'submissions/0003-pipes/notes.md');
   page.click(page.query('.assignment-send'));
   assert.equal(page.handed.length, 1);
   assert.ok(!page.query('.assignment').classList.contains('is-refused'));
@@ -532,11 +588,11 @@ test('an answer too large for the page is sent to the Workspace instead of being
   // The service caps one question at 2000 characters. The Learner finds that
   // out here, while the answer is still in front of them and the paths box is
   // one line down — rather than as a 400 after they pressed send.
-  page.query('#assignment-1-answer').value = 'x'.repeat(2100);
+  handInBoxes(page).answer.value = 'x'.repeat(2100);
   page.click(page.query('.assignment-send'));
 
   assert.deepEqual(page.handed, [], 'a truncated Submission is a Submission judged on half the work');
-  assert.match(page.text('.assignment-say'), /submissions\//, 'and it says where the rest of it goes');
+  assert.equal(page.text('.assignment-say'), said('assignment.toolong'), 'and it says where the rest of it goes');
 });
 
 test('the Rubric travels with the Assignment, rendered nowhere and sent nowhere', (t) => {
@@ -560,7 +616,7 @@ test('the Rubric travels with the Assignment, rendered nowhere and sent nowhere'
     .filter((node) => node.textContent.includes(RUBRIC.split('\n')[1]));
   assert.deepEqual(shown.map((node) => node.localName), [], 'the Rubric reached the page as something readable');
 
-  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+  handIn(page, { answer: SUBMISSION });
   assert.ok(
     !page.handed[0].text.includes(RUBRIC.split('\n')[1]),
     'the Rubric stays on disk — a Grader reads the page rather than being handed its own criteria',
@@ -601,16 +657,16 @@ test('the page speaks for every answer the drawer can give, including one it can
   // different thing for each. The last case is the one worth pinning: a drawer
   // that grew a fifth answer must not leave the button looking like nothing
   // happened, so an unrecognised one still refuses out loud.
-  for (const [outcome, expected] of [
-    ['sent', /已交出去/],
-    ['copied', /复制/],
-    ['busy', /还在判/],
-    ['nonsense-from-a-future-drawer', /再试/],
+  for (const [outcome, key] of [
+    ['sent', 'assignment.sent'],
+    ['copied', 'assignment.copied'],
+    ['busy', 'assignment.busy'],
+    ['nonsense-from-a-future-drawer', 'assignment.unknown'],
   ]) {
     const page = assignment(t, { outcome });
     handIn(page, { answer: '第二段读的是第一段的 stdout。' });
 
-    assert.match(page.text('.assignment-say'), expected, `nothing is said for "${outcome}"`);
+    assert.equal(page.text('.assignment-say'), said(key), `nothing is said for "${outcome}"`);
     assert.equal(
       page.query('.assignment').classList.contains('is-sent'),
       outcome === 'sent' || outcome === 'copied',
@@ -651,13 +707,13 @@ test('a Submission the drawer cannot take is not a Submission the Learner loses'
   // that failed, so "not there yet" and "never arrived" are both real states.
   const page = assignment(t, { drawer: null });
 
-  handIn(page, { answer: '第一段的 stdout 就是第二段的 stdin。' });
+  handIn(page, { answer: SUBMISSION });
 
   assert.ok(page.query('.assignment').classList.contains('is-refused'));
   assert.ok(!page.query('.assignment').classList.contains('is-sent'), 'nothing was handed over, so nothing was sent');
   assert.equal(
-    page.query('#assignment-1-answer').value,
-    '第一段的 stdout 就是第二段的 stdin。',
+    handInBoxes(page).answer.value,
+    SUBMISSION,
     'and what they wrote is still in the box',
   );
 });
@@ -667,29 +723,19 @@ test('a Submission the drawer cannot take is not a Submission the Learner loses'
 test('every class a Component puts on the page is styled', (t) => {
   // Each page gets driven into its Components' states first, so the classes
   // that only exist after an interaction are on the page when this reads it.
-  const drive = {
-    lesson(page) {
-      page.click(page.queryAll('.exercise-option')[0]);
-      page.click(page.query('button.predict-reveal'));
-      page.click(page.query('button.predict-reveal'));
-      page.click(page.query('.steps-next'));
-      page.click(page.query('.drag-order-check'));
-    },
-    checkpoint(page) {
-      sit(page, { wrong: [2] });
-    },
-    assignment(page) {
-      // Refused rather than handed over: this page is opened with the bare
-      // globals every other Component gets, so there is no drawer to hand a
-      // Submission to — which is exactly the state the refusal exists for.
-      page.click(page.query('.assignment-send'));
-    },
-  };
-
+  // Each Component's own drive comes off the fixture, beside its selector and
+  // its filenames, so a Component added there is driven here without this being
+  // edited — and the language suite drives it through the same states.
+  //
+  // The Assignment page is opened with the bare globals every other Component
+  // gets, so the drive's hand-in finds no drawer and is refused, which is
+  // exactly the state the refusal exists for.
   for (const fixture of PAGES) {
     const page = open(t, fixture);
     const shared = onScreen(fs.readFileSync(page.workspace.path(`assets/${SHARED_STYLES}`), 'utf8'));
-    drive[fixture.key](page);
+    for (const component of fixture.components) {
+      component.drive(page, page.query(component.root), () => {});
+    }
 
     for (const component of fixture.components) {
       const css = onScreen(fs.readFileSync(page.workspace.path(`assets/${component.css}`), 'utf8'));

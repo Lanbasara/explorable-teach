@@ -4,18 +4,20 @@
    different question from whether any one idea landed.
    Deps: exercise.js (the questions it counts — anywhere on the page; the order
          the two scripts load in does not matter, for the reason at the foot of
-         this comment), style.css (design tokens), checkpoint.css. No library,
-         no network, no server: works from file://.
+         this comment), style.css (design tokens), checkpoint.css, lesson-boot.js
+         (the text it renders, and the word that its tables have all arrived). No
+         library, no network, no server: works from file://.
 
    Markup the author writes, on a page of its own at the Unit's end:
 
      <div class="checkpoint" data-checkpoint>
-       <p class="checkpoint-lead">凭记忆答。翻回正文找得到的答案,不算学会了。</p>
+       <p class="checkpoint-lead">Answer from memory. An answer you can look
+          up in the lesson is not one you have learnt.</p>
 
        <div class="exercise" data-exercise>…</div>   <!-- 2-5 of them -->
 
-       <p class="checkpoint-pass">可以合上了。把结果告诉老师。</p>
-       <p class="checkpoint-again">回到<a href="0003-fork-exec.html">正文</a>再读一遍。</p>
+       <p class="checkpoint-pass">You may close this one. Tell your teacher how it went.</p>
+       <p class="checkpoint-again">Go back to <a href="0003-fork-exec.html">the lesson</a> and read it again.</p>
      </div>
 
    Every question has to be right. A gate with a pass mark is a score, and a
@@ -37,8 +39,20 @@
 (function () {
   'use strict';
 
-  var ANSWERED = '已答';
-  var RIGHT = '答对';
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
 
   function each(nodes, fn) {
     for (var i = 0; i < nodes.length; i++) fn(nodes[i], i);
@@ -86,7 +100,7 @@
 
       var answered = counting('is-answered');
       if (answered < questions.length) {
-        progress.textContent = ANSWERED + ' ' + answered + ' / ' + questions.length;
+        progress.textContent = say('checkpoint.answered', { n: answered, of: questions.length });
         return;
       }
 
@@ -100,7 +114,7 @@
 
       // The score, not just the verdict: it is what the learner reports to the
       // Teacher, and what the Learning Record is written from.
-      progress.textContent = RIGHT + ' ' + right + ' / ' + questions.length;
+      progress.textContent = say('checkpoint.right', { n: right, of: questions.length });
     }
 
     root.addEventListener('click', review);
@@ -114,8 +128,5 @@
     each(document.querySelectorAll('[data-checkpoint]'), mount);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

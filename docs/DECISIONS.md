@@ -895,6 +895,31 @@ existing Workspace cannot reach — and the drawer, whose own link had updated, 
 on screen. `assets/strings.js` is unaffected: it is the Workspace's own, placed rather than
 linked, and its absence was always the harmless case this decision describes.
 
+**Refined while building it (#18).** Carrying the Components onto the table turned up an
+ordering the tracer bullet never met. A Lesson writes its Component tags *above* the one
+bootstrap tag — `UNIT.md` has said so since the beginning, and `wire-lessons.sh` puts the
+bootstrap last in `<body>` — so every Component runs before `lesson-boot.js` exists, and well
+before `assets/strings.js`, which is the last table that can answer. A Component that rendered at
+mount would therefore render out of no table at all, and a Workspace supplying a language the
+plugin does not ship would meet a page of raw keys: precisely the case `assets/strings.js` exists
+for.
+
+So a Component hands its mount over instead of running it, onto a bare global array, and the
+bootstrap runs what is waiting one step after `strings.js` — before the bar, the renderer and the
+drawer, which it already loads in order. The queue is a bare global rather than something the
+bootstrap owns because it has to exist before the file that owns it does. A page with no
+bootstrap tag now mounts nothing, which is the same page a Learner with scripting off reads:
+plain text, in order, all of it there. That is the promise every Component already made, so
+nothing was lost by making the bootstrap load-bearing for mounting as well as for text.
+
+The other thing worth naming is what a Component is *answerable* for. A Checkpoint reveals one of
+two verdicts its author wrote — *which* passage to go back and read is a sentence about one Unit
+and nothing else, and no table could hold it. It is in the Learner's language because the whole
+page is. What the Component adds beside it is the score, and that comes off the table. The
+pseudolocale check draws that line by subtracting what the page said before anything ran, so it
+never has to name a selector, and a Component that replaced an authored sentence with one of its
+own still fails.
+
 **Consequence:** the server keeps no Learner-facing string. Its stream errors carry a `code` the
 drawer renders; the record it writes for a verdict uses ASCII field keys, because the Boot
 sequence reads it. `slugOf`'s character class — `[^a-z0-9\u4e00-\u9fff-]` — was the same defect

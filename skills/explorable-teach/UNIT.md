@@ -57,7 +57,9 @@ Open the Lesson file for the learner once you have written it.
   <!-- Component JS for the Components this lesson uses, e.g.: -->
   <script src="../assets/predict-reveal.js"></script>
 
-  <!-- Page infrastructure. One tag, and never wire its contents individually. -->
+  <!-- Page infrastructure. One tag, last, and never wire its contents
+       individually. It carries the text every Component renders, so it also
+       starts them. -->
   <script src="../assets/lesson-boot.js" data-unit="NNNN"></script>
 </body>
 </html>
@@ -323,11 +325,14 @@ nobody can find was not worth writing.
 Three rules, all mandatory:
 
 1. **Do not wire infrastructure by hand.** One line does it — `<script
-   src="../assets/lesson-boot.js" data-unit="0003"></script>`, last in `<body>`. It pulls in
-   every piece of page infrastructure, in the right order. Even that line is a safety net
-   rather than a chore: `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` injects it into any page
-   missing it, so run that after writing a Lesson and forget about it. Your attention belongs on
-   the teaching.
+   src="../assets/lesson-boot.js" data-unit="0003"></script>`, **last** in `<body>`, below the
+   Component tags. It pulls in every piece of page infrastructure, in the right order, and it is
+   also what starts the Components: they wait for it, because the text they render lives in it
+   and in the workspace's own `assets/strings.js`, which it loads. A page missing that line
+   still reads as prose — it just does not interact. Even the line is a safety net rather than a
+   chore: `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` injects it into any page missing it, so
+   run that after writing a Lesson and forget about it. Your attention belongs on the
+   teaching.
 2. **`index.html` is the Dossier** — the one page every Unit is reachable from. Update it
    whenever you add a Unit or change a progress marker. The learner should never need to open
    `lessons/` in a file browser.

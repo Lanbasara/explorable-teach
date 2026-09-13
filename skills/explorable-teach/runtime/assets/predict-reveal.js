@@ -2,15 +2,16 @@
    predict-reveal.js — ask for a prediction, then show what actually
    happens. The strongest teaching signal in the catalog: a wrong guess
    followed by the real answer is what makes the real answer stick.
-   Deps: predict-reveal.css, style.css (design tokens). No library, no
-         network, no server: works from file://.
+   Deps: predict-reveal.css, style.css (design tokens), lesson-boot.js (the
+         text it renders, and the word that its tables have all arrived). No
+         library, no network, no server: works from file://.
 
    Markup the Lesson author writes:
 
      <div class="predict" data-predict>
-       <p class="predict-question">管道两端的进程,是谁先被创建的?</p>
+       <p class="predict-question">Which end of a pipe gets created first?</p>
        <div class="predict-answer">
-         <p>shell 先 fork 出两个子进程,再把它们用管道接起来。</p>
+         <p>The shell forks both children first, then joins them with the pipe.</p>
        </div>
      </div>
 
@@ -27,11 +28,20 @@
 (function () {
   'use strict';
 
-  var PLACEHOLDER = '先写下你的猜测——猜错比不猜有用';
-  var LABEL = '揭晓';
-  var LABEL_ANYWAY = '还是直接看答案';
-  var LABEL_DONE = '已揭晓';
-  var NUDGE = '先猜一下。哪怕猜错,答案也会记得更牢。';
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
 
   function mount(root) {
     var answer = root.querySelector('.predict-answer');
@@ -45,13 +55,13 @@
     var guess = document.createElement('textarea');
     guess.className = 'predict-guess';
     guess.setAttribute('rows', '2');
-    guess.setAttribute('placeholder', PLACEHOLDER);
-    guess.setAttribute('aria-label', '你的猜测');
+    guess.setAttribute('placeholder', say('predict.guess.placeholder'));
+    guess.setAttribute('aria-label', say('predict.guess.label'));
 
     var button = document.createElement('button');
     button.className = 't-btn predict-reveal';
     button.setAttribute('type', 'button');
-    button.textContent = LABEL;
+    button.textContent = say('predict.reveal');
 
     controls.appendChild(guess);
     controls.appendChild(button);
@@ -69,10 +79,10 @@
         nudge = document.createElement('p');
         nudge.className = 'predict-nudge';
         nudge.setAttribute('role', 'status');
-        nudge.textContent = NUDGE;
+        nudge.textContent = say('predict.nudge');
         controls.appendChild(nudge);
       }
-      button.textContent = LABEL_ANYWAY;
+      button.textContent = say('predict.reveal.anyway');
     }
 
     function reveal() {
@@ -82,7 +92,7 @@
       // the whole exercise. Read-only so it cannot be quietly corrected.
       guess.setAttribute('readonly', '');
       button.setAttribute('disabled', '');
-      button.textContent = LABEL_DONE;
+      button.textContent = say('predict.revealed');
       if (nudge) nudge.hidden = true;
     }
 
@@ -99,8 +109,5 @@
     for (var i = 0; i < roots.length; i++) mount(roots[i]);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

@@ -214,9 +214,12 @@ window.TEACH_COURSE = { lang: 'zh-CN', title: '…' };
 
 Every page in the workspace takes it from there — the bootstrap writes it onto any page that did
 not declare one, and `scripts/wire-lessons.sh` fills it into the pages it rewrites — so
-`<html lang>` is the one thing any component reads. The plugin ships text for `en` and `zh-CN`.
-For a language it has not collected, or an entry you disagree with, `assets/strings.js` is your
-own table; anything it does not cover falls back to the plugin's, and then to English.
+`<html lang>` is the one thing any component reads. Everything a lesson puts on screen goes
+through it: the tutor drawer, the navigation bar, and every component — the guess box, the step
+controls, the verdict on a question, the gate at the end of a unit, the form you hand an
+assignment in on. The plugin ships text for `en` and `zh-CN`. For a language it has not
+collected, or an entry you disagree with, `assets/strings.js` is your own table; anything it does
+not cover falls back to the plugin's, and then to English.
 
 Your browser's setting is deliberately not consulted. What decides is the preference recorded for
 the learner, so the workspace reads the same wherever it is opened.
@@ -245,10 +248,11 @@ on the boot sequence with its reference material behind pointers rather than in 
 steps, and the version the plugin declares is the one the changelog most recently shipped. The
 shipped components are mounted in a hand-written
 DOM and actually driven — answered, stepped, reordered — rather than merely read, and every
-artifact of a unit is checked to be reachable from every other one. One of them mounts the tutor
-drawer under a made-up language whose text is nothing but sentinels, and fails if a single
-character outside that alphabet reaches the screen — which is how a string hardcoded in *any*
-language, English included, gets caught.
+artifact of a unit is checked to be reachable from every other one. One of them mounts a whole
+unit — the drawer, the bar and every component on all three of its pages — under a made-up
+language whose text is nothing but sentinels, drives each one through every state it has, and
+fails if a single character outside that alphabet reaches the screen. That is how a string
+hardcoded in *any* language, English included, gets caught.
 [`docs/agents/tests.md`](docs/agents/tests.md) has the details.
 
 ## Design decisions

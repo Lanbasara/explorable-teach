@@ -171,6 +171,16 @@ function clock() {
   return { Date: Advanced, advance: (ms) => { at += ms; } };
 }
 
+/**
+ * Something to stand in for the drawer, answering one thing.
+ *
+ * What `grade` answers with is the drawer's own contract — `sent`, `copied`,
+ * `busy`, and whatever a later one grows — so the shape lives here beside it
+ * rather than being written out again wherever a Component has to be driven
+ * past an answer no running drawer would give on demand.
+ */
+const drawerAnswering = (outcome) => ({ grade: () => outcome });
+
 /** Somewhere for a copied answer or a copied prompt to land. */
 function clipboard() {
   const pad = { text: null };
@@ -253,28 +263,32 @@ function pageFor(assetsDir, options = {}) {
 }
 
 /**
- * That page with the drawer running in it, in the order lesson-boot.js loads
- * them: the string table first, because everything after it renders a word out
- * of it, then the renderer, then the drawer.
+ * That page with the drawer running in it, in the order a Lesson loads it.
+ *
+ * `before` names the Components whose own tags a Lesson writes *before* the one
+ * bootstrap tag, which is every Component there is. They only hand their mount
+ * over when they run; what mounts them is the bootstrap, once the tables are
+ * in. So a Component that looked for `window.Tutor` at mount would find nothing
+ * there — the drawer loads two steps later.
  *
  * `withRenderer: false` stages the one failure lesson-boot.js tolerates by
  * design — a component script that did not load — because a learner must still
- * be able to read the answer when that happens. `before` names the Components
- * that load *after* the drawer, which is where a real page loads them: one
- * looking for `window.Tutor` at mount would find nothing there either.
+ * be able to read the answer when that happens.
  */
 function mount(assetsDir, options = {}) {
   const { withRenderer = true, before = [] } = options;
   const page = pageFor(assetsDir, options);
 
-  // lesson-boot.js for its first part, which is the string table every label is
-  // looked up in. Its second part finds no chain to run here — the fixture DOM
-  // does not execute a script somebody appends to it — so the rest of the order
-  // is written out, matching the order that file declares.
+  // The fixture DOM does not fetch or execute a script somebody appends to it,
+  // so lesson-boot.js's second part finds no chain to run here: what it loads
+  // is written out instead, in the order that file declares it. `release` is
+  // the step in the middle of that chain — what it calls once the workspace's
+  // own table has had its chance to load.
+  for (const file of before) page.script(file);
   page.script('lesson-boot.js');
+  page.window.LearnerText.release();
   if (withRenderer) page.script('rich-text.js');
   page.script('tutor.js');
-  for (const file of before) page.script(file);
 
   return page;
 }
@@ -293,6 +307,7 @@ function drawerIn(t, html, options) {
 
 module.exports = {
   ANSWER,
+  drawerAnswering,
   drawerIn,
   pageFor,
   event,

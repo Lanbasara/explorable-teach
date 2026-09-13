@@ -13,21 +13,23 @@
 //                      picks it up — the manifest, the bootstrap, the wiring
 //   the lookup         exact tag, then base language, then English, then the
 //                      key; a Workspace table wins at every rung
-//   a pseudolocale     the drawer mounted under a synthetic language whose
-//                      table holds only sentinels, with nothing outside the
-//                      sentinel alphabet in what it renders. This is the one
-//                      that catches a hardcoded *English* string
-//   a non-ASCII scan   the drawer's own source, which catches the other thing:
-//                      one Learner's language creeping back into shared code
-//   two contracts      every key the drawer asks for has an entry, and the
+//   a pseudolocale     the drawer, then every page of a Unit, mounted under a
+//                      synthetic language whose table holds only sentinels,
+//                      with nothing outside the sentinel alphabet in what they
+//                      render. This is the one that catches a hardcoded
+//                      *English* string
+//   a non-ASCII scan   every script the plugin puts on a Learner's page, which
+//                      catches the other thing: one Learner's language creeping
+//                      back into shared code
+//   two contracts      every key any of them asks for has an entry, and the
 //                      shipped tables agree about which keys exist — both
 //                      derived from source, never listed here
 //
-// The drawer, and so far only the drawer. It is not a Component — `CONTEXT.md`
-// keeps that word for a reusable interaction pattern a Lesson is built from —
-// and the Components the plugin ships still hold their own strings. Nothing
-// below names one, so widening these to cover them is adding a source to the
-// list they are derived from.
+// The drawer and every Component a Lesson is built from, on one mechanism. The
+// drawer is not a Component — `CONTEXT.md` keeps that word for a reusable
+// interaction pattern — but it reads out of the same table, so the checks are
+// the same checks. Nothing below lists a Component: the sources are the shipped
+// scripts, found on disk, and the keys are read out of them.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -35,13 +37,22 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
-const { lessonHtml, FIXTURE_LANG } = require('./helpers/unit.js');
+const {
+  ALL_COMPONENTS,
+  ECHOED_INPUT,
+  UNIT,
+  lessonHtml,
+  pagesIn,
+  FIXTURE_LANG,
+} = require('./helpers/unit.js');
 const { drawerIn, event, mount, pageFor, settle } = require('./helpers/drawer.js');
 const {
+  NAMESPACES,
   TABLES,
   say,
   speaking,
   lookupSource,
+  bootstrapSource,
   keysAskedBy,
   pseudoTable,
   sentinel,
@@ -49,8 +60,41 @@ const {
   SOURCE,
 } = require('./helpers/learner-text.js');
 
-const DRAWER = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/assets/tutor.js');
+const ASSETS = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/assets');
+const DRAWER = path.join(ASSETS, 'tutor.js');
 const read = (abs) => fs.readFileSync(abs, 'utf8');
+
+/**
+ * Every script the plugin puts on a Learner's page, found rather than listed.
+ *
+ * Listing them is the failure this is written against: a Component added to the
+ * plugin and forgotten here is a Component nothing holds to the table, and it
+ * would ship rendering English at a Learner who reads none. Reading the
+ * directory means the day a Component arrives it is already covered.
+ */
+function shippedScripts() {
+  return fs.readdirSync(ASSETS).filter((file) => file.endsWith('.js')).sort();
+}
+
+/**
+ * The shipped scripts that *read* the table, which is all of them but the one
+ * that holds it. `lesson-boot.js` writes every key it ships as a literal, so a
+ * check that counted it as a reader would find every key asked for and every
+ * namespace in use — and pass whatever anything else had stopped doing.
+ */
+function tableReaders() {
+  return shippedScripts().filter((file) => path.join(ASSETS, file) !== SOURCE);
+}
+
+/**
+ * A shipped script as the non-ASCII scan reads it. `lesson-boot.js` is the one
+ * exception, and it is the file the table lives in: scanned whole, every line
+ * of `zh-CN` would be a finding. Its bootstrap half holds no table and is read
+ * like any other.
+ */
+function scannable(file) {
+  return file === 'lesson-boot.js' ? bootstrapSource() : read(path.join(ASSETS, file));
+}
 
 /** A synthetic tag no Workspace has, and no plugin table answers for. */
 const PSEUDO = 'qps-ploc';
@@ -180,7 +224,15 @@ test('a Workspace that records no language is left as it is', (t) => {
  * the bootstrap's own ordering rather than of a list copied out of it.
  */
 function boot(page, assetsDir) {
-  page.script('lesson-boot.js');
+  // Run with the attributes the page's own bootstrap tag carries. `data-unit`
+  // is the one genuinely per-page value there is, and the bar reads it off the
+  // tag the bootstrap writes for it — so a boot that dropped it would drive a
+  // bar that never mounted.
+  const declared = page
+    .queryAll('script')
+    .find((tag) => /assets\/lesson-boot\.js/.test(tag.getAttribute('src') || ''));
+  const unit = declared && declared.getAttribute('data-unit');
+  page.script('lesson-boot.js', unit ? { 'data-unit': unit } : {});
 
   for (let guard = 0; guard < 20; guard += 1) {
     const next = page.queryAll('script').find((tag) => tag.onload && !tag.loaded);
@@ -188,11 +240,14 @@ function boot(page, assetsDir) {
 
     next.loaded = true;
     const file = next.src.replace(/^.*assets\//, '');
+    // Carried across rather than dropped: the bootstrap is what passes the
+    // page's Unit id down to the bar, and a bar handed none never mounts.
+    const carried = next.getAttribute('data-unit');
 
     // One or the other, never both: the bootstrap wires the same handler to
     // each, so telling it twice would advance the chain twice and skip a file.
     if (fs.existsSync(path.join(assetsDir, file))) {
-      page.script(file);
+      page.script(file, carried ? { 'data-unit': carried } : {});
       next.onload();
     } else {
       next.onerror();
@@ -365,6 +420,36 @@ test('a Workspace with no table of its own still reads in its language', async (
   );
 });
 
+test('a Workspace with no table of its own still mounts its Components', async (t) => {
+  // The upgrade path, now that mounting waits for the bootstrap. An older
+  // Workspace has no assets/strings.js at all, so the step the release hangs
+  // off is a script that is not there. If the chain stopped at it, every Lesson
+  // in that Workspace would go inert on upgrade — no verdict, no reveal, no
+  // gate — with nothing erroring, which is the worst shape this could fail in.
+  const ws = Workspace.create(t);
+  ws.scaffold();
+  ws.write('assets/units.js', "window.TEACH_COURSE = { title: 'x' };\n");
+  fs.rmSync(ws.path(ownTable(ws)));
+
+  const fixture = pagesIn(FIXTURE_LANG).find((page) => page.key === 'lesson');
+  const page = pageFor(ws.path('assets'), { html: fixture.html });
+  for (const component of fixture.components) page.script(component.js);
+  boot(page, ws.path('assets'));
+  await settle();
+
+  for (const component of fixture.components) {
+    assert.ok(
+      page.query(component.root).classList.contains('is-live'),
+      `${component.name} never mounted, so the absent table took the Lesson with it`,
+    );
+  }
+  assert.equal(
+    page.text('.steps-count'),
+    say(FIXTURE_LANG, 'steps.count', { at: 1, of: 4 }),
+    'and it reads out of the shipped table, which is what an un-migrated Workspace falls back to',
+  );
+});
+
 test('a page recording no language anywhere reads in English', async (t) => {
   const ws = Workspace.create(t);
   ws.scaffold();
@@ -380,23 +465,81 @@ test('a page recording no language anywhere reads in English', async (t) => {
 
 /* ------------------------------------------------------------ the pseudolocale */
 
-/** Every text and every label a reader meets, out of one subtree. */
+/**
+ * Every text and every label a reader meets, out of one subtree — the root's own
+ * labels included, because the thing a check is handed is as likely to carry one
+ * as anything inside it. The bar's whole name for a screen reader is an
+ * `aria-label` on the `<nav>` itself, and reading only the children walked past
+ * it.
+ *
+ * A `<script>` is walked past rather than read: a browser renders none of it,
+ * and an Assignment page carries its Rubric in one. A `<style>` goes with it
+ * for the same reason.
+ *
+ * What this reads decides what `ECHOED_INPUT` has to hold. It reads text and
+ * labels, never a box's `value`, which is why only one of the things the
+ * fixture's drives type ever reaches a tree and why the exclusion list below is
+ * one entry long. Widening this to read `value` — a Learner does read what is
+ * in a textarea — means widening that list in the same commit, or four inputs'
+ * worth of a Learner's own words start failing the sentinel test with no hint
+ * why.
+ */
 function rendered(root) {
   const found = [];
+  const labels = (node) => {
+    for (const name of ['title', 'aria-label', 'placeholder']) {
+      const label = node.getAttribute(name);
+      if (label) found.push(label);
+    }
+  };
   const walk = (node) => {
     for (const child of node.childNodes) {
       if (child.nodeType === 3) found.push(child.data);
-      else {
-        for (const name of ['title', 'aria-label', 'placeholder']) {
-          const label = child.getAttribute(name);
-          if (label) found.push(label);
-        }
+      else if (child.localName !== 'script' && child.localName !== 'style') {
+        labels(child);
         walk(child);
       }
     }
   };
+  if (root.getAttribute) labels(root);
   walk(root);
   return found.filter((text) => text.trim() !== '');
+}
+
+/**
+ * What a page says that it did not say before anything ran — which is the half
+ * a Component is answerable for.
+ *
+ * The other half is the author's: a Lesson's prose, its questions, its steps,
+ * the verdicts a Checkpoint's author wrote out. Those are written in the
+ * Learner's language by the Teacher rather than looked up, so a check that read
+ * them would be reading the fixture rather than the Component. Subtracting what
+ * was already there is how that line gets drawn without naming a selector — and
+ * a Component that replaced an authored sentence with one of its own would show
+ * up here as text that was not on the page before.
+ */
+function putThere(before, after) {
+  const authored = new Set(before);
+  return after.filter((text) => !authored.has(text));
+}
+
+/**
+ * One line of a rendered tree with the Learner's own words taken out of it.
+ *
+ * A refusal names the path it refused, and that path is the Learner's — there
+ * is no fullwidth spelling of `/etc/passwd` that a hand-in would refuse, so the
+ * line it is in cannot be all sentinels. Cutting the typed text out of the line
+ * rather than excusing the line keeps the rest of that sentence under check,
+ * which is where the hardcoded half of a refusal would be.
+ *
+ * The cut is made in every captured line rather than only the one it landed in.
+ * That is safe because `ECHOED_INPUT` holds one entry and it is an escaping
+ * path: no label anywhere else could contain it. Two checks keep it that way —
+ * one asserts every entry reached a screen before any line is forgiven on its
+ * account, and one asserts no shipped string contains one.
+ */
+function withoutTypedText(text) {
+  return ECHOED_INPUT.reduce((left, typed) => left.split(typed).join(''), text);
 }
 
 /** Everything the drawer put on the page, wherever on it the drawer put it. */
@@ -510,15 +653,236 @@ test('the prompt handed to a Learner with no service is in their language', asyn
   }
 });
 
+/* ------------------------------------------- the pseudolocale, over a whole Unit */
+
+/**
+ * A page of the fixture Unit in a language nothing ships a table for, loaded
+ * the way a browser loads it and driven the way a Learner drives it.
+ *
+ * The Workspace's own `assets/strings.js` is the only table that can answer, so
+ * this is also the check that a Workspace supplying a language the plugin has
+ * never collected gets neither English nor Chinese anywhere on the page.
+ *
+ * The order is the page's own: a Lesson writes its Component tags above the one
+ * bootstrap tag, so every Component runs first and only hands its mount over —
+ * `boot` then drives the real chain, and what mounts them is the bootstrap,
+ * after the Workspace's table has had its chance to load. A Component that
+ * mounted at once would render out of the plugin's tables here and fail.
+ */
+function unitPage(t, fixture, { strings, units = [], health } = {}) {
+  const ws = Workspace.create(t);
+  ws.scaffold();
+  ws.write('assets/strings.js', `window.TEACH_STRINGS = ${JSON.stringify(strings)};\n`);
+  ws.write(
+    'assets/units.js',
+    `window.TEACH_COURSE = { lang: '${PSEUDO}', title: ${JSON.stringify(sentinel('a course'))} };\n`
+      + `window.TEACH_UNITS = ${JSON.stringify(units)};\n`,
+  );
+
+  const page = pageFor(ws.path('assets'), {
+    html: fixture.html,
+    at: `/${fixture.file}`,
+    ...(health ? { health } : {}),
+  });
+
+  page.authored = componentText(page, fixture);
+  for (const component of fixture.components) page.script(component.js);
+  boot(page, ws.path('assets'));
+  return page;
+}
+
+/**
+ * What this page's Components have on screen — their own subtrees and no more.
+ *
+ * The drawer is on the page too, and answers for itself two checks above; what
+ * a Tutor says back is content rather than either one's string, and reading it
+ * here would be reading the stub.
+ */
+function componentText(page, fixture) {
+  return fixture.components.flatMap((component) => page.queryAll(component.root).flatMap(rendered));
+}
+
+test('every string the Components render comes from the table, in any language', async (t) => {
+  const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
+  const rendering = [];
+
+  // Every page driven first, and judged afterwards. The order is the observer
+  // rule: what this check forgives is guarded below out of what the pages
+  // actually put on screen, and a guard that ran after the assertion it guards
+  // would only hold on a suite that was already green.
+  for (const fixture of pagesIn(PSEUDO)) {
+    const page = unitPage(t, fixture, { strings });
+    await settle();
+
+    // Read at every state rather than once at the end, for the reason the
+    // drawer's own check is: a label replaced on the way — a reveal button once
+    // it has revealed, a progress line once it becomes a score — would
+    // otherwise be a string nothing ever looked at. Each Component's own drive
+    // comes off the fixture, so a Component added there is driven here without
+    // this being edited.
+    const shown = [];
+    const capture = () => shown.push(...componentText(page, fixture));
+    capture();
+    for (const component of fixture.components) {
+      component.drive(page, page.query(component.root), capture);
+    }
+    await settle();
+    capture();
+
+    const mine = putThere(page.authored, shown);
+
+    // Guard the observer, twice. A page whose Components never mounted, or a
+    // table that never reached them, would pass every claim below for free.
+    assert.ok(
+      mine.length >= 5,
+      `${fixture.name}: expected its Components to have rendered something, found ${mine.length}`,
+    );
+    for (const component of fixture.components) {
+      assert.ok(
+        page.query(component.root).classList.contains('is-live'),
+        `${fixture.name}: ${component.name} never mounted, so nothing below is a claim about it`,
+      );
+    }
+
+    rendering.push({ fixture, mine });
+  }
+
+  // Guard the last observer there is: the list of text this check forgives.
+  // An entry nothing ever put on a screen forgives that text on every page
+  // forever, so an entry that stops being echoed — a drive dropped, a refusal
+  // that stops naming what it refused — fails here, before anything is
+  // forgiven on its account below.
+  const everything = rendering.flatMap(({ mine }) => mine);
+  for (const typed of ECHOED_INPUT) {
+    assert.ok(
+      everything.some((text) => text.includes(typed)),
+      `nothing put ${JSON.stringify(typed)} on a screen, so taking it back out forgives whatever holds it`,
+    );
+  }
+
+  // What the drives typed is the Learner's own, and is taken back out of the
+  // line it landed in rather than the line being excused. The list comes off
+  // the fixture that typed it, so a drive that starts typing something new does
+  // not quietly widen what this check forgives.
+  for (const { fixture, mine } of rendering) {
+    const foreign = mine.filter((text) => !SENTINEL.test(withoutTypedText(text)));
+    assert.deepEqual(foreign, [], `${fixture.name}: these are held in source rather than looked up`);
+  }
+});
+
+test('a Checkpoint gives the author\'s verdict, and counts in the Learner\'s language', async (t) => {
+  // Two different things on one page, told apart by who wrote them. *Which*
+  // passage to go back and read is a sentence about this Unit and nothing else,
+  // so a Checkpoint's two outcomes are the author's own prose, written in the
+  // Learner's language because the whole page is. What the Component adds is
+  // the score, and that comes off the table like every label it renders. The
+  // failure this rules out is either half taking the other's place.
+  const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
+  const gate = pagesIn(PSEUDO).find((page) => page.key === 'checkpoint');
+  const page = unitPage(t, gate, { strings });
+  await settle();
+
+  const authored = page.text('.checkpoint-again');
+  assert.ok(authored.length > 0, 'the fixture gate carries no retry message, so there is nothing to hold');
+
+  for (const component of gate.components) component.drive(page, page.query(component.root), () => {});
+
+  assert.equal(page.query('.checkpoint-again').hidden, false, 'one wrong answer holds the Unit open');
+  assert.equal(page.query('.checkpoint-pass').hidden, true, 'and it is not also told it may close');
+  assert.equal(page.text('.checkpoint-again'), authored, 'in the words the author wrote, untouched');
+  assert.match(
+    page.text('.checkpoint-progress'),
+    new RegExp(sentinel('checkpoint.right')),
+    'while the score beside it is the table\'s',
+  );
+});
+
+test('the navigation bar across the top of a Unit is in the Learner\'s language too', async (t) => {
+  const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
+  const lesson = pagesIn(PSEUDO).find((page) => page.key === 'lesson');
+
+  // The fixture Unit as the bar meets it: a Lesson and a Checkpoint written, no
+  // Assignment — which is what puts a slot on the bar with nothing behind it.
+  // Its own title and number are the author's, so they are fed as sentinels the
+  // way the drawer's check feeds a question.
+  const here = {
+    id: UNIT.id,
+    num: sentinel('L03'),
+    title: sentinel('fork and exec'),
+    lesson: UNIT.lesson,
+    checkpoint: UNIT.checkpoint,
+  };
+  const other = (id, num) => ({
+    id,
+    num: sentinel(num),
+    title: sentinel('pipes'),
+    lesson: `lessons/${id}-pipes.html`,
+  });
+
+  // Mounted twice, because the two neighbour slots each have two states and one
+  // placement only ever shows one of each. First in the Curriculum, the bar
+  // says there is nothing before; last in it, that the next Unit is unwritten.
+  // A hardcoded label in the half a single placement never renders is exactly
+  // what this check exists to catch.
+  const shown = [];
+  for (const units of [[here, other('0004', 'L04')], [other('0002', 'L02'), here]]) {
+    const page = unitPage(t, lesson, { strings, units });
+    await settle();
+
+    const bar = page.query('.tnav');
+    assert.ok(bar, 'the bar never mounted, so nothing below is a claim about it');
+    shown.push(...rendered(bar));
+  }
+
+  // Guard the observer against the table rather than against a key written out
+  // here: every entry the bar's namespace carries has to have reached a screen
+  // across the two placements, so an entry nothing renders is a finding too.
+  const missed = Object.keys(TABLES.en)
+    .filter((key) => key.startsWith('nav.'))
+    .filter((key) => !shown.some((text) => text.includes(sentinel(key))));
+  assert.deepEqual(missed, [], 'the bar never put these on screen, so nothing here is a claim about them');
+
+  assert.deepEqual(
+    shown.filter((text) => !SENTINEL.test(text)),
+    [],
+    'the bar is holding these strings itself rather than looking them up',
+  );
+});
+
 /* ------------------------------------------------------------ the two contracts */
 
-test('every key the drawer asks for has an entry in the table it falls back to', () => {
-  const asked = keysAskedBy(read(DRAWER));
+test('every key any shipped script asks for has an entry in the table it falls back to', () => {
+  // Derived three times over: the scripts are found on disk, the keys are read
+  // out of each one, and what counts as a key comes off the table's own
+  // namespaces. Nothing here names a Component, so a Component added to the
+  // plugin is covered by this the day its entries land in the table.
+  const asked = {};
+  for (const file of tableReaders()) asked[file] = keysAskedBy(read(path.join(ASSETS, file)));
 
-  assert.ok(asked.length >= 40, `expected keys to check, found ${asked.length}`);
+  const total = Object.values(asked).reduce((n, keys) => n + keys.length, 0);
+  assert.ok(total >= 40, `expected keys to check, found ${total}`);
 
-  const missing = asked.filter((key) => !Object.prototype.hasOwnProperty.call(TABLES.en, key));
-  assert.deepEqual(missing, [], 'the drawer asks for these, and a Learner would get the raw key');
+  // Guard the observer from the other side, twice. A Component that quietly
+  // stopped asking for anything would have every claim below pass for free —
+  // and a namespace the table still carries that no script asks for is a whole
+  // surface that fell off it, which is how the bar could go back to holding its
+  // own strings with this check none the wiser.
+  for (const component of ALL_COMPONENTS) {
+    assert.ok(
+      asked[component.js] && asked[component.js].length > 0,
+      `${component.js} looks up no Learner-facing text at all`,
+    );
+  }
+  const everyKey = Object.values(asked).flat();
+  const unread = NAMESPACES.filter((namespace) => !everyKey.some((key) => key.startsWith(`${namespace}.`)));
+  assert.deepEqual(unread, [], 'the table carries these namespaces, and nothing on a page asks for them');
+
+  const missing = {};
+  for (const [file, keys] of Object.entries(asked)) {
+    const gaps = keys.filter((key) => !Object.prototype.hasOwnProperty.call(TABLES.en, key));
+    if (gaps.length) missing[file] = gaps;
+  }
+  assert.deepEqual(missing, {}, 'these are asked for, and a Learner would get the raw key');
 });
 
 test('the shipped tables agree about which keys exist', () => {
@@ -530,6 +894,24 @@ test('the shipped tables agree about which keys exist', () => {
 
   for (const tag of shipped) {
     assert.deepEqual(Object.keys(TABLES[tag]).sort(), english, `${tag} does not hold the same keys as en`);
+  }
+});
+
+test('no shipped string holds text the pseudolocale check cuts out', () => {
+  // A static property of the tables, so it is asserted here rather than from
+  // inside a check that has to mount three pages to get to it. `ECHOED_INPUT`
+  // is text a Learner typed that a Component reads back onto the screen, and
+  // the pseudolocale check cuts it out of a line before asking whether what is
+  // left came from the table. A shipped string that happened to contain one
+  // would have that much of itself cut away before it was ever read — so a
+  // Component hardcoding it would pass on the strength of the coincidence.
+  for (const typed of ECHOED_INPUT) {
+    const holding = Object.keys(TABLES)
+      .flatMap((tag) => Object.keys(TABLES[tag]).map((key) => [`${tag}/${key}`, TABLES[tag][key]]))
+      .filter(([, value]) => value.includes(typed))
+      .map(([where]) => where);
+
+    assert.deepEqual(holding, [], `these hold ${JSON.stringify(typed)}, so cutting it out cuts a shipped string`);
   }
 });
 
@@ -574,12 +956,21 @@ test('the scan can see a string that does not belong, and lets English prose thr
   assert.deepEqual(foreignLines('// a claim — and the caveat beside it… still English'), []);
 });
 
-test('the drawer\'s own source holds no Learner-facing string', () => {
-  const stray = foreignLines(read(DRAWER));
+test('no shipped script holds a Learner-facing string of its own', () => {
+  const scripts = shippedScripts();
+  assert.ok(scripts.length >= 8, `expected scripts to scan, found ${scripts}`);
+  assert.ok(scripts.includes('tutor.js'), 'the drawer is not among the files being scanned');
+
+  const stray = {};
+  for (const file of scripts) {
+    const found = foreignLines(scannable(file));
+    if (found.length) stray[file] = found;
+  }
+
   assert.deepEqual(
     stray,
-    [],
-    'assets/tutor.js is linked into every Workspace, so a string here is every Learner\'s language',
+    {},
+    'every one of these is linked into every Workspace, so a string here is every Learner\'s language',
   );
 });
 

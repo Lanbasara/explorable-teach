@@ -2,25 +2,26 @@
    drag-order.js — put the steps in the right order. For sequential
    knowledge, where knowing the pieces and knowing their order are two
    different things.
-   Deps: drag-order.css, style.css (design tokens). No library, no network,
-         no server: works from file://. (The catalog once listed SortableJS
-         here; native drag events plus the move buttons cover it, and a
-         Component that needs a CDN stops working on a train.)
+   Deps: drag-order.css, style.css (design tokens), lesson-boot.js (the text it
+         renders, and the word that its tables have all arrived). No library, no
+         network, no server: works from file://. (The catalog once listed
+         SortableJS here; native drag events plus the move buttons cover it, and
+         a Component that needs a CDN stops working on a train.)
 
    Markup the Lesson author writes — in a deliberately wrong order, with
    `data-order` giving the right one:
 
      <div class="drag-order" data-drag-order>
-       <p class="drag-order-prompt">把这些步骤排成正确顺序</p>
+       <p class="drag-order-prompt">Put these steps into the right order</p>
        <ol class="drag-order-items">
-         <li data-order="2">fork() 复制出子进程</li>
-         <li data-order="1">shell 读到一行命令</li>
-         <li data-order="3">exec() 把子进程替换成新程序</li>
+         <li data-order="2">fork() copies the process</li>
+         <li data-order="1">The shell reads a command line</li>
+         <li data-order="3">exec() replaces the child with a new program</li>
        </ol>
      </div>
 
-   Every item can be moved two ways: dragged, or moved with its ↑/↓
-   buttons. The buttons are not a fallback — they are the only path that
+   Every item can be moved two ways: dragged, or moved with its up and
+   down buttons. The buttons are not a fallback — they are the only path that
    works on a touchscreen and the only one that works from a keyboard.
 
    Scripting off: the prompt and the steps are readable text. They are in
@@ -29,13 +30,19 @@
 (function () {
   'use strict';
 
-  var CHECK = '检查顺序';
-  var RIGHT = '顺序正确。';
-  var UP = '上移';
-  var DOWN = '下移';
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
 
-  function wrongMessage(n) {
-    return '还有 ' + n + ' 处不在位置上,再看看。';
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
   }
 
   function each(nodes, fn) {
@@ -77,7 +84,7 @@
     var check = document.createElement('button');
     check.className = 't-btn drag-order-check';
     check.setAttribute('type', 'button');
-    check.textContent = CHECK;
+    check.textContent = say('drag.check');
 
     var verdict = document.createElement('p');
     verdict.className = 'drag-order-verdict';
@@ -128,8 +135,8 @@
 
       var moves = document.createElement('span');
       moves.className = 'drag-order-move';
-      var up = button('drag-order-up', '↑', UP);
-      var down = button('drag-order-down', '↓', DOWN);
+      var up = button('drag-order-up', say('drag.up.glyph'), say('drag.up'));
+      var down = button('drag-order-down', say('drag.down.glyph'), say('drag.down'));
       moves.appendChild(up);
       moves.appendChild(down);
       item.appendChild(moves);
@@ -179,7 +186,7 @@
       });
 
       root.classList.add(misplaced ? 'is-wrong' : 'is-correct');
-      verdict.textContent = misplaced ? wrongMessage(misplaced) : RIGHT;
+      verdict.textContent = misplaced ? say('drag.wrong', { n: misplaced }) : say('drag.right');
     });
 
     root.classList.add('is-live');
@@ -189,8 +196,5 @@
     each(document.querySelectorAll('[data-drag-order]'), mount);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

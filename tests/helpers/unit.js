@@ -25,6 +25,20 @@
  * its markup to the page it belongs on; every check below then covers it
  * without being told about it separately.
  *
+ * An entry carries a `drive` for the same reason. Putting a Component through
+ * its states is the one thing about it nothing can derive — which option is the
+ * wrong one, which button reveals — so it is written once, here, beside the
+ * selector and the filenames. A check that held its own copy would cover a new
+ * Component only on the day somebody remembered to extend it, and two suites
+ * already need this: `components.test.js` drives each Component to see that
+ * every class it reaches is styled, and `language.test.js` drives it to see
+ * that every label it reaches comes from the table.
+ *
+ * `step` is called after each state, because a label replaced on the way — a
+ * reveal button once it has revealed — is otherwise a state nothing looks at.
+ * What a drive types is named above the drives, so a check can tell the
+ * Learner's own words apart from the Component's.
+ *
  * Every page is built for a language rather than in one. `<html lang>` is what
  * a Component reads to decide what a Learner sees, so a fixture that hardcoded
  * a tag could only ever mount one audience's page — and the check that matters
@@ -33,6 +47,66 @@
  * those at the fixture's own language, which is the pilot Workspace's, so that
  * the suite keeps observing the audience the prose below is written for.
  */
+
+const { drawerAnswering } = require('./drawer.js');
+
+/**
+ * What a drive types in: a Learner's own words, and a Learner's own paths.
+ *
+ * Non-English on purpose, and not to be tidied away: `docs/agents/tests.md`
+ * keeps a handful of non-ASCII inputs deliberately, because bytes that are not
+ * ASCII are the class of defect the verdict slug's character range was. The
+ * escaping path is the one exception, and it has to be — a hand-in refuses a
+ * path by looking for a leading `/`, a `..` segment or a URL scheme, and there
+ * is no fullwidth spelling of any of those.
+ *
+ * `GUESS` and `SUBMISSION` are exported because a check elsewhere asserts on
+ * the very text a drive typed — that the guess is still in the box afterwards,
+ * that the Submission handed over is the one written. The rest are the drives'
+ * own and have no second reader, so they stay in here.
+ */
+const GUESS = '管道右边的先创建';
+const SUBMISSION = '第一段的 stdout 就是第二段的 stdin。';
+const TOO_LONG = 'х'.repeat(2100);
+const SOME_PATH = 'submissions/0003b-audit/notes.md';
+const ESCAPING_PATH = '/etc/passwd';
+
+/**
+ * The typed text a Component reads back *onto the screen* — which is the only
+ * part of it a check reading a rendered tree can meet.
+ *
+ * Just the escaping path, because a refusal names the path it refused and
+ * nothing else a drive types comes back: what goes into a box stays a `value`,
+ * and reading a tree reads text and labels rather than what is typed into it.
+ * So the rest of the constants above are deliberately not here — a list longer
+ * than the truth is a list that forgives text nothing put on screen.
+ *
+ * `language.test.js` takes these out of a captured line before deciding whether
+ * what is left is all sentinels, and asserts each one turned up first.
+ */
+const ECHOED_INPUT = [ESCAPING_PATH];
+
+/**
+ * The two boxes of a hand-in, reached through their labels the way a Learner
+ * reaches them: `<label for>` is the contract the Component publishes, and the
+ * id behind it is minted from a counter that no test owns.
+ */
+function handInBoxes(page) {
+  const boxes = page
+    .queryAll('.assignment-label')
+    .map((label) => page.document.getElementById(label.getAttribute('for')));
+
+  if (boxes.length !== 2 || boxes.some((box) => !box)) {
+    throw new Error(`expected a hand-in with two labelled boxes, found ${boxes.length}`);
+  }
+  return { answer: boxes[0], paths: boxes[1] };
+}
+
+/** The option of `question` that is not the one marked right. */
+const wrongOption = (question) => {
+  const options = question.querySelectorAll('.exercise-option');
+  return options.find((option) => !option.hasAttribute('data-correct'));
+};
 
 /**
  * The Exercise, named on its own because two pages are built from it: a Lesson
@@ -46,6 +120,12 @@ const EXERCISE = {
   css: 'exercise.css',
   js: 'exercise.js',
   root: '.exercise',
+  // Wrong on purpose: it is the verdict with something to say, and the one that
+  // also has to show which answer was right.
+  drive(page, root, step) {
+    page.click(wrongOption(root));
+    step();
+  },
 };
 
 /** The Components a Lesson is built from, as the Lesson author meets them. */
@@ -56,18 +136,42 @@ const LESSON_COMPONENTS = [
     css: 'predict-reveal.css',
     js: 'predict-reveal.js',
     root: '.predict',
+    // Both ways through it: revealing with nothing written nudges, and a guess
+    // written down reveals. The button says a different thing at each.
+    drive(page, root, step) {
+      page.click(root.querySelector('button.predict-reveal'));
+      step();
+      page.type(root.querySelector('textarea.predict-guess'), GUESS);
+      page.click(root.querySelector('button.predict-reveal'));
+      step();
+    },
   },
   {
     name: 'step-animation',
     css: 'step-animation.css',
     js: 'step-animation.js',
     root: '.steps',
+    // Off the first step, which is where the count moves and both buttons are
+    // live at once.
+    drive(page, root, step) {
+      page.click(root.querySelector('.steps-next'));
+      step();
+    },
   },
   {
     name: 'drag-order',
     css: 'drag-order.css',
     js: 'drag-order.js',
     root: '.drag-order',
+    // Wrong as authored, then right once an item has moved — the second verdict
+    // has to clear the first, so both have to be reached.
+    drive(page, root, step) {
+      page.click(root.querySelector('.drag-order-check'));
+      step();
+      page.click(root.querySelectorAll('.drag-order-item')[1].querySelector('.drag-order-up'));
+      page.click(root.querySelector('.drag-order-check'));
+      step();
+    },
   },
 ];
 
@@ -81,6 +185,17 @@ const CHECKPOINT = {
   css: 'checkpoint.css',
   js: 'checkpoint.js',
   root: '.checkpoint',
+  // Every question, so the gate reaches a verdict — and one of them wrong, so
+  // the verdict it reaches is the one that holds the Unit open. Questions
+  // already answered are left alone: on a Checkpoint page the Exercise's own
+  // drive has run first, and an Exercise takes only its first answer.
+  drive(page, root, step) {
+    for (const question of root.querySelectorAll('.exercise')) {
+      if (question.classList.contains('is-answered')) continue;
+      page.click(question.querySelectorAll('.exercise-option[data-correct]')[0]);
+      step();
+    }
+  },
 };
 
 /**
@@ -93,6 +208,42 @@ const ASSIGNMENT = {
   css: 'assignment.css',
   js: 'assignment.js',
   root: '.assignment',
+  // Every way a hand-in can end. The four refusals the page reaches on its own
+  // come first, then a Submission it has no complaint about, then the two
+  // answers only a drawer can give and the one it must not give — each of those
+  // three staged by standing in for the drawer.
+  drive(page, root, step) {
+    const box = handInBoxes(page);
+    const send = () => {
+      page.click(root.querySelector('.assignment-send'));
+      step();
+    };
+
+    send();                                             // nothing written yet
+    page.type(box.paths, ESCAPING_PATH);
+    send();                                             // a path out of the Workspace
+    page.type(box.paths, new Array(12).fill(SOME_PATH).join('\n'));
+    send();                                             // more paths than it takes
+    page.type(box.paths, '');
+    box.answer.value = TOO_LONG;
+    send();                                             // more than the service holds
+
+    // A Submission the page has no complaint about. Where it goes from here is
+    // the drawer's: with one on the page it is handed over, and without one —
+    // which is how `components.test.js` opens this page — it is refused for
+    // the last reason there is.
+    box.answer.value = SUBMISSION;
+    send();
+
+    const drawer = page.window.Tutor;
+    for (const outcome of ['busy', 'nonsense-from-a-future-drawer']) {
+      page.window.Tutor = drawerAnswering(outcome);
+      send();
+    }
+    page.window.Tutor = undefined;                      // a drawer that never arrived
+    send();
+    page.window.Tutor = drawer;
+  },
 };
 
 /** Every Component the plugin ships, wherever on a Unit's pages it is used. */
@@ -356,6 +507,10 @@ module.exports = {
   FIXTURE_LANG,
   LESSON_HTML,
   PAGES,
+  SUBMISSION,
+  ECHOED_INPUT,
+  GUESS,
+  handInBoxes,
   lessonHtml,
   pagesIn,
   assetRefs,

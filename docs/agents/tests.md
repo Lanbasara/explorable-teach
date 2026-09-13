@@ -30,7 +30,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — and grades in a role composed from the Grader's own two files, never the Tutor's |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
-| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, and nothing a Learner reads is hardcoded — in any language |
+| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, and nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded, in any language |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
@@ -135,7 +135,21 @@ a page in it would say, so an assertion can name a *key* rather than a word. It 
 sentinel tables the pseudolocale check mounts under.
 
 `tests/helpers/unit.js` holds the fixture Unit — the pages one Unit is made of, written the way
-the skill's authoring document says to write them, using every shipped Component. Every page is
+the skill's authoring document says to write them, using every shipped Component. Each Component's
+entry carries a `drive(page, root, step)` that puts it through its states, and the suites that
+need one share it: `components.test.js` drives to see that every class a Component reaches is
+styled, `language.test.js` drives to see that every label it reaches comes from the table. What a
+drive types in is named beside the drives, and the part of it a Component reads back *onto the
+screen* is exported as `ECHOED_INPUT` — so a check reading a rendered tree can take the Learner's
+own words back out of a line rather than excusing the line.
+
+That list is itself guarded, twice, because a list longer than the truth forgives text nothing
+ever put there. Every entry has to have reached a screen — asserted after all three pages are
+driven and *before* any line is forgiven on its account, so the guard does not depend on the
+assertion it guards having passed. And no shipped string may contain an entry, or a Component
+hardcoding that string would have part of itself cut away before it was read; that one is a
+static property of the tables, so it sits with the other table checks rather than inside a check
+that has to mount three pages to reach it. Every page is
 built *for* a language rather than *in* one: `pagesIn(lang)` and `lessonHtml(lang)` take the tag,
 and the bare `PAGES` and `LESSON_HTML` are those at the fixture's own. A fixture that hardcoded
 one could only ever mount a single audience's page, and the check that matters most is the one
@@ -302,14 +316,16 @@ synthetic `lang` whose table holds nothing but sentinels — each key transliter
 Latin, which no natural-language string carries — and the rendered tree is then asserted to hold
 no character outside that alphabet.
 
-The drawer, and so far only the drawer. It is not a Component — `CONTEXT.md` reserves that word
-for a reusable interaction pattern a Lesson is built from — and every Component the plugin ships
-still holds its own strings. Widening this check to cover them, and the non-ASCII scan with it,
-is the ticket that follows. Read the suite for what is covered rather than this paragraph: the
-keys are derived from the sources handed to the check, so the day a Component is added to it,
-nothing here has to be edited to say so. That catches a string hardcoded in *any* language, including
-English, which no scan of the bytes can see, and it never needs rewriting when a language is
-added. Three things make it work, and all three were found the hard way:
+Every page of the fixture Unit is mounted the same way, and so is the navigation bar: the
+Component tags a Lesson author writes, then the one bootstrap tag, driven through every state
+each Component has. Nothing there names a Component. The pages come from `helpers/unit.js` and
+name the Components they are built from, and **each Component carries its own `drive`** on the
+same entry — so a Component added to the fixture is mounted, driven and read here without this
+check being edited. That is the one thing about a Component nothing can derive (which option is
+the wrong one, which button reveals), so it is written once, beside the selector and the
+filenames, rather than copied into every suite that needs it. That catches a string hardcoded in *any* language, including English, which no
+scan of the bytes can see, and it never needs rewriting when a language is added. Three things
+make it work, and all three were found the hard way:
 
 - **The content the test feeds in is in the alphabet too.** What a Learner types and what a Tutor
   answers are theirs rather than the Component's, so they are fed as sentinels — otherwise they
@@ -322,8 +338,25 @@ added. Three things make it work, and all three were found the hard way:
   value the page computes, and the same digit in every language.
 
 Labels that are attributes rather than text are read too — `title`, `aria-label`, `placeholder` —
-because a tooltip is as Learner-facing as a button. Each of those has to be modelled in the
-fixture DOM before it can be read back, for the reason `hidden` and `disabled` are.
+on the subtree's root as much as on anything inside it. A tooltip is as Learner-facing as a
+button, and the bar's whole name for a screen reader is an `aria-label` on the `<nav>` itself, so
+a reader that walked only the children walked straight past it. Each of those attributes has to
+be modelled in the fixture DOM before it can be read back, for the reason `hidden` and `disabled`
+are.
+
+**A surface with two states needs mounting twice.** The bar's neighbour slots each say one of two
+things — the Unit before this one, or that there is nothing before it — and one placement only
+ever renders one of each, so the bar is mounted first in the Curriculum and then last in it. Its
+observer is the table rather than a key written out: every entry under `nav.` has to have reached
+a screen across the two, so an entry nothing renders is a finding too.
+
+**What a Component is answerable for is what it put on the page**, and the check draws that line
+by subtracting what the page said before anything ran. The rest is the author's: a Lesson's
+prose, its questions, the two verdicts a Checkpoint's author writes out. *Which* passage to go
+back and read is a sentence about one Unit and nothing else, so no table could hold it — it is in
+the Learner's language because the whole page is. Subtraction draws that line without naming a
+selector, and a Component that replaced an authored sentence with one of its own still shows up,
+because the replacement is text that was not there before.
 
 **The non-ASCII scan ships as well, and fails on a different thing**: one Learner's language
 creeping back into a file every Workspace links at. It allows the typographic punctuation this
@@ -332,18 +365,48 @@ beyond ASCII, so a letter, a digit or an emoji in shared source is a finding. It
 guarded from both sides: it has to recognise the three shapes this has actually taken (a label, a
 comment, a decorative glyph) and it has to let an ordinary English sentence through.
 
+It reads **every** script the plugin puts on a page, found by reading the directory rather than
+listed — a Component nobody remembered to add to a list is exactly the one that ships English at
+a Learner who reads none. `lesson-boot.js` is the single exception, and it is the file the tables
+live in: scanned whole, every line of `zh-CN` would be a finding, so its bootstrap half is read
+and its table half is not. A Component's own header comment shows the markup an author writes,
+which makes that comment Maintainer-facing and therefore English like every other one.
+
 **Two consistency contracts here, both derived rather than listed**, and two more that arrive
 with the Tutor service: the Grader's refusal token, read out of the role definition that mandates
 it, and the service's stream-failure codes, read out of the service. Decision 30 describes all
 four as one set because they are one argument; only the two that need no service are in this
 suite yet.
 
-Every key a Component asks for is read out of the Component's own source — the keys are written as literals, and no source builds
-one by concatenation, which is what makes this derivable — and checked against the table English
-falls back to, so a missing translation fails before a Learner meets a raw key. And the shipped
+Every key a Component asks for is read out of the Component's own source — the keys are written
+as literals under a namespace, and no source builds one by concatenation, which is what makes
+this derivable — and checked against the table English falls back to, so a missing translation
+fails before a Learner meets a raw key. Three things are derived, not listed: the sources, from
+the same directory listing the scan reads; the keys, from those sources; and **which prefixes
+count as namespaces, off the table itself** — so a Component under a new one is visible here the
+moment its entries land, which is the same edit that makes them exist at all. And the shipped
 tables are checked against each other, so a typo in one is not a silent hole. Neither check names
 a key: `docs/agents/tests.md` bans a test caching a fact it does not own, and a list of keys here
 would be a second copy of the table.
+
+`lesson-boot.js` is excluded from the reading side, because it is the file that *holds* the
+table: every key it ships is a literal in it, so counting it as a reader would find every key
+asked for and every namespace in use, and pass whatever anything else had stopped doing.
+
+**The floor of that derivation is worth knowing.** A key under a namespace the table carries no
+entry for at all is invisible here — the regex can only recognise prefixes the table already has,
+so a Component asking for `widget.check` against a table with no `widget.` in it passes this
+check. What catches it is the pseudolocale: an unanswered key renders as its own name, which is
+ASCII, which is outside the sentinel alphabet. So the net holds, through a different check, and
+for any Component that is in the fixture Unit. Nothing is worth trading for that — a check that
+could see a namespace nobody has written down yet would have to be told the namespaces, which is
+the list this stopped being.
+
+Its observer runs two ways. Every Component the fixture Unit names has to ask for at least one
+key — a Component that quietly stopped looking anything up would otherwise pass a completeness
+check for free, there being nothing left to be incomplete. And every namespace the table carries
+has to be asked for by something, which is how a whole surface going back to holding its own
+strings gets caught rather than merely going quiet.
 
 **Non-ASCII inputs in the suite are deliberate, and are not to be tidied away.** The fixture
 Unit's prose, the Rubric it stores, the questions the drawer tests ask and the answers they

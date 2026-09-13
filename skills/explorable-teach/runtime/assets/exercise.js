@@ -1,18 +1,19 @@
 /* ============================================================
    exercise.js — an in-Lesson check, judged by the page the instant it is
    answered. Measures whether understanding just happened.
-   Deps: exercise.css, style.css (design tokens). No library, no network,
-         no server: works from file://.
+   Deps: exercise.css, style.css (design tokens), lesson-boot.js (the text it
+         renders, and the word that its tables have all arrived). No library, no
+         network, no server: works from file://.
 
    Markup the Lesson author writes:
 
      <div class="exercise" data-exercise>
-       <p class="exercise-prompt">fork() 之后,子进程从哪一行开始执行?</p>
+       <p class="exercise-prompt">Where does the child resume after fork()?</p>
        <ol class="exercise-options">
-         <li>从 main() 的第一行</li>
-         <li data-correct>从 fork() 返回的那一行</li>
+         <li>At the first line of main()</li>
+         <li data-correct>At the line fork() returned on</li>
        </ol>
-       <p class="exercise-why">子进程从 fork() 的返回处继续。</p>   <!-- optional -->
+       <p class="exercise-why">The child carries on from fork()'s return.</p>   <!-- optional -->
      </div>
 
    Scripting off: the prompt, the options and the reason are all ordinary
@@ -25,8 +26,20 @@
 (function () {
   'use strict';
 
-  var RIGHT = '答对了';
-  var WRONG = '不对';
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
 
   function each(nodes, fn) {
     for (var i = 0; i < nodes.length; i++) fn(nodes[i], i);
@@ -68,7 +81,7 @@
         if (other.hasAttribute('data-correct')) other.classList.add('is-answer');
       });
 
-      verdict.textContent = right ? RIGHT : WRONG;
+      verdict.textContent = say(right ? 'exercise.right' : 'exercise.wrong');
       verdict.hidden = false;
       if (why) why.hidden = false;
     }
@@ -96,8 +109,5 @@
     each(document.querySelectorAll('[data-exercise]'), mount);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

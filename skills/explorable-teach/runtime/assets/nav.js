@@ -1,7 +1,8 @@
 /* nav.js — thin cross-page navigation bar.
  *
- * Deps: units.js (must load first), nav.css. No server, no fetch: works
- * identically from file:// and http://.
+ * Deps: units.js (must load first), nav.css, and the string table at the head
+ * of lesson-boot.js, which loads this file after both. No server, no fetch:
+ * works identically from file:// and http://.
  *
  * Usage — the page declares only its own unit id:
  *   <link rel="stylesheet" href="../assets/nav.css">
@@ -16,6 +17,11 @@
 
   var script = document.currentScript;
   if (!script) return;
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
 
   var unitId = script.getAttribute('data-unit') || '';
   var units = window.TEACH_UNITS || [];
@@ -58,32 +64,29 @@
   }
 
   var bar = el('nav', 'tnav');
-  bar.setAttribute('aria-label', '课程导航');
+  bar.setAttribute('aria-label', say('nav.aria'));
   var inner = el('div', 'tnav-inner');
   bar.appendChild(inner);
 
-  inner.appendChild(link('index.html', 'tnav-home', '← 卷宗', '回到课程总览'));
+  inner.appendChild(link('index.html', 'tnav-home', say('nav.dossier'), say('nav.dossier.title')));
   inner.appendChild(el('span', 'tnav-unit', unit.num));
 
   // Sibling artifacts of this unit. Present -> link (or mark as current);
   // absent -> show greyed so the learner knows it simply does not exist yet.
   var sibs = el('div', 'tnav-sibs');
-  [
-    { key: 'lesson',     label: '正文' },
-    { key: 'checkpoint', label: '验收' },
-    { key: 'assignment', label: '作业' }
-  ].forEach(function (s) {
-    var path = unit[s.key];
+  ['lesson', 'checkpoint', 'assignment'].forEach(function (key) {
+    var label = say('nav.' + key);
+    var path = unit[key];
     if (!path) {
-      sibs.appendChild(el('span', 'tnav-off', s.label)).title = '这一课还没有' + s.label;
+      sibs.appendChild(el('span', 'tnav-off', label)).title = say('nav.missing', { artifact: label });
       return;
     }
     if (basename(path) === here) {
-      var cur = el('span', 'tnav-here', s.label);
+      var cur = el('span', 'tnav-here', label);
       cur.setAttribute('aria-current', 'page');
       sibs.appendChild(cur);
     } else {
-      sibs.appendChild(link(path, '', s.label, unit.num + ' · ' + s.label));
+      sibs.appendChild(link(path, '', label, say('nav.sibling.title', { unit: unit.num, artifact: label })));
     }
   });
   inner.appendChild(sibs);
@@ -92,14 +95,14 @@
 
   var prev = neighbour(-1), next = neighbour(1);
   if (prev) {
-    inner.appendChild(link(prev.lesson, 'tnav-step', '← ' + prev.num, prev.title));
+    inner.appendChild(link(prev.lesson, 'tnav-step', say('nav.prev', { unit: prev.num }), prev.title));
   } else {
-    inner.appendChild(el('span', 'tnav-step disabled', '← ' + '起点'));
+    inner.appendChild(el('span', 'tnav-step disabled', say('nav.start')));
   }
   if (next) {
-    inner.appendChild(link(next.lesson, 'tnav-step', next.num + ' →', next.title));
+    inner.appendChild(link(next.lesson, 'tnav-step', say('nav.next', { unit: next.num }), next.title));
   } else {
-    inner.appendChild(el('span', 'tnav-step disabled', '下一课待写 →'));
+    inner.appendChild(el('span', 'tnav-step disabled', say('nav.unwritten')));
   }
 
   function mount() {

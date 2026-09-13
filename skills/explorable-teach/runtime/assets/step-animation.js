@@ -1,20 +1,21 @@
 /* ============================================================
    step-animation.js — walk a process one stage at a time, so the learner
    sees *how* it happens rather than what it ended up as.
-   Deps: step-animation.css, style.css (design tokens). No library, no
-         network, no server: works from file://. (The catalog once listed
-         GSAP here; the transitions are CSS, so there is nothing to load.)
+   Deps: step-animation.css, style.css (design tokens), lesson-boot.js (the
+         text it renders, and the word that its tables have all arrived). No
+         library, no network, no server: works from file://. (The catalog once
+         listed GSAP here; the transitions are CSS, so there is nothing to load.)
 
    Markup the Lesson author writes:
 
      <div class="steps" data-steps>
-       <p class="steps-caption">shell 执行一条外部命令</p>
+       <p class="steps-caption">The shell runs an external command</p>
        <ol class="steps-list">
-         <li>shell 读到一行命令</li>
-         <li>fork() 复制出子进程</li>
+         <li>The shell reads a command line</li>
+         <li>fork() copies the process</li>
        </ol>
        <div class="steps-stage">
-         <p data-step="2">此刻内存里有两个一模一样的 shell。</p>
+         <p data-step="2">There are two identical shells in memory right now.</p>
        </div>
      </div>
 
@@ -30,8 +31,20 @@
 (function () {
   'use strict';
 
-  var PREV = '上一步';
-  var NEXT = '下一步';
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
 
   function each(nodes, fn) {
     for (var i = 0; i < nodes.length; i++) fn(nodes[i], i);
@@ -58,8 +71,8 @@
     var controls = document.createElement('div');
     controls.className = 'steps-controls';
 
-    var prev = button('steps-prev', PREV);
-    var next = button('steps-next', NEXT);
+    var prev = button('steps-prev', say('steps.prev'));
+    var next = button('steps-next', say('steps.next'));
     var count = document.createElement('span');
     count.className = 'steps-count';
     count.setAttribute('role', 'status');
@@ -94,7 +107,7 @@
       // image rather than as "nothing to show here".
       if (stage) stage.classList.toggle('is-empty', showing === 0);
 
-      count.textContent = at + 1 + ' / ' + steps.length;
+      count.textContent = say('steps.count', { at: at + 1, of: steps.length });
       toggle(prev, at === 0);
       toggle(next, at === steps.length - 1);
     }
@@ -151,8 +164,5 @@
     each(document.querySelectorAll('[data-steps]'), mount);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

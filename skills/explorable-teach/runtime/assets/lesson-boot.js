@@ -17,7 +17,9 @@
  *
  * The second is the bootstrap proper, below: the nav bar, the tutor widget and
  * the unit manifest, loaded in the right order with paths resolved relative to
- * this file rather than to the page.
+ * this file rather than to the page. It also releases the Components the page
+ * loaded above it, which wait for the tables rather than rendering before one
+ * has arrived.
  *
  * `<html lang>` is the single authority for which language that is. A workspace
  * states it once in the course manifest; the bootstrap applies it to any page
@@ -159,7 +161,81 @@
       'tutor.role.grader.brief':
         '(Please judge this with the grader subagent — it is at .claude/agents/grader.md, '
         + 'in this workspace directory. Do not judge it yourself: the teacher who set the '
-        + 'assignment does not grade it.)'
+        + 'assignment does not grade it.)',
+
+      /* the navigation bar across the top of every page of a Unit */
+      'nav.aria': 'Course navigation',
+      'nav.dossier': '← Dossier',
+      'nav.dossier.title': 'Back to the course overview',
+      'nav.lesson': 'Lesson',
+      'nav.checkpoint': 'Checkpoint',
+      'nav.assignment': 'Assignment',
+      'nav.missing': 'This unit has no {artifact} yet',
+      'nav.sibling.title': '{unit} · {artifact}',
+      'nav.prev': '← {unit}',
+      'nav.next': '{unit} →',
+      'nav.start': '← The beginning',
+      'nav.unwritten': 'Next unit not written yet →',
+
+      /* predict-reveal: guess first, then find out */
+      'predict.guess.label': 'Your guess',
+      'predict.guess.placeholder': 'Write your guess down first — a wrong guess beats no guess',
+      'predict.reveal': 'Reveal',
+      'predict.reveal.anyway': 'Show me anyway',
+      'predict.revealed': 'Revealed',
+      'predict.nudge': 'Have a guess first. Even a wrong one makes the answer stick.',
+
+      /* step-animation: one stage of a process at a time */
+      'steps.prev': 'Back',
+      'steps.next': 'Next',
+      'steps.count': '{at} / {of}',
+
+      /* drag-order: the pieces are known, the order is the question */
+      'drag.check': 'Check the order',
+      'drag.right': 'That is the right order.',
+      'drag.wrong': '{n} still out of place — look again.',
+      'drag.up': 'Move up',
+      'drag.up.glyph': '↑',
+      'drag.down': 'Move down',
+      'drag.down.glyph': '↓',
+
+      /* the Exercise, judged the instant it is answered */
+      'exercise.right': 'Right',
+      'exercise.wrong': 'Not right',
+
+      /* the Checkpoint, counting the Exercises it gates the Unit with */
+      'checkpoint.answered': 'Answered {n} / {of}',
+      'checkpoint.right': 'Right {n} / {of}',
+
+      /* the hand-in on an Assignment page */
+      'assignment.answer': 'Short answer',
+      'assignment.answer.placeholder':
+        'Write it here. Anything that will not fit goes into submissions/, '
+        + 'with its path in the box below.',
+      'assignment.paths': 'What you put in the workspace',
+      'assignment.paths.placeholder':
+        'submissions/0003-pipes/notes.md\nsubmissions/0003-pipes/run.log',
+      'assignment.paths.note':
+        'One path per line, from the workspace directory. The grader reads them itself — '
+        + 'nothing to upload, nothing to paste in here.',
+      'assignment.send': 'Hand it in',
+      'assignment.sent':
+        'Handed in. The verdict will appear in the drawer on the right, and go into '
+        + 'learning-records/.',
+      'assignment.copied':
+        'The tutor service is not running. The question has been copied — paste it into '
+        + 'Claude Code and have the grader subagent judge it.',
+      'assignment.busy': 'The last one is still being judged. Wait for its answer, then hand this in.',
+      'assignment.empty': 'Write something, or write down where you put what you made.',
+      'assignment.unknown': 'This one did not go in. Try again.',
+      'assignment.path.outside':
+        'A path has to be relative to the workspace directory, like submissions/xxx.md: '
+        + '{path} will not do.',
+      'assignment.path.many': 'At most {max} paths at a time — pick the ones that matter.',
+      'assignment.toolong': 'This box will not hold it. Put it in submissions/, and write the path below.',
+      'assignment.nodrawer': 'The tutor is not in place yet. Give it a moment and hand it in again.',
+      'assignment.compose.paths':
+        'I put what I made in the workspace — please read it yourself:\n{paths}'
     },
 
     'zh-CN': {
@@ -246,7 +322,70 @@
       'tutor.role.grader.lead': '我在做这份作业：{page}',
       'tutor.role.grader.brief':
         '（请用 grader 子 agent 判这份作业——它在 .claude/agents/grader.md，就在这个教案目录里。'
-        + '不要自己判：出题的老师不判自己出的作业。）'
+        + '不要自己判：出题的老师不判自己出的作业。）',
+
+      'nav.aria': '课程导航',
+      'nav.dossier': '← 卷宗',
+      'nav.dossier.title': '回到课程总览',
+      'nav.lesson': '正文',
+      'nav.checkpoint': '验收',
+      'nav.assignment': '作业',
+      'nav.missing': '这一课还没有{artifact}',
+      'nav.sibling.title': '{unit} · {artifact}',
+      'nav.prev': '← {unit}',
+      'nav.next': '{unit} →',
+      'nav.start': '← 起点',
+      'nav.unwritten': '下一课待写 →',
+
+      'predict.guess.label': '你的猜测',
+      'predict.guess.placeholder': '先写下你的猜测——猜错比不猜有用',
+      'predict.reveal': '揭晓',
+      'predict.reveal.anyway': '还是直接看答案',
+      'predict.revealed': '已揭晓',
+      'predict.nudge': '先猜一下。哪怕猜错，答案也会记得更牢。',
+
+      'steps.prev': '上一步',
+      'steps.next': '下一步',
+      'steps.count': '{at} / {of}',
+
+      'drag.check': '检查顺序',
+      'drag.right': '顺序正确。',
+      'drag.wrong': '还有 {n} 处不在位置上，再看看。',
+      'drag.up': '上移',
+      'drag.up.glyph': '↑',
+      'drag.down': '下移',
+      'drag.down.glyph': '↓',
+
+      'exercise.right': '答对了',
+      'exercise.wrong': '不对',
+
+      'checkpoint.answered': '已答 {n} / {of}',
+      'checkpoint.right': '答对 {n} / {of}',
+
+      'assignment.answer': '短答',
+      'assignment.answer.placeholder':
+        '直接写在这里。写不下的东西放进 submissions/，路径填到下面一栏。',
+      'assignment.paths': '放在工作区里的东西',
+      'assignment.paths.placeholder':
+        'submissions/0003-pipes/notes.md\nsubmissions/0003-pipes/run.log',
+      'assignment.paths.note':
+        '一行一个路径，从教案目录算起。评分老师会自己把它们读掉——'
+        + '不用上传，也不用贴进来。',
+      'assignment.send': '交上去',
+      'assignment.sent':
+        '已交出去了。判定会出现在右边的抽屉里，也会记进 learning-records/。',
+      'assignment.copied':
+        '老师服务没开着。提问已经复制走了——贴进 Claude Code，让 grader 子 agent 判。',
+      'assignment.busy': '上一份还在判，等它答完了再交。',
+      'assignment.empty': '写点什么，或者写下你把做出来的东西放在哪了。',
+      'assignment.unknown': '这一份没交出去。再试一下。',
+      'assignment.path.outside':
+        '路径要写成教案目录里的相对路径，像 submissions/xxx.md 这样：{path} 不行。',
+      'assignment.path.many': '一次最多交 {max} 个路径，挑要紧的。',
+      'assignment.toolong': '这一栏装不下了。把它放进 submissions/，在下面写上路径。',
+      'assignment.nodrawer': '问答助教还没就位，稍等一下再交。',
+      'assignment.compose.paths':
+        '做出来的东西我放在工作区里了，请自己读：\n{paths}'
     }
   };
 
@@ -307,7 +446,31 @@
     return key;
   }
 
-  window.LearnerText = { say: say, TABLES: TABLES };
+  /**
+   * Mounting a Component, once there is a table for it to render out of.
+   *
+   * A Lesson writes its Component tags above the one bootstrap tag, so every
+   * Component runs *before* this file does — earlier still than the workspace's
+   * own `assets/strings.js`, which is the last table that can answer. A
+   * Component that rendered at once would therefore render before the answer
+   * arrived, and a workspace supplying a language the plugin does not ship
+   * would meet a page of raw keys.
+   *
+   * So a Component hands its mount over instead of running it, by pushing onto
+   * `window.TEACH_WAITING` — a bare array, because `LearnerText` does not exist
+   * yet at the moment the Component asks. The bootstrap below releases them
+   * once the language is on the document and every table has loaded. A page
+   * with no bootstrap tag mounts nothing, which is the same page a learner with
+   * scripting off reads: plain text, in order, all of it there.
+   */
+  function release() {
+    window.LearnerText.ready = true;
+    var waiting = window.TEACH_WAITING || [];
+    window.TEACH_WAITING = [];
+    while (waiting.length) waiting.shift()();
+  }
+
+  window.LearnerText = { say: say, TABLES: TABLES, ready: false, release: release };
 })();
 
 /**
@@ -330,7 +493,14 @@
   'use strict';
 
   var self = document.currentScript;
-  if (!self) return; // No currentScript => ancient browser; lesson still reads fine.
+  // No currentScript => ancient browser, and there is no way to find out where
+  // this file was loaded from. Nothing is mounted then — not the nav bar, not
+  // the drawer, and since this is also what releases them, not a Component
+  // either. What is left is the page a learner with scripting off reads: the
+  // prose, the questions and the steps, in order, all of it there. That is the
+  // promise every Component on the page already makes, which is why this can
+  // give up rather than guess.
+  if (!self) return;
 
   var unit = self.getAttribute('data-unit') || '';
   var root = self.src.replace(/assets\/lesson-boot\.js.*$/, ''); // "../" from lessons/
@@ -383,9 +553,13 @@
   // strings.js is the workspace's own table and may not exist yet — an older
   // workspace simply has not been scaffolded since it was introduced. `onerror`
   // carries on, and the lookup above falls back to the tables shipped with it.
+  //
+  // Either way it is the last table that can answer, so releasing the waiting
+  // Components is what follows it: from there on every label they render is the
+  // one the workspace meant.
   chain([
     { src: 'assets/units.js', then: applyLanguage },
-    { src: 'assets/strings.js' },
+    { src: 'assets/strings.js', then: window.LearnerText.release },
     { src: 'assets/nav.js', unit: true },
     { src: 'assets/rich-text.js' },
     { src: 'assets/tutor.js' },

@@ -5,24 +5,26 @@
    Grader reading the Rubric stored on this page.
    Deps: tutor.js (the drawer it hands the Submission to — loaded by
          lesson-boot.js, so it is looked up when the button is pressed rather
-         than at mount), style.css (design tokens), assignment.css. No library,
-         no network: this file never talks to the service itself.
+         than at mount), lesson-boot.js again for the text it renders and the
+         word that its tables have all arrived, style.css (design tokens),
+         assignment.css. No library, no network: this file never talks to the
+         service itself.
 
    Markup the author writes, on the Assignment's own page:
 
      <div class="assignment" data-assignment>
-       <p class="assignment-task">把你自己项目里的一条管道拆开,说清楚每一段的
-          输入从哪来。</p>
+       <p class="assignment-task">Take a pipeline out of one of your own projects
+          and say where each stage's input comes from.</p>
 
-       <p class="assignment-fallback">做完之后把东西放进 submissions/,
-          下次上课时告诉老师。</p>
+       <p class="assignment-fallback">When you are done, put it in submissions/
+          and tell your teacher next session.</p>
 
        <script type="application/x-rubric">
-       算做完了:
-       - 指出了每一段的 stdin 是谁的 stdout
-       - 说清楚了为什么中间那段不需要文件
-       常见的错法:
-       - 只把命令抄了一遍,没说数据怎么流
+       Done means:
+       - named whose stdout each stage's stdin is
+       - said why the middle stage needs no file
+       The usual way to get it wrong:
+       - copied the command out again without saying how the data moves
        </script>
      </div>
 
@@ -52,6 +54,21 @@
 (function () {
   'use strict';
 
+  /**
+   * The mount, handed over rather than run — see `release` in lesson-boot.js
+   * for why it waits, and why the queue is a bare global.
+   */
+  function whenTextArrives(mount) {
+    var text = window.LearnerText;
+    if (text && text.ready) return mount();
+    (window.TEACH_WAITING = window.TEACH_WAITING || []).push(mount);
+  }
+
+  /** What this page says for `key`, in the learner's language. */
+  function say(key, values) {
+    return window.LearnerText.say(key, values);
+  }
+
   var RUBRIC = 'script[type="application/x-rubric"]';
 
   // The service's own cap on one question — `MAX_QUESTION` in tutor/server.js,
@@ -67,20 +84,26 @@
   var MAX_ANSWER = 1600;
   var MAX_PATHS = 8;
 
-  var WHERE = 'submissions/';
+  /**
+   * What the page says back, one key per answer the drawer can give. It is also
+   * the list of answers there are: anything else is a drawer that grew a fifth
+   * one, and the page must not leave the button looking like it did nothing.
+   * `assignment.unknown` is what it says then, and is deliberately not in here
+   * — a drawer answering `unknown` is still an answer nobody designed.
+   */
+  var OUTCOME = {
+    sent: 'assignment.sent',
+    copied: 'assignment.copied',
+    busy: 'assignment.busy'
+  };
 
   /**
-   * What the page says back, one entry per thing the drawer can answer with —
-   * plus the one it cannot, because a drawer that grew a fifth answer must not
-   * leave the button looking like it did nothing.
+   * The answers that mean the Submission is somewhere a Grader will reach it —
+   * handed to a running service, or on the clipboard for the learner to paste.
+   * Everything else in `OUTCOME` is a reason it did not go, and the page has to
+   * say so rather than mark the work as handed in.
    */
-  var SAID = {
-    sent: '已交出去了。判定会出现在右边的抽屉里，也会记进 learning-records/。',
-    copied: '老师服务没开着。提问已经复制走了——贴进 Claude Code，让 grader 子 agent 判。',
-    busy: '上一份还在判，等它答完了再交。',
-    empty: '写点什么，或者写下你把做出来的东西放在哪了。',
-    unknown: '这一份没交出去。再试一下。'
-  };
+  var HANDED_OVER = ['sent', 'copied'];
 
   var seq = 0;
 
@@ -127,9 +150,11 @@
     var parts = [];
     if (answer) parts.push(answer);
     if (paths.length) {
-      parts.push('做出来的东西我放在工作区里了，请自己读：\n' + paths.map(function (p) {
-        return '- ' + p;
-      }).join('\n'));
+      parts.push(say('assignment.compose.paths', {
+        paths: paths.map(function (p) {
+          return '- ' + p;
+        }).join('\n')
+      }));
     }
     return parts.join('\n\n');
   }
@@ -155,8 +180,8 @@
     var answer = field(
       form,
       id + '-answer',
-      '短答',
-      '直接写在这里。写不下的东西放进 ' + WHERE + '，路径填到下面一栏。',
+      say('assignment.answer'),
+      say('assignment.answer.placeholder'),
       6
     );
     answer.setAttribute('maxlength', String(MAX_ANSWER));
@@ -164,30 +189,26 @@
     var paths = field(
       form,
       id + '-paths',
-      '放在工作区里的东西',
-      WHERE + '0003-pipes/notes.md\n' + WHERE + '0003-pipes/run.log',
+      say('assignment.paths'),
+      say('assignment.paths.placeholder'),
       3
     );
 
-    var note = el(
-      'p',
-      'assignment-note',
-      '一行一个路径，从教案目录算起。评分老师会自己把它们读掉——不用上传，也不用贴进来。'
-    );
+    var note = el('p', 'assignment-note', say('assignment.paths.note'));
     form.appendChild(note);
 
     var actions = el('div', 'assignment-actions');
-    var send = el('button', 'assignment-send', '交上去');
-    var say = el('span', 'assignment-say');
-    say.setAttribute('role', 'status');
-    say.setAttribute('aria-live', 'polite');
+    var send = el('button', 'assignment-send', say('assignment.send'));
+    var status = el('span', 'assignment-say');
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
     actions.appendChild(send);
-    actions.appendChild(say);
+    actions.appendChild(status);
     form.appendChild(actions);
 
     function refuse(why) {
       root.classList.add('is-refused');
-      say.textContent = why;
+      status.textContent = why;
     }
 
     send.addEventListener('click', function () {
@@ -195,31 +216,35 @@
 
       var found = readPaths(paths.value || '');
       if (found.bad.length) {
-        return refuse('路径要写成教案目录里的相对路径，像 ' + WHERE + 'xxx.md 这样：' + found.bad[0] + ' 不行。');
+        return refuse(say('assignment.path.outside', { path: found.bad[0] }));
       }
-      if (found.over) return refuse('一次最多交 ' + MAX_PATHS + ' 个路径，挑要紧的。');
+      if (found.over) return refuse(say('assignment.path.many', { max: MAX_PATHS }));
 
       var text = compose((answer.value || '').trim(), found.keep);
-      if (!text) return refuse(SAID.empty);
-      if (text.length > MAX_SUBMISSION) {
-        return refuse('这一栏装不下了。把它放进 ' + WHERE + '，在下面写上路径。');
-      }
+      if (!text) return refuse(say('assignment.empty'));
+      if (text.length > MAX_SUBMISSION) return refuse(say('assignment.toolong'));
 
       // Looked up now rather than at mount: lesson-boot.js loads the drawer
       // asynchronously, so at mount it is legitimately not there yet.
       var drawer = window.Tutor;
       if (!drawer || typeof drawer.grade !== 'function') {
-        return refuse('问答助教还没就位，稍等一下再交。');
+        return refuse(say('assignment.nodrawer'));
       }
       // The drawer says what became of it, because only it knows: with the
       // service stopped the Submission goes to the clipboard instead of to a
       // Grader, and a page that reported those the same way would be telling
       // the learner their work had been judged when it has not been.
       var outcome = drawer.grade({ text: text });
-      if (outcome !== 'sent' && outcome !== 'copied') return refuse(SAID[outcome] || SAID.unknown);
+      // `hasOwnProperty` rather than a truth test: an answer that happened to
+      // name something off Object's prototype — `constructor`, `toString` —
+      // would otherwise put that on a learner's screen instead of a sentence.
+      if (!Object.prototype.hasOwnProperty.call(OUTCOME, outcome)) {
+        return refuse(say('assignment.unknown'));
+      }
+      if (HANDED_OVER.indexOf(outcome) < 0) return refuse(say(OUTCOME[outcome]));
 
       root.classList.add('is-sent');
-      say.textContent = SAID[outcome];
+      status.textContent = say(OUTCOME[outcome]);
     });
 
     // The form is what the fallback paragraph was standing in for, so it goes
@@ -237,8 +262,5 @@
     for (var i = 0; i < roots.length; i++) mount(roots[i]);
   }
 
-  // Lessons put component scripts at the end of <body>, but lesson-boot.js
-  // loads scripts dynamically, by which time DOMContentLoaded has passed.
-  if (document.body) mountAll();
-  else document.addEventListener('DOMContentLoaded', mountAll);
+  whenTextArrives(mountAll);
 })();

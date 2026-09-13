@@ -55,9 +55,6 @@ const SOURCE = path.join(
  */
 const SENTINEL = /^[\uFF01-\uFF5E0-9\s]*$/;
 
-/** A key as a source writes one: a namespace, then dotted lowercase. */
-const KEY = /'(tutor\.[a-z0-9.]+)'/g;
-
 /**
  * The shipped lookup, run against one language and one Workspace table, in a
  * window holding nothing else. The one way this suite gets at it — a test that
@@ -78,19 +75,47 @@ function speaking(lang, workspaceStrings, alsoOnTheWindow) {
   return win.LearnerText;
 }
 
+/** Where `SOURCE` divides itself into the tables and the bootstrap. */
+function halves() {
+  const whole = fs.readFileSync(SOURCE, 'utf8');
+  const at = whole.indexOf('Part two — the bootstrap');
+  if (at < 0) throw new Error(`${SOURCE} no longer divides itself into parts`);
+  return [whole.slice(0, at), whole.slice(at)];
+}
+
 /**
  * The half of `SOURCE` that holds the lookup, cut at the banner the file
  * divides itself with. A claim about what the lookup reads is a claim about
  * this half; the bootstrap below it answers for itself.
  */
 function lookupSource() {
-  const whole = fs.readFileSync(SOURCE, 'utf8');
-  const at = whole.indexOf('Part two — the bootstrap');
-  if (at < 0) throw new Error(`${SOURCE} no longer divides itself into parts`);
-  return whole.slice(0, at);
+  return halves()[0];
+}
+
+/**
+ * The other half: the bootstrap, which holds no table and is therefore the
+ * half the non-ASCII scan can read. Scanning the whole file would report every
+ * line of `zh-CN` as a finding, which is the one thing this file is *for*.
+ */
+function bootstrapSource() {
+  return halves()[1];
 }
 
 const TABLES = speaking('en').TABLES;
+
+/**
+ * The namespaces a key lives under, read off the table rather than listed.
+ *
+ * A key has to be told apart from every other dotted literal a source holds —
+ * `'assets/tutor.js'`, `'exercise-options'` — and the table is the one place
+ * that already knows which prefixes are keys. Derived, so a Component under a
+ * new namespace teaches this the moment its entries land in the table, which is
+ * the same edit that makes them exist at all.
+ */
+const NAMESPACES = [...new Set(Object.keys(TABLES.en).map((key) => key.split('.')[0]))].sort();
+
+/** A key as a source writes one: a namespace, then dotted lowercase. */
+const KEY = new RegExp(`'((?:${NAMESPACES.join('|')})\\.[a-z0-9.]+)'`, 'g');
 
 const speakers = new Map();
 
@@ -107,9 +132,8 @@ function say(lang, key, values) {
  * concatenation — which is what makes this derivable at all, and what keeps
  * the completeness check from being a second copy of the table.
  *
- * The prefix is the namespace a key lives under, and the drawer's is the only
- * one so far. A Component brought onto the table adds its own here, which is
- * the whole of what widening this costs.
+ * The prefix is the namespace a key lives under, and `NAMESPACES` reads those
+ * off the table — so a Component under a new one costs nothing here at all.
  */
 function keysAskedBy(source) {
   return [...new Set([...source.matchAll(KEY)].map((m) => m[1]))].sort();
@@ -136,4 +160,16 @@ function pseudoTable(table) {
   return sentinels;
 }
 
-module.exports = { TABLES, say, speaking, lookupSource, keysAskedBy, pseudoTable, sentinel, SENTINEL, SOURCE };
+module.exports = {
+  NAMESPACES,
+  TABLES,
+  say,
+  speaking,
+  lookupSource,
+  bootstrapSource,
+  keysAskedBy,
+  pseudoTable,
+  sentinel,
+  SENTINEL,
+  SOURCE,
+};

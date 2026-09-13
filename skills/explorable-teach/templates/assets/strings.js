@@ -20,7 +20,9 @@
  *   };
  *
  * The keys live at the head of the plugin's assets/lesson-boot.js — read that
- * file for the full list, and for which {name} slots each entry may use.
+ * file for the full list, and for which {name} slots each entry may use. They
+ * cover everything a page puts on screen: the tutor drawer, the navigation bar,
+ * and every component a lesson is built from.
  */
 
 window.TEACH_STRINGS = {};

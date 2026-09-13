@@ -63,6 +63,7 @@ function opened(t, { html, at, unit }) {
       location: { protocol: 'file:', pathname: `/${at}`, href: `file:///${at}` },
     },
   });
+  page.script('lesson-boot.js'); // the table every label on the bar is looked up in
   page.script('units.js');
   page.script('nav.js', { 'data-unit': unit });
   return page;
