@@ -53,9 +53,13 @@
   color: var(--fg);
 }
 
+.checkpoint-pass a,
 .checkpoint-again a { color: var(--accent); }
 
-.checkpoint.is-judged { border-left-width: 3px; }
+/* Once there is nothing left to answer, the instruction about how to answer has
+   nothing left to instruct. */
+.checkpoint.is-judged > .checkpoint-lead { opacity: .5; }
+
 .checkpoint.is-passed { border-left-color: var(--accent-good); }
 .checkpoint.is-failed { border-left-color: var(--accent-bad); }
 

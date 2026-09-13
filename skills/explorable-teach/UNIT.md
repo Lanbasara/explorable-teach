@@ -119,7 +119,7 @@ little else. If the learner asks for more or less interactivity, respect that an
 
 ### Shipped Components — already in every Workspace
 
-These five do not vary by subject, so they belong to the plugin rather than to any one Workspace.
+These do not vary by subject, so they belong to the plugin rather than to any one Workspace.
 A Workspace holds a *link* at each, not a copy — which is what lets one fix reach every Workspace,
 and also means **editing one in place edits every other learner's course**. Use them as they are.
 When one is nearly right but not right, write a new Component beside it rather than changing it.
@@ -135,19 +135,19 @@ the scaffold reads that as a deliberate override and leaves it alone from then o
 | **Checkpoint** | `assets/checkpoint.js` + `assets/checkpoint.css` | Gating a Unit at its end — see [Checkpoints](#checkpoints) |
 
 Each file's head comment holds the markup its author writes — **read that before using one**, and
-do not re-derive the markup from this table. All five degrade to plain text with scripting off,
-and none of them touch the network, so a Lesson works opened from `file://` on a plane. Four of
-them build a Lesson; the Checkpoint is the one that does not, because it gates the Unit from a
-page of its own once the Lesson is behind the learner.
+do not re-derive the markup from this table. Every one of them degrades to plain text with
+scripting off, and none of them touch the network, so a Lesson works opened from `file://` on a
+plane. All but the Checkpoint build a Lesson; that one gates the Unit from a page of its own,
+once the Lesson is behind the learner.
 
 `assets/style.css` is not a Component: every page links it from `<head>`, and it owns the design
 tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none. It is linked
-from the plugin like the five above, so re-theming one Workspace means a small stylesheet of your
+from the plugin like the Components above, so re-theming one Workspace means a small stylesheet of your
 own in `assets/`, linked after it — not an edit to the one every Workspace shares.
 
 ### Building a Component for this subject
 
-Every teaching act above that is not one of those five is something **you build**, for this
+Every teaching act above that no shipped Component covers is something **you build**, for this
 subject, into this Workspace's `assets/`. Nothing else is sitting there waiting: a music Unit
 earns the Web Audio API and interactive notation, an algorithms Unit earns a step-by-step
 visualiser, a shell Unit earns a simulated terminal — and each of those exists because a Session
@@ -223,17 +223,22 @@ Lesson's worth of work arriving at the moment the learner expected to be finishi
 Exercises, each judged as it is answered; `assets/checkpoint.js` counts them and says whether the
 Unit may close. Its head comment holds the markup, as every Component's does — read that before
 writing one. The page is built like any other — [the page](#the-page) above — with
-`assets/exercise.css` and `assets/checkpoint.css` in the head, and `assets/exercise.js` before
-`assets/checkpoint.js`, which is the order its `Deps:` line states.
+`assets/exercise.css` and `assets/checkpoint.css` in the head and both scripts before the
+bootstrap. Which of the two scripts loads first does not matter: the Checkpoint reads the state
+an Exercise records on itself, rather than being told by it.
 
 **Every question has to be right.** A gate with a pass mark is a score, and a score does not
 answer *may we move on?* So a question that could be got wrong while the Unit still closes is one
 that does not belong here: cut it, or move it back into the Lesson as an Exercise.
 
-**Write both outcomes, and give the failing one somewhere to go.** Pass says the Unit is closed
-and asks the learner to tell you the score. The other names the part of the Lesson to reread and
-links at it by anchor — being sent back without being told where is what makes a gate feel like a
-verdict on the learner rather than on the page.
+**Write both outcomes, and put the way back in each.** Both are required — a page that can say
+*you are done* but not *go back* leaves half the learners who reach it with nothing, and the
+Component refuses to mount rather than gate on one of them. Pass says the Unit is closed, asks
+the learner to tell you the score, and offers the Lesson for review. The other names the part of
+the Lesson to reread and links at it **by anchor**, because being sent back without being told
+where is what makes a gate read as a verdict on the learner rather than on the page. Only one of
+the two is ever on screen, so the way back has to be in whichever one fires — the navigation bar
+carries it for the rest of the time, and neither is a reason to leave it out of the other.
 
 **Then the links.** Add `checkpoint:` to this Unit's entry in `assets/units.js`: that is what
 lights the slot the navigation bar and the Dossier have always had a place for, and it is what

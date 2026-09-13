@@ -88,7 +88,7 @@ question beat a WebGL scene.
 The stack is picked per subject, on the first run. A philosophy course and an algorithms course
 should not end up with the same tooling.
 
-Six things do not vary by subject, so they ship with the plugin and land in `assets/` when you
+What does not vary by subject ships with the plugin and lands in `assets/` when you
 scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
 answer), **predict-reveal**, **step animations**, **drag-to-order**, and the **checkpoint** that
 gates a unit at its end — built out of the exercises it counts. None of them loads a
@@ -150,7 +150,7 @@ markup, and the tutor itself runs `--restricted` with only `Read`/`Glob`/`Grep`.
 
 One question decides where a file lives: **does it vary by subject?** If it does not — the
 server, the control script, the tutor's role, the in-page widget, the nav bar, the page
-bootstrap, the shared stylesheet, the five components — it lives in the plugin and your workspace
+bootstrap, the shared stylesheet, every shipped component — it lives in the plugin and your workspace
 holds a **link** at it. A tutor fix therefore reaches every workspace you have, rather than only
 the ones you create afterwards. The flip side is the rule: don't edit one of those in place —
 you'd be editing every course at once. Write a new file beside it. (If a course genuinely has to

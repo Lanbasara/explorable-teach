@@ -616,6 +616,12 @@ has already recorded on itself. Neither file names the other's internals, so the
 the same Component it was for a Lesson — which is what the ladder already said it was, an
 instrument distinguished by when it fires rather than by what it is made of.
 
+**What review caught, and why it is recorded here.** The check that the unreachable slot stays
+*visible* read only the first stylesheet rule naming it — the rule it shares with the links beside
+it — and counted that rule's `transition: color` as the colour making it visible. It passed
+against a slot styled `display: none`, which is the single thing it exists to catch. A check that
+reads the first of several rules is not a weaker check; it is a check of something else.
+
 **Consequence:** the navigation slot that had been rendered since the bar was written finally
 resolves, and `nav.test.js` holds both halves of it — a Unit with a Checkpoint links to it and
 back, and a Unit without one shows the slot as unreachable rather than dropping it. The fixture

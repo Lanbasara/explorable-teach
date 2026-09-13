@@ -2,9 +2,10 @@
    checkpoint.js — the gate at the end of a Unit, judged by the page before
    the Unit closes. Measures whether the Unit may be closed, which is a
    different question from whether any one idea landed.
-   Deps: exercise.js (the questions it counts — loaded before this), style.css
-         (design tokens), checkpoint.css. No library, no network, no server:
-         works from file://.
+   Deps: exercise.js (the questions it counts — anywhere on the page; the order
+         the two scripts load in does not matter, for the reason at the foot of
+         this comment), style.css (design tokens), checkpoint.css. No library,
+         no network, no server: works from file://.
 
    Markup the author writes, on a page of its own at the Unit's end:
 
@@ -29,8 +30,9 @@
    The verdict is read off the questions rather than reported by them. An
    Exercise marks its own root the instant it is answered, in a handler on the
    option; this listens on the container, where the same event arrives on its
-   way up — so by the time it looks, the answer is already recorded. Nothing
-   here reaches into exercise.js, and exercise.js knows nothing about this.
+   way up — so by the time it looks, the answer is already recorded, whichever
+   of the two scripts ran first. Nothing here reaches into exercise.js, and
+   exercise.js knows nothing about this.
    ============================================================ */
 (function () {
   'use strict';
@@ -49,17 +51,23 @@
 
     var pass = root.querySelector('.checkpoint-pass');
     var again = root.querySelector('.checkpoint-again');
-    if (pass) pass.hidden = true;
-    if (again) again.hidden = true;
+    // Same rule as the questions: a gate that cannot give its verdict has
+    // nothing to take over. Both outcomes are required, not one — a page that
+    // can say "you are done" but not "go back", or the reverse, counts answers
+    // and then goes quiet on half the Learners who reach the end of it.
+    if (!pass || !again) return;
+
+    pass.hidden = true;
+    again.hidden = true;
 
     var progress = document.createElement('p');
     progress.className = 'checkpoint-progress';
     progress.setAttribute('role', 'status');
-    // Above the outcome it will be replaced by, when there is one to sit above;
-    // only a direct child is a legal insertion point, so anything else means
-    // "put it at the end".
+    // Above the outcome it will be replaced by. Only a direct child is a legal
+    // insertion point, so an author who wrapped their outcomes means "put it at
+    // the end" rather than a thrown error.
     var before = [pass, again].filter(function (node) {
-      return node && node.parentNode === root;
+      return node.parentNode === root;
     })[0];
     root.insertBefore(progress, before || null);
 
@@ -88,7 +96,7 @@
 
       root.classList.add('is-judged', passed ? 'is-passed' : 'is-failed');
       var outcome = passed ? pass : again;
-      if (outcome) outcome.hidden = false;
+      outcome.hidden = false;
 
       // The score, not just the verdict: it is what the learner reports to the
       // Teacher, and what the Learning Record is written from.

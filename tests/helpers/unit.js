@@ -24,14 +24,23 @@
  * without being told about it separately.
  */
 
+/**
+ * The Exercise, named on its own because two pages are built from it: a Lesson
+ * uses it to check an idea as it lands, and a Checkpoint is built out of a run
+ * of them. Reaching for it positionally — `LESSON_COMPONENTS[0]` — would let a
+ * reordering of that list silently change what the Checkpoint page claims to
+ * run, with nothing failing.
+ */
+const EXERCISE = {
+  name: 'exercise',
+  css: 'exercise.css',
+  js: 'exercise.js',
+  root: '.exercise',
+};
+
 /** The Components a Lesson is built from, as the Lesson author meets them. */
-const COMPONENTS = [
-  {
-    name: 'exercise',
-    css: 'exercise.css',
-    js: 'exercise.js',
-    root: '.exercise',
-  },
+const LESSON_COMPONENTS = [
+  EXERCISE,
   {
     name: 'predict-reveal',
     css: 'predict-reveal.css',
@@ -65,7 +74,7 @@ const CHECKPOINT = {
 };
 
 /** Every Component the plugin ships, wherever on a Unit's pages it is used. */
-const ALL_COMPONENTS = [...COMPONENTS, CHECKPOINT];
+const ALL_COMPONENTS = [...LESSON_COMPONENTS, CHECKPOINT];
 
 /** Shared styles are not a Component, but no page renders without them. */
 const SHARED_STYLES = 'style.css';
@@ -90,7 +99,7 @@ const LESSON_HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lesson 03: fork 与 exec</title>
 <link rel="stylesheet" href="../assets/${SHARED_STYLES}">
-${COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}">`).join('\n')}
+${LESSON_COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}">`).join('\n')}
 </head>
 <body>
 <div class="lesson">
@@ -108,7 +117,7 @@ ${COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}">`).joi
   </div>
 </div>
 
-<div class="steps" data-steps>
+<div class="steps" id="exec" data-steps>
   <p class="steps-caption">shell 执行一条外部命令</p>
   <ol class="steps-list">
     <li>shell 读到一行命令</li>
@@ -145,7 +154,7 @@ ${COMPONENTS.map((c) => `<link rel="stylesheet" href="../assets/${c.css}">`).joi
 
 </div>
 
-${COMPONENTS.map((c) => `<script src="../assets/${c.js}"></script>`).join('\n')}
+${LESSON_COMPONENTS.map((c) => `<script src="../assets/${c.js}"></script>`).join('\n')}
 
 <script src="../assets/lesson-boot.js" data-unit="${UNIT.id}"></script>
 </body>
@@ -201,8 +210,8 @@ const CHECKPOINT_HTML = `<!DOCTYPE html>
     </ol>
   </div>
 
-  <p class="checkpoint-pass">三道全对,这一课可以合上了。把结果告诉老师,下一课从管道开始。</p>
-  <p class="checkpoint-again">还有答错的。回到<a href="0003-fork-exec.html">正文</a>把对应的那一段重读一遍,再来一次。</p>
+  <p class="checkpoint-pass">三道全对,这一课可以合上了。把结果告诉老师,下一课从管道开始;想复习随时回<a href="0003-fork-exec.html">正文</a>。</p>
+  <p class="checkpoint-again">还有答错的。回到<a href="0003-fork-exec.html#exec">正文讲 exec 的那一段</a>重读一遍,再来一次。</p>
 </div>
 
 </div>
@@ -226,14 +235,14 @@ const PAGES = [
     name: 'the fixture Lesson',
     file: UNIT.lesson,
     html: LESSON_HTML,
-    components: COMPONENTS,
+    components: LESSON_COMPONENTS,
   },
   {
     key: 'checkpoint',
     name: 'the fixture Checkpoint',
     file: UNIT.checkpoint,
     html: CHECKPOINT_HTML,
-    components: [COMPONENTS[0], CHECKPOINT],
+    components: [EXERCISE, CHECKPOINT],
   },
 ];
 
@@ -250,14 +259,4 @@ function assetRefs(text) {
   return [...found].sort();
 }
 
-module.exports = {
-  COMPONENTS,
-  CHECKPOINT,
-  ALL_COMPONENTS,
-  SHARED_STYLES,
-  UNIT,
-  LESSON_HTML,
-  CHECKPOINT_HTML,
-  PAGES,
-  assetRefs,
-};
+module.exports = { ALL_COMPONENTS, SHARED_STYLES, UNIT, LESSON_HTML, PAGES, assetRefs };

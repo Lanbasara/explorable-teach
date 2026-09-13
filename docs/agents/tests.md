@@ -266,9 +266,15 @@ Unit that has a Checkpoint and one that does not.
 **A slot that resolves, and a slot that degrades.** From the Lesson, the Checkpoint is a link;
 from the Checkpoint, the Lesson is a link and the Checkpoint is the page you are on. For the Unit
 with no Checkpoint the slot is still rendered, labelled, and marked unreachable — the failure it
-rules out is a gap the learner has to interpret. That the slot is *visible* is half tree and half
-stylesheet, and the stylesheet half is the one that would break silently, so the rule is read for
-a hiding declaration rather than assumed.
+rules out is a gap the learner has to interpret.
+
+That the slot is *visible* is half tree and half stylesheet, and the stylesheet half is the one
+that would break silently — so **every** rule naming the slot is read, with its transitions
+stripped first. Both halves of that are load-bearing and both were wrong when this shipped:
+review found the check reading only the first matching rule, which is the one the slot shares
+with the links beside it, and counting its `transition: color` as the colour that made the slot
+visible. It passed against a slot styled `display: none`, which is the one thing it exists to
+catch. It now fails on that, and on a slot left unstyled altogether.
 
 **No page writes a link list.** The bar derives every link from the manifest, so a Checkpoint
 page hand-writes exactly one link — the way back into the Lesson, in the prose of its own verdict

@@ -22,6 +22,10 @@
   surfacing; a unit nothing later depends on closes on its exercises. `UNIT.md` carries the form
   — where the file sits, how many questions, both outcomes, and the one link the author writes by
   hand — and the rest of the linking is one `checkpoint:` entry in the course manifest.
+- **Both outcomes of a checkpoint carry the way back.** Only one of the two is ever on screen, so
+  a way back written into the failing one alone leaves a learner who passed with nothing but the
+  nav bar. Both are now required, and a page carrying only one of them makes the component refuse
+  to mount rather than count answers and then go quiet on half the learners who reach the end.
 - **Every artifact of a unit is now under test for being reachable.** `nav.test.js` mounts the
   bar the way the page bootstrap mounts it and drives it against a manifest holding one unit with
   a checkpoint and one without: the first links to it and back, the second shows the slot greyed

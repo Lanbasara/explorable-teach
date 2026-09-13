@@ -62,7 +62,6 @@ function opened(t, { html, at, unit }) {
       location: { protocol: 'file:', pathname: `/${at}`, href: `file:///${at}` },
     },
   });
-  page.workspace = ws;
   page.script('units.js');
   page.script('nav.js', { 'data-unit': unit });
   return page;
@@ -143,6 +142,11 @@ test('a Unit with no Checkpoint shows the slot as missing rather than hiding it'
   assert.ok(checkpoint.textContent.trim().length > 0, 'it still says which artifact is missing');
   assert.ok(checkpoint.getAttribute('title'), 'and says that it has not been written');
 
+  // Guard the observer: an empty bar would satisfy the filter below for free.
+  // Two is what this Unit's bar holds — the Dossier and the Unit before it —
+  // because it is the last Unit in the manifest and has no Checkpoint.
+  assert.ok(hrefs(page).length >= 2, `expected a bar with links in it, found ${hrefs(page).length}`);
+  assert.ok(hrefs(page).some((href) => href.endsWith('index.html')), 'starting with the Dossier');
   assert.deepEqual(
     hrefs(page).filter((href) => href.includes('checkpoint')),
     [],
@@ -150,16 +154,55 @@ test('a Unit with no Checkpoint shows the slot as missing rather than hiding it'
   );
 });
 
+/**
+ * Every rule that names `selector`, as `{ selector, body }`.
+ *
+ * Two things here are load-bearing, and both were wrong first time round. The
+ * slot is styled by more than one rule — a shared one it shares with the links
+ * beside it, and its own — so reading the *first* match reads the shared rule
+ * and never the slot's. And a `transition` names properties it does not set, so
+ * a body is read with its transitions stripped; otherwise `transition: color`
+ * counts as giving the slot a colour, which is how the first version of the
+ * check passed against a slot styled `display: none`.
+ */
+function rulesNaming(css, selector) {
+  // The selector is a class, so its leading `.` has to be escaped before it is
+  // a pattern. `(?![\w-])` keeps `.tnav-off` from matching a `.tnav-offer`.
+  const names = new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`);
+
+  return css.split('}').flatMap((block) => {
+    const brace = block.indexOf('{');
+    if (brace < 0) return [];
+
+    const written = block.slice(0, brace).replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (!names.test(written)) return [];
+
+    return [{ selector: written, body: block.slice(brace + 1).replace(/transition:[^;]*;?/g, '') }];
+  });
+}
+
 test('a missing slot is visible, not merely present', () => {
   // The claim above is about the tree; this is the half of it that lives in the
   // stylesheet, and it is the half that would break silently. No browser runs
   // here, so what is checkable is that nothing styles the slot out of sight.
   const css = fs.readFileSync(path.join(SKILL_DIR, 'runtime', 'assets', 'nav.css'), 'utf8');
+  const rules = rulesNaming(css, '.tnav-off');
 
-  const rule = css.split('}').find((block) => /(^|[\s,])\.tnav-off\s*\{/.test(block));
-  assert.ok(rule, 'the unavailable slot should be styled as unavailable');
-  assert.doesNotMatch(rule, /display:\s*none|visibility:\s*hidden/);
-  assert.match(rule, /opacity|color/, 'it is shown, and shown to be out of reach');
+  // Guard the observer: a selector nothing matches would pass every check below.
+  assert.ok(rules.length >= 1, 'the unavailable slot should be styled as unavailable');
+
+  for (const rule of rules) {
+    assert.doesNotMatch(
+      rule.body,
+      /display:\s*none|visibility:\s*hidden/,
+      `"${rule.selector}" takes the slot off the page instead of showing it out of reach`,
+    );
+  }
+
+  assert.ok(
+    rules.some(({ body }) => /opacity:|color:/.test(body)),
+    'the slot is shown, and shown to be unreachable — not merely left unstyled',
+  );
 });
 
 test('the bar is derived from the manifest, so a page writes no link list', (t) => {
@@ -169,13 +212,9 @@ test('the bar is derived from the manifest, so a page writes no link list', (t) 
     unit: UNIT.id,
   });
 
-  // The Checkpoint page itself writes exactly one link — the way back into the
-  // Lesson, in the prose of its own verdict. Everything else in the bar came
-  // from the manifest, which is what keeps a renamed file from having to be
-  // chased through every page of the Unit.
-  const authored = fixture('checkpoint').html.match(/<a\s/g) || [];
-  assert.equal(authored.length, 1, 'the fixture Checkpoint should hand-write one link and no more');
-
+  // The page hand-writes the way back into its own Lesson and nothing else:
+  // every other link in the bar came from the manifest, which is what keeps a
+  // renamed file from being chased through every page of the Unit.
   assert.ok(hrefs(page).length >= 3, `expected the bar to derive its links, found ${hrefs(page).length}`);
   assert.ok(
     hrefs(page).some((href) => href === `../${BARE.lesson}`),

@@ -381,12 +381,35 @@ test('a Checkpoint is answerable from the keyboard, like the Exercises it counts
 test('a Checkpoint with no questions in it does not claim to have judged anything', (t) => {
   const page = checkpoint(t, { run: [] });
 
-  for (const question of page.queryAll('.exercise')) question.remove();
+  // Guard the observer: a fixture that stopped carrying questions would make
+  // the removal below a no-op, and this test would pass without ever emptying
+  // anything.
+  const questions = page.queryAll('.exercise');
+  assert.equal(questions.length, 3, 'expected the fixture gate to have questions to take away');
+  for (const question of questions) question.remove();
+
   page.script('checkpoint.js');
 
   const root = page.query('.checkpoint');
   assert.ok(!root.classList.contains('is-live'), 'there is nothing here to gate the Unit with');
   assert.equal(page.query('.checkpoint-pass').hidden, false, 'and nothing has been taken over to hide');
+});
+
+test('a Checkpoint that cannot give one of its verdicts gives neither', (t) => {
+  const page = checkpoint(t, { run: [] });
+
+  const again = page.query('.checkpoint-again');
+  assert.ok(again, 'expected the fixture gate to carry both outcomes');
+  again.remove();
+
+  page.script('exercise.js');
+  page.script('checkpoint.js');
+  sit(page, { wrong: [0] });
+
+  const root = page.query('.checkpoint');
+  assert.ok(!root.classList.contains('is-live'), 'half a verdict is not a gate');
+  assert.equal(page.query('.checkpoint-pass').hidden, false, 'nothing was taken over, so nothing is hidden');
+  assert.equal(page.query('.checkpoint-progress'), null, 'and no score is reported for a verdict never given');
 });
 
 /* ------------------------------------------------------- styles cover them */
