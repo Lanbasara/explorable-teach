@@ -951,6 +951,34 @@ described records a Session writes and said nothing about the one the service wr
 carries that shape — the title, the Evidence field keys, the timestamp — so the check reads the
 document rather than a copy of the record made in a test.
 
+**Refined while building it (#21).** Two things, once the scan could finally run over every file
+the plugin owns rather than over the scripts alone.
+
+**A seed is a third kind of string, and it needed a name.** The files the scaffold *copies* — the
+Dossier, the course manifest's labels, the tuning placeholders, the subagent definitions, the
+submissions guidance — are read by a Learner, so by this decision they are Learner-facing and
+belong in a table. They are not in one, and should not be: a copied file is the Workspace's from
+the moment it is placed, so it has no other Workspace to stay consistent with, and a table would
+put a Teacher's own cover behind a lookup they cannot edit. They ship in English because the
+plugin cannot know who it is about to be handed to, and the authoring guide says the Teacher may
+rewrite them — including the `description:` line on each subagent, which is what a Learner reads
+in the agent picker. The body of one of those definitions is prompt scaffolding and stays English
+by the rule above. `CONTEXT.md` now carries **Seed** as the term.
+
+**Which makes the scan two rules rather than one**, split on the same question decision 23 splits
+a Workspace on: linked or copied. Widening the scan past the scripts was what exposed it — the
+strict rule reads the `✅` a Dossier marks a finished Unit with as a finding, on the grounds that a
+glyph in shared source is half a label whose other half belongs in a table. True of a linked file,
+where the bytes are every Workspace's. Not true of a seed, which has no table and no other
+Workspace, and where the only thing that must not arrive is somebody *else's* language. So a file
+under `runtime/` keeps the rule exactly as it was, and one under `templates/` answers the narrower
+question. Nothing was loosened for shared code, which is what the rule was written to guard.
+
+The other half of the same edit is that nothing had told a first run to *record* the language at
+all. `NOTES.md` is where it goes, which is where both role definitions already say to read it
+from; the Boot sequence then reconciles `lang` in the course manifest against it, so a Workspace
+scaffolded before the setting existed gains one without a migration step.
+
 **Consequence:** the server keeps no Learner-facing string. Its stream errors carry a `code` the
 drawer renders; the record it writes for a verdict uses ASCII field keys, because the Boot
 sequence reads it. `slugOf`'s character class — `[^a-z0-9\u4e00-\u9fff-]` — was the same defect

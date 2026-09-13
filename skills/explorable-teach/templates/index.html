@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>卷宗 · 从内核抽象到 Agent 工具</title>
+<title>Dossier</title>
 <link rel="stylesheet" href="assets/style.css">
 <style>
   .dossier-thesis { margin: 0 0 52px; }
@@ -76,7 +76,7 @@
 <div class="lesson">
 
 <header class="lesson-header">
-  <div class="lesson-num">卷宗</div>
+  <div class="lesson-num">Dossier</div>
   <h1 id="course-title"></h1>
   <p class="lesson-sub" id="course-sub"></p>
 </header>
@@ -86,32 +86,41 @@
   <p id="thesis-body"></p>
 </div>
 
-<h2>课程序列</h2>
+<h2>Units</h2>
 <ul class="unit-list" id="units"></ul>
 
-<h2>课程文档</h2>
+<h2>Course documents</h2>
 <div class="doc-grid" id="docs"></div>
 
 <div id="refs-section" hidden>
-  <h2>速查表</h2>
+  <h2>Reference sheets</h2>
   <div class="doc-grid" id="refs"></div>
 </div>
 
-<h2>问答助教</h2>
+<h2>Tutor</h2>
 <div class="tutor-status">
   <span class="dot" id="tdot"></span>
-  <span id="tmsg">正在检测……</span>
+  <span id="tmsg">Checking…</span>
 </div>
 
 <footer class="lesson-footer">
-  <p>状态图例：✅ 已完成并验证 · 🚧 已授课待验证 · ⬜ 未开始。
-  进度以 <code>CURRICULUM.md</code> 为准，两处应保持一致。</p>
+  <p>Status: ✅ done and verified · 🚧 taught, awaiting verification · ⬜ not started.
+  <code>CURRICULUM.md</code> is the authority on progress; the two should agree.</p>
 </footer>
 
 </div>
 
 <script src="assets/units.js"></script>
 <script>
+/* The cover of this workspace: the one page every unit is reachable from.
+ *
+ * The scaffold copies this in once and never touches it again, so from that
+ * moment it is the workspace's rather than the plugin's. Everything written
+ * out here is seeded in English — the headings above, the status legend, the
+ * link labels below — and none of it is looked up anywhere, so rewrite it in
+ * the learner's language. The title, the subtitle and the units themselves
+ * come from assets/units.js, which is where this course describes itself.
+ */
 (function () {
   'use strict';
   var ICON = { done: '✅', teaching: '🚧', todo: '⬜' };
@@ -129,12 +138,12 @@
     document.documentElement.setAttribute('lang', course.lang);
   }
 
-  document.title = (course.title || '卷宗') + ' · 卷宗';
-  document.getElementById('course-title').textContent = course.title || '课程卷宗';
+  document.title = course.title ? course.title + ' · Dossier' : 'Dossier';
+  document.getElementById('course-title').textContent = course.title || 'Dossier';
   document.getElementById('course-sub').innerHTML = course.subtitle || '';
   if (course.thesis) {
     document.getElementById('thesis-box').hidden = false;
-    document.getElementById('thesis-label').textContent = course.thesisLabel || '主命题';
+    document.getElementById('thesis-label').textContent = course.thesisLabel || 'Thesis';
     document.getElementById('thesis-body').innerHTML = course.thesis;
   }
 
@@ -148,11 +157,14 @@
     body.appendChild(el('div', 'unit-num', u.num));
     body.appendChild(el('div', 'unit-title', u.title));
     body.appendChild(el('div', 'unit-claim', u.claim || ''));
-    if (u.assignmentNote) body.appendChild(el('div', 'unit-note', '作业：' + u.assignmentNote));
+    if (u.assignmentNote) {
+      body.appendChild(el('div', 'unit-note', 'Assignment: ' + u.assignmentNote));
+    }
     li.appendChild(body);
 
     var links = el('div', 'unit-links');
-    [['lesson', '正文', true], ['checkpoint', '验收', false], ['assignment', '作业', false]]
+    [['lesson', 'Lesson', true], ['checkpoint', 'Checkpoint', false],
+     ['assignment', 'Assignment', false]]
       .forEach(function (p) {
         if (u[p[0]]) {
           var a = el('a', p[2] ? 'primary' : '', p[1]);
@@ -191,20 +203,21 @@
   function down(reason) {
     dot.className = 'dot down';
     msg.textContent = '';
-    msg.appendChild(document.createTextNode(reason + '在教案根目录运行 '));
+    msg.appendChild(document.createTextNode(reason + ' Run '));
     var c = el('code', '', './tutor/tutorctl.sh start');
     msg.appendChild(c);
-    msg.appendChild(document.createTextNode(' 即可在页面内直接问答。课程本身不依赖它。'));
+    msg.appendChild(document.createTextNode(' in the workspace directory to ask'
+      + ' questions inside the page. The course does not depend on it.'));
   }
 
   fetch(url, { method: 'GET' })
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
     .then(function (d) {
       dot.className = 'dot up';
-      msg.textContent = '在线 · 已运行 ' + Math.round((d.uptimeSec || 0) / 60) + ' 分钟'
-        + '（空闲 ' + Math.round((d.idleTimeoutSec || 0) / 3600) + ' 小时后自动退出）';
+      msg.textContent = 'Online · up for ' + Math.round((d.uptimeSec || 0) / 60) + ' min'
+        + ' (exits after ' + Math.round((d.idleTimeoutSec || 0) / 3600) + ' h idle)';
     })
-    .catch(function () { down('未启动。'); });
+    .catch(function () { down('Not running.'); });
 })();
 </script>
 </body>

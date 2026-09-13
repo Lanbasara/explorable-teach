@@ -156,18 +156,36 @@ function sentinel(text) {
  * letter, a digit, an emoji — is a string that belongs in a table, or a
  * Learner's language reaching somewhere only a Maintainer reads.
  */
-const ENGLISH_PUNCTUATION = new Set([...'—–…‘’“”']);
+const ENGLISH_PUNCTUATION = new Set([...'—–…‘’“”→·']);
 
 /**
  * Every character of `text` that no English sentence would carry.
  *
  * Two suites read this differently and both need the same answer: one scans the
- * scripts the plugin puts on a page, the other reads the payload the service
- * builds and the record it writes. What counts as "still English" has to be one
- * answer, or a string that fails one check passes the other.
+ * files the plugin shares with every Workspace, the other reads the payload the
+ * service builds and the record it writes. What counts as "still English" has
+ * to be one answer, or a string that fails one check passes the other.
  */
 function notEnglish(text) {
   return [...text].filter((c) => c.charCodeAt(0) > 0x7f && !ENGLISH_PUNCTUATION.has(c));
+}
+
+/**
+ * The narrower question, for a file that is one Workspace's own.
+ *
+ * Every character of `text` belonging to a script other than the one English is
+ * written in: a letter outside ASCII, or a mark that modifies one.
+ *
+ * A file the scaffold *copies* is the Workspace's from the moment it is placed,
+ * so a glyph in it — the `✅` a Dossier marks a finished Unit with — is that
+ * Workspace's business rather than a label that should have come from a table.
+ * The one thing a seed may not arrive carrying is somebody *else's* language,
+ * and that is what this asks. A file the plugin *links* gets `notEnglish`
+ * instead, because those bytes are shared and a label in one of them is every
+ * Learner's.
+ */
+function notThisLanguage(text) {
+  return [...text].filter((c) => c.charCodeAt(0) > 0x7f && /\p{L}|\p{M}/u.test(c));
 }
 
 /** A whole table as sentinels, keeping each entry's `{name}` slots. */
@@ -189,6 +207,7 @@ module.exports = {
   bootstrapSource,
   keysAskedBy,
   notEnglish,
+  notThisLanguage,
   pseudoTable,
   sentinel,
   SENTINEL,

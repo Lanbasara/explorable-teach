@@ -25,12 +25,16 @@
 
    Components render in it from the tables the plugin ships; assets/strings.js
    is where this workspace overrides one or supplies a language the plugin does
-   not ship. Left empty, everything the learner reads is English. */
+   not ship. Left empty, everything the learner reads is English.
+
+   The labels written out in this file are not looked up anywhere: they are
+   seeded in English and are this workspace's own, so rewrite them in the
+   learner's language along with the titles beside them. */
 window.TEACH_COURSE = {
   lang:     'en',
   title:    '',
   subtitle: '',
-  thesisLabel: '主命题',
+  thesisLabel: 'Thesis',
   thesis:   ''
 };
 
@@ -49,9 +53,10 @@ window.TEACH_UNITS = [
 /* Quick-reference sheets in reference/. Rendered on the cover when non-empty. */
 window.TEACH_REFS = [];
 
-/* Course-level documents shown on the dossier cover. */
+/* Course-level documents shown on the dossier cover. The labels and notes are
+   English defaults — overwrite them for this course, in the learner's language. */
 window.TEACH_DOCS = [
-  { path: 'CURRICULUM.md', label: '课程地图', note: '知识层级与完整序列' },
-  { path: 'RESOURCES.md',  label: '资源清单', note: '可信来源，以及每一份适合查什么' },
-  { path: 'MISSION.md',    label: '学习目标', note: '为什么学这个——所有课都要追溯到这里' }
+  { path: 'CURRICULUM.md', label: 'Curriculum', note: 'The order ideas are taught in, and how far along' },
+  { path: 'RESOURCES.md',  label: 'Resources',  note: 'Sources worth trusting, and what each is for' },
+  { path: 'MISSION.md',    label: 'Mission',    note: 'Why this subject — every unit traces back here' }
 ];

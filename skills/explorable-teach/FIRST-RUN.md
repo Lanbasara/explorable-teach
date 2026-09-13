@@ -23,7 +23,27 @@ Ask only for what is genuinely absent **and** would change the plan; a question 
 answer leads to the same first Unit is not worth asking. Interrogating someone who just handed
 you a thorough brief reads as not having read it.
 
-## 2. Research the subject's best interactive affordances
+## 2. Record the language they read
+
+**Ask, once, and write the answer down.** Every later Session takes the learner's language from
+what this one recorded; nothing else in the Workspace knows it, and a Session that guesses teaches
+somebody in a language they did not choose.
+
+It goes in `NOTES.md`, as prose, with everything else they have said about how they want to be
+taught. That is the record, and it is what an agent invoked outside a page reads, so it is what
+decides the language an *answer* comes back in.
+
+`lang` in `assets/units.js` is the other half — a BCP-47 tag (`en`, `zh-CN`, `ja`, `pt-BR`), read
+by every page, deciding the language the *screen* is in. Keeping it in step with `NOTES.md` is
+[step 7 of the Boot sequence](./SKILL.md#boot-sequence) and belongs to it, but this Session has
+already walked past that step — so set it here, once, and every later Session is the one that
+reconciles it.
+
+Do not ask if they have already made it plain: someone who opened in their own language has told
+you. Ask when the request arrived in one language and names another as the subject, which is the
+case where guessing is a coin flip.
+
+## 3. Research the subject's best interactive affordances
 
 - Search the web: "best interactive {subject} tutorial", "explorable explanation {subject}"
 - Identify what existing interactive teaching does well for this subject
@@ -33,7 +53,7 @@ Record the sources worth returning to in `RESOURCES.md`, using
 [the Resources format](./formats/resources.md). Until it is well populated, finding good sources
 *is* the work.
 
-## 3. Select the tech stack
+## 4. Select the tech stack
 
 Walk [the selection guide](./UNIT.md#choosing-a-component) by teaching act and settle which
 Components this subject actually earns. Four of them are already installed; every other teaching
@@ -44,7 +64,7 @@ by expecting it to be there.
 Settle this by subject, not by appetite. A philosophy course and an algorithms course should not
 end up with the same tooling, and most subjects earn fewer tools than the first plan gives them.
 
-## 4. Write `TECH-STACK.md`
+## 5. Write `TECH-STACK.md`
 
 At the Workspace root:
 
@@ -68,7 +88,7 @@ At the Workspace root:
 |--------------|-------------------------------|
 ```
 
-## 5. Plan the Curriculum
+## 6. Plan the Curriculum
 
 An ordered list of Units in `CURRICULUM.md`, each carrying a progress marker, ordered by
 dependency between *ideas* rather than by any book's table of contents.
@@ -76,11 +96,11 @@ dependency between *ideas* rather than by any book's table of contents.
 Which way this subject leans changes the shape of every Unit after it, so settle that first —
 see [Knowledge, skills, wisdom](./SKILL.md#knowledge-skills-wisdom).
 
-## 6. Build what the first Units need
+## 7. Build what the first Units need
 
 Whatever Components they call for beyond the ones the scaffold already installed. Do not build
 the whole stack up front: a Component nobody has needed yet is a guess.
 
-## 7. Tune the Tutor for this subject
+## 8. Tune the Tutor for this subject
 
 `tutor/TUNING.md` is the one Tutor file this skill authors. See [TUTOR.md](./TUTOR.md).

@@ -41,7 +41,7 @@ Open the Lesson file for the learner once you have written it.
 
 ```html
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="LANG">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,8 +65,35 @@ Open the Lesson file for the learner once you have written it.
 </html>
 ```
 
+`LANG` is the learner's language, not this document's — write the tag the Workspace states, and
+see [the language the learner reads](#the-language-the-learner-reads) below for where it is stated.
+
 `style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
 Lesson has to be styled whether or not a script ever runs.
+
+## The language the learner reads
+
+Every page the learner opens is written in their language, and the Workspace says which that is in
+exactly one place: `lang` in `assets/units.js`. The skeleton above carries it on `<html lang>`,
+`${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` fills it into any page that left it out, and every
+Component takes its own labels from there — so the prose you write is the only part of a page you
+put into that language by hand.
+
+**The plugin's files are English and stay English.** The Components, the two role definitions and
+the service's own documents are the same bytes in every Workspace, so a sentence of this learner's
+language in one of them is every other learner's too. What a Component *says* is not in those files
+anyway: it comes from a table keyed by language, which is why translating a Component is never the
+way to change a label.
+
+**What the scaffold placed is yours, and it arrives in English.** The Dossier's headings and its
+status legend, the labels beside each document in `assets/units.js`, and the `description:` line on
+each subagent under `.claude/agents/` — the line the learner reads in the agent picker when they
+reach for the Tutor outside a page. Those are seeds rather than translations: English because the
+plugin cannot know who it is about to be handed to, and **yours to rewrite in the learner's
+language** if you judge it worth it, because a placed file is the Workspace's from the moment it is
+placed. None of it is mandatory — a Workspace left as seeded still works. The body of a subagent
+definition is a different matter: it is prompt scaffolding and stays English, so the description
+line is the only part of one there is ever a reason to translate.
 
 ## Choosing a Component
 

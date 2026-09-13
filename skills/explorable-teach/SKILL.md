@@ -34,6 +34,11 @@ Begin every Session here, in this order, before proposing anything.
    last looked. This is the highest-signal feedback the Workspace produces: three questions
    about one paragraph means that Lesson is wrong, not that the learner is slow.
 6. `NOTES.md` — how to work with this person. The prohibitions in it are binding.
+7. The language they read. `NOTES.md` is where it was written down; `lang` in `assets/units.js` is
+   where every page takes it from. The two disagreeing fails silently — the learner is answered in
+   their own language while reading a screen in somebody else's — so when `lang` is missing or no
+   longer matches, set it, and everything they open follows. A Workspace scaffolded before that
+   setting existed arrives here with none, which is how it catches up.
 
 Then branch once, on what those reads told you:
 

@@ -44,6 +44,29 @@
   last in it, because its neighbour slots each have two states and one placement shows one of
   each; every entry under `nav.` has to have reached a screen across the two.
 
+- **The scaffold hands a new workspace a generic starting point, in English.** The seed dossier
+  carried the pilot learner's own course title; it keeps its structure and loses that content, the
+  way the course manifest already treats its own fields. The manifest's labels, the dossier's
+  headings and status legend, the subagent definitions, the two tuning placeholders and the
+  submissions guidance all ship in English — seeds rather than translations, because the plugin
+  cannot know who it is about to be handed to. A placed file is the workspace's from the moment it
+  is placed, so `UNIT.md` says to rewrite them in the learner's language, and says outright that
+  the `description:` line on each subagent — what the learner reads in the agent picker — is one
+  of them.
+- **The first run records the learner's language, and the boot sequence writes it into the course
+  manifest.** Nothing had told it to record one at all, so a teacher was left to guess. It goes
+  into `NOTES.md`, which is where both role definitions already say to read it from, and the boot
+  sequence then reconciles `lang` in `assets/units.js` against it — so a workspace scaffolded
+  before the setting existed gains one with nothing to run.
+- **The non-ASCII scan reads every file the plugin owns, not the scripts alone.** Walked, the way
+  the script list is, so a document added and forgotten is covered the day it arrives. The same
+  claim is then made from the other end, over a workspace one scaffold run produces — the copies
+  and the links together, which is the only place the split stops being an arrangement and
+  becomes a directory somebody is handed. One thing sits beside them that no scan of the bytes
+  can see: the page skeleton in `UNIT.md` mandated a language, which is how the pilot's got copied
+  into every page written from it, and its `lang` is now asserted to be a placeholder rather than
+  a tag.
+
 ### Changed
 
 - **The drawer holds no learner-facing string at all.** Its chrome, its statuses, its history
@@ -114,6 +137,19 @@
   sends that indentation. A check reads the token out of the role definition and holds both
   readers to it — in all three shapes a refusal can arrive in — so editing one file alone turns
   the suite red instead of breaking the contract in silence.
+
+- **Everything a maintainer reads is English.** The runtime `README.md` — the document whoever is
+  operating the tutor service reads — and the last comments still in one learner's language. With
+  the role definitions already English, the scan could finally run over the whole of what the
+  plugin owns rather than a subset, which is what stops any of this drifting back.
+- **The scan asks a linked file and a copied one different questions.** A file under `runtime/` is
+  the same bytes in every workspace, so it keeps the rule exactly as it was: typographic
+  punctuation and nothing else above ASCII, because a glyph in shared source is half a label whose
+  other half belongs in a table. A seed under `templates/` has no table and no other workspace to
+  stay consistent with — the `✅` a dossier marks a finished unit with is that workspace's business
+  — so the only thing it may not arrive carrying is somebody else's language. The split is the one
+  the whole workspace is built on, read off the directory. `CONTEXT.md` gains **Seed** as the term
+  for the third kind of string this turned up.
 
 ### Fixed
 

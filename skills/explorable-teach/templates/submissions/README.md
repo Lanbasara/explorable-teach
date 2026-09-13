@@ -1,11 +1,13 @@
-# 交上来的作业放这里
+# Hand your work in here
 
-作业页面上那个输入框只装得下短答。大的东西——一段代码、一份笔记、一次运行的日志、一张图——
-放进这个目录，再把路径填到作业页的「放在工作区里的东西」那一栏。
+The box on an assignment page only holds a short answer. Anything larger — a piece of code, a set
+of notes, the log of a run, a picture — goes into this directory, and you write the path into the
+field on the assignment page that asks what you left in the workspace.
 
-评分老师会自己把它们读掉。**不用上传，也不用贴进页面**：它跟你一样站在这个教案目录里，只读。
+The grader opens them itself. **Nothing is uploaded and nothing is pasted into the page**: it is
+standing in this workspace with you, read-only.
 
-一份作业一个子目录，名字跟作业对上就行：
+One subdirectory per assignment, named so the two line up:
 
 ```
 submissions/
@@ -14,5 +16,6 @@ submissions/
     run.log
 ```
 
-**这个目录要跟着教案一起进版本库。** 它是你做过什么的证据，也是判定的依据——把它排除掉，
-以后就没人能回头看当时到底交了什么，包括判过它的那个老师。
+**Keep this directory in version control with the rest of the workspace.** It is the evidence of
+what you did and the thing a verdict was reached on — exclude it and nobody can go back and see
+what was actually handed in, including the grader that judged it.

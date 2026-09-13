@@ -60,6 +60,14 @@ prose, anything a failure puts in front of them. Produced in the Learner's langu
 falling back to English when none is recorded.
 _Avoid_: UI strings, user-facing, i18n strings
 
+**Seed**:
+Learner-facing text in a file the scaffold *copies* — the Dossier's chrome, the course manifest's
+labels, the description line on a subagent. It is the exception to the rule above: not produced at
+run time and not in any table, because a copied file is one Workspace's own from the moment it is
+placed and has no other Workspace to stay consistent with. It ships in English, since the plugin
+cannot know who it is about to be handed to, and the Teacher may rewrite it.
+_Avoid_: default string, placeholder text
+
 ### Teaching
 
 **Unit**:

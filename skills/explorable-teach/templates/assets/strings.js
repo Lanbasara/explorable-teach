@@ -13,9 +13,9 @@
  * so overriding one button is one line and costs nothing else.
  *
  *   window.TEACH_STRINGS = {
- *     'ja': {
- *       'tutor.send': '送信',
- *       'tutor.status.online': 'オンライン'
+ *     'pt-BR': {
+ *       'tutor.send': 'Enviar',
+ *       'tutor.status.online': 'online'
  *     }
  *   };
  *

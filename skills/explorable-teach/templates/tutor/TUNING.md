@@ -1,16 +1,26 @@
-# 本工作区的助教调校
+# Tutor tuning for this workspace
 
-助教的通用定义在 `tutor/ROLE.md`——那是插件里的同一份文件，所有工作区共用，别在这里
-重复它。**这个文件只写这门学科独有的东西**，它会被接在通用定义后面，服务和子 agent 两条
-路径拿到的是完全一样的一份。
+The tutor's general definition is in `tutor/ROLE.md` — the plugin's copy, shared by every
+workspace. Do not repeat any of it here. **This file holds only what is particular to this
+subject.** It is appended after the general definition, and both paths to the tutor — the service
+and the subagent — get exactly the same pair.
 
-还没开始教之前这里是空的，那也没关系：没写东西就等于只用通用定义。
+Before any teaching has happened this file is empty, and that is fine: nothing written here means
+the general definition alone.
 
-值得写进来的，通常是这几类：
+What is usually worth writing down:
 
-- **这门学科的用词习惯**——哪个术语用中文、哪个保留英文原词、哪些词学生明确说过看不懂。
-- **这门学科该怎么打比方**——已经在课上建立过、可以直接拿来复用的类比。
-- **这门课特有的边界**——比如「这门课只讲到 x86，别扯 ARM」「代码一律用 Python 3.12 的写法」。
-- **哪些文件值得多读一眼**——如果这门课有 `reference/` 里的速查表之类的，点名它。
+- **How this subject uses words** — which terms to translate, which to keep in the original, and
+  any the learner has said outright they do not follow.
+- **How to draw an analogy in this subject** — the ones already built in a lesson, which can be
+  reused rather than reinvented.
+- **Where this course stops** — "this course goes as far as x86; leave ARM out of it", "all code
+  in Python 3.12 style".
+- **Which files are worth a second look** — name the cheat sheets under `reference/`, if this
+  course has any.
 
-改完这个文件要重启服务才生效：`./tutor/tutorctl.sh restart`
+This file is prompt scaffolding, so write it in English like the definition it extends; what
+language the tutor *answers* in is the learner's, and `tutor/ROLE.md` already says where that
+comes from.
+
+Restart the service after editing this file: `./tutor/tutorctl.sh restart`

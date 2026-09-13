@@ -1,20 +1,29 @@
-# 本工作区的评分调校
+# Grading tuning for this workspace
 
-评分员的通用定义在 `tutor/GRADER.md`——那是插件里的同一份文件，所有工作区共用，别在这里重复
-它。**这个文件只写这门学科独有的东西**，它会被接在通用定义后面，服务和子 agent 两条路径拿到的
-是完全一样的一份。
+The grader's general definition is in `tutor/GRADER.md` — the plugin's copy, shared by every
+workspace. Do not repeat any of it here. **This file holds only what is particular to this
+subject.** It is appended after the general definition, and both paths to the grader — the service
+and the subagent — get exactly the same pair.
 
-还没布置过作业之前这里是空的，那也没关系：没写东西就等于只用通用定义。
+Before any assignment has been set this file is empty, and that is fine: nothing written here
+means the general definition alone.
 
-值得写进来的，通常是这几类：
+What is usually worth writing down:
 
-- **这门学科怎么算做对**——判定时反复用得上、却不值得每份作业的 Rubric 都抄一遍的通用标准。
-- **这门学科的用词口径**——哪个术语用中文、哪个保留英文原词，判定里也该跟课上一致。
-- **证据长什么样**——这门课的作业成果通常是代码、录音、还是一段文字；该去 `submissions/` 里看
-  什么样的文件。
-- **不该苛求的地方**——这门课有意不讲的范围，别拿学生没学过的东西扣他。
+- **What counts as right in this subject** — the general standards that come up in judgement
+  after judgement, and are not worth copying into every assignment's own rubric.
+- **How this subject uses words** — which terms to translate and which to keep in the original, so
+  that a verdict is consistent with the lessons.
+- **What the evidence looks like** — whether work in this course arrives as code, as a recording
+  or as prose, and what sort of file to expect under `submissions/`.
+- **What not to be strict about** — what this course deliberately leaves out, so nobody is marked
+  down on material they were never taught.
 
-具体某一份作业算不算做完，写在那份作业自己的 Rubric 里，不要写到这里来：Rubric 跟着作业走，
-这个文件跟着学科走。
+Whether one particular submission is done belongs in that assignment's own rubric, not here: a
+rubric travels with its assignment, this file travels with the subject.
 
-改完这个文件要重启服务才生效：`./tutor/tutorctl.sh restart`
+This file is prompt scaffolding, so write it in English like the definition it extends; what
+language the grader *answers* in is the learner's, and `tutor/GRADER.md` already says where that
+comes from.
+
+Restart the service after editing this file: `./tutor/tutorctl.sh restart`

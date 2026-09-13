@@ -239,11 +239,10 @@ function sanitizeHistory(raw) {
  * files — this one and the role definition beside it — the same shape as the
  * opening a refusal has to use.
  *
- * The role definitions are still written in the pilot Learner's language, so
- * for the width of one ticket they name this heading in that language while
- * this file writes it in English. Both say "the earlier turns of this
- * conversation" to a reader that understands either; translating the
- * definitions is what puts the two back into the same words.
+ * Both are English now, so the two say the same words rather than the same
+ * thing in two languages. The heading stays English whatever language the
+ * answer comes back in: it is scaffolding the agent reads, not something the
+ * Learner ever sees.
  */
 function renderHistory(history, replyLabel) {
   if (!history || !history.length) return '';

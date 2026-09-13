@@ -1,114 +1,159 @@
-# 问答助教服务
+# The tutor service
 
-课程页面里的「🎓 问老师」按钮背后的本地服务。零 npm 依赖，只用 Node 内置模块。
+The local service behind the ask-the-tutor button on a lesson page. Zero npm dependencies, Node's
+built-in modules only.
 
-## 谁来启动它
+This document is for whoever is operating the service — so it is in English, like everything else
+under the plugin. What the learner reads is a different question, and the answer to it is further
+down.
 
-**你自己，在你自己的终端里，想学的时候。** 这是一个 dev server 式的进程——
-和 `vite` 之于前端项目是同一个关系。
+## Who starts it
 
-- **没有任何 AI 对话拥有它的生命周期。** 备课的 AI 不会替你启动它，关掉对话也不会影响它。
-- **课程在它没启动时必须照样能用。** 页面会自己探测，探测不到就降级成剪贴板模式（见文末）。
-- **空闲 8 小时自动退出**，免得你忘了它在后台挂好几天。设得这么长是故意的——
-  它要防的是被遗忘的进程，不是午饭时间的闲置。改时长：`IDLE_TIMEOUT_MS=3600000 ./tutor/tutorctl.sh restart`
+**You do, in your own terminal, when you sit down to study.** It is a dev-server-shaped process —
+the same relationship `vite` has with a front-end project.
 
-## 启动与排查
+- **No AI conversation owns its lifetime.** The teaching session does not start it for you, and
+  closing that conversation does not touch it.
+- **A lesson has to work with it stopped.** The page probes for it, and falls back to clipboard
+  mode when the probe finds nothing (see the last section).
+- **It exits after 8 idle hours**, so a process you forgot about does not sit there for days. The
+  length is deliberate: what it guards against is being forgotten, not being idle over lunch.
+  To change it: `IDLE_TIMEOUT_MS=3600000 ./tutor/tutorctl.sh restart`
+
+## Running it, and looking into it
 
 ```sh
-./tutor/tutorctl.sh status     # 在跑吗？pid / 运行时长 / 已空闲多久
-./tutor/tutorctl.sh start      # 后台启动（nohup detach，活过启动它的终端和对话）
+./tutor/tutorctl.sh status     # up? pid / uptime / how long it has been idle
+./tutor/tutorctl.sh start      # in the background (nohup detach; outlives this terminal)
 ./tutor/tutorctl.sh restart
 ./tutor/tutorctl.sh stop
-./tutor/tutorctl.sh log 40     # 最近 40 行日志
+./tutor/tutorctl.sh log 40     # the last 40 lines of the log
 ```
 
-`start` 是**故意 detach** 的：它的寿命应该由你的学习时段决定，而不是由某个终端窗口或
-某次 AI 对话决定。日志写到 `tutor/server.log`。换端口：`PORT=5000 ./tutor/tutorctl.sh start`
+`start` **detaches on purpose**: its lifetime should be decided by your study session rather than
+by a terminal window or an AI conversation. The log is written to `tutor/server.log`. To move it
+off a busy port: `PORT=5000 ./tutor/tutorctl.sh start`
 
-也可以前台跑 `node tutor/server.js`，Ctrl-C 停止——调 `TUNING.md` 时这样更方便看输出。
-（服务要知道自己在伺候哪个教案目录：`tutorctl.sh` 会替你传，手动跑就在教案根目录下跑，
-或者显式写成 `node tutor/server.js /path/to/教案目录`。）
+You can also run `node tutor/server.js` in the foreground and stop it with Ctrl-C — easier to
+watch while tuning `TUNING.md`. (The service has to know which workspace it is serving:
+`tutorctl.sh` passes that for you, so run it from the workspace root, or name the directory
+outright as `node tutor/server.js /path/to/workspace`.)
 
-**助教不回话时按这个顺序查**：压根没启动 → 空闲超时退出了 → 端口被上次的僵尸进程占着
-（`status` 会告诉你 pid，先 `ps` 看清楚再决定杀不杀）→ 启动它的环境里 `claude` 不在 `PATH`。
+**When the tutor does not answer, check in this order**: it was never started → it exited on the
+idle timeout → the port is held by a stale process from an earlier session (`status` reports the
+pid — look at what is holding it before killing anything) → `claude` is not on `PATH` in the
+environment that launched it.
 
-## 它做三件事
+## It does three things
 
-1. **静态服务** — 把教案目录挂到 http 上。课程从此不再受 `file://` 限制
-   （Pyodide、sql.js 这类需要 fetch wasm 的组件也就能用了）。`assets/` 下教案目录里没有的
-   文件会回落到插件里那一份，所以链接断了页面也还是有样式。
-2. **`POST /api/ask`** — 把问题交给后台的 `claude`，用 SSE 把回答流式推回页面。
-3. **记录提问** — 每次问答追加一行到 `learning-records/questions.jsonl`。
+1. **Serves the workspace** over http, which lifts the `file://` restrictions a lesson would
+   otherwise be under (Pyodide, sql.js and anything else that fetches wasm). A file under
+   `assets/` that the workspace does not have falls back to the plugin's copy, so a broken link
+   still leaves the page styled.
+2. **`POST /api/ask`** — hands the question to `claude` in the background and streams the answer
+   back to the page over SSE.
+3. **Logs the questions** — one line per exchange, appended to
+   `learning-records/questions.jsonl`.
 
-## 为什么每次提问都是全新的进程
+## Why every question is a fresh process
 
-服务**不维护任何会话**。每个问题都 spawn 一个独立的 `claude -p`，答完就退出。
+The service **holds no session**. Each question spawns its own `claude -p`, which exits when the
+answer is done.
 
-- 不会有会话污染，也不会随着对话变长而质量衰减
-- 上下文不靠记忆，靠**读文件**：工作目录就是教案目录，助教自己去读
-  `NOTES.md`、`MISSION.md`、`CURRICULUM.md`、`lessons/`、`learning-records/`
+- No session pollution, and no quality decay as a conversation grows
+- Context comes from **reading files** rather than from memory: the working directory is the
+  workspace, and the tutor goes and reads `NOTES.md`, `MISSION.md`, `CURRICULUM.md`, `lessons/`
+  and `learning-records/` itself
 
-状态在文件里，计算是一次性的。
+State lives in files; the computation is disposable.
 
-## questions.jsonl 才是重点
+## questions.jsonl is the point
 
-提问日志不是给你看的，是**给下一次备课的 AI 看的**。
+The question log is not written for you to read. It is written **for the session that plans the
+next lesson**.
 
-「他在背压上连问了三次」——这是最硬的课程信号，说明那一节需要重写，
-或者他在并发模型上的起点比备课时假设的低。问答系统因此不只是客服，而是评估仪器。
+"Three questions in a row about backpressure" is the hardest curriculum signal the workspace
+produces: either that lesson needs rewriting, or this learner's starting point on concurrency was
+lower than the plan assumed. That is what makes the tutor an assessment instrument rather than a
+help desk.
 
-备课时记得读它。
+Read it while planning.
 
-## 角色 prompt 分两半：`ROLE.md` 和 `TUNING.md`
+## The language a learner reads
 
-助教的行为定义**不在 `server.js` 的源码里**，而在两个 `.md` 文件里，服务启动时按顺序拼起来：
+Everything under the plugin — this file, the role definitions, the prompt the service assembles,
+the logs — is English, because its reader is whoever maintains it. The **answer** is not: the page
+sends the language it declares in `<html lang>` with each request, and the payload closes with one
+directive naming it, so a tutor answer and a grader verdict come back in the learner's own
+language. A workspace states that language once, in `assets/units.js`.
 
-| 文件 | 谁的 | 写什么 |
-|------|------|--------|
-| `tutor/ROLE.md` | 插件的（这里是个软链接） | 所有学科通用的：怎么答、什么时候去读文件、只读不写 |
-| `tutor/TUNING.md` | 你这门课自己的 | 这门学科专有的：术语口径、可复用的类比、课程边界 |
+Everything the page puts on screen around the answer comes from a table rather than from source —
+the plugin ships one per language, and `assets/strings.js` is where a workspace overrides an entry
+or supplies a language the plugin has not collected. So the service holds no string a learner
+could ever see: a failure that is the service's own to name travels as a **code**, and the page
+reads it out of that same table.
 
-`ROLE.md` 缺失或为空，服务直接报错退出，不会等到你提问时才失败；`TUNING.md` 没有就跳过，
-第一天它是空的很正常。
+## The role prompt is two halves: `ROLE.md` and `TUNING.md`
 
-这么做是为了**单一事实来源**：`.claude/agents/tutor.md` 那个子 agent 被指向的是同样这两个
-文件、同样的顺序。所以无论你走服务还是走子 agent，拿到的是同一个老师。
+The tutor's behaviour is defined **outside `server.js`**, in two `.md` files the service
+concatenates, in order, when it starts:
 
-想调教助教，**改 `TUNING.md`**，然后重启服务。`ROLE.md` 是插件里的那一份，所有工作区共用——
-在这里改它，等于把别的课也一起改了。
+| File | Whose | What goes in it |
+|------|-------|-----------------|
+| `tutor/ROLE.md` | the plugin's (a symlink here) | true of every subject: how to answer, when to go and read, read-only |
+| `tutor/TUNING.md` | this course's | true of this subject: which terms to use, analogies worth reusing, where the course stops |
 
-将来的判卷老师只是 `ROLES` 映射表里的另一个条目，指向另一份角色定义。
+A missing or empty `ROLE.md` makes the service exit with an error rather than fail at the moment
+you ask something; a missing `TUNING.md` is skipped, and being empty on day one is normal.
 
-## 这些文件住在插件里
+The arrangement exists for **one source of truth**: the subagent at `.claude/agents/tutor.md` is
+pointed at those same two files in that same order. Whichever path you take, service or subagent,
+you get the same tutor.
 
-`server.js`、`tutorctl.sh`、`ROLE.md` 和 `assets/` 下除 `units.js` 以外的东西，
-在你的教案目录里都是**软链接**，真身在插件里。
+To tune the tutor, **edit `TUNING.md`** and restart the service. `ROLE.md` is the plugin's copy,
+shared by every workspace — editing it here edits every other learner's course too.
 
-好处是助教修好一次，你所有的课都跟着好了，而不是只有以后新建的课才有。代价是那几个文件
-不能就地改——要改就在旁边新写一个。属于你自己的是会随学科变的那些：`TUNING.md`、
-`assets/units.js`、`index.html`、你为这门课写的组件，以及所有课文和记录。
+The grader is the same shape one entry along in the service's `ROLES` map, pointing at its own
+role definition and its own tuning.
 
-插件升级后重新跑一次 `init-workspace.sh`，链接会重新指向新版本。
+## These files live in the plugin
 
-## 为什么不让它自己读 NOTES.md 和 MISSION.md
+`server.js`, `tutorctl.sh`, `ROLE.md`, `GRADER.md`, and everything under `assets/` except this
+workspace's own manifest and string table, are **symlinks** here. The real files are in the
+plugin.
 
-早期版本让助教自己去读，结果每个问题要多花 5 次工具往返、慢 10 秒。
-现在服务在发问题时就把这两个小文件的内容**直接拼进 prompt**（各 4KB 上限，文件不存在就跳过）。
+The gain is that fixing the tutor once fixes it for every course you have, rather than only for
+the ones created afterwards. The cost is that those files cannot be edited in place — to change
+one, write a new file beside it. What is yours is what varies by subject: `TUNING.md`,
+`GRADER-TUNING.md`, `assets/units.js`, `assets/strings.js`, `index.html`, the components you
+wrote for this course, and every lesson and record in it.
 
-课程原文、`CURRICULUM.md`、`learning-records/` 这些**按需**的大文件仍然由助教自己判断要不要读。
+After the plugin is upgraded, run `init-workspace.sh` again and the links are re-pointed at the
+new version.
 
-## 安全
+## Why it does not read NOTES.md and MISSION.md itself
 
-- 只监听 `127.0.0.1`，不对外
-- `spawn` 用 argv 数组，绝不 `shell: true`，用户输入不拼进命令行
-- 静态服务做路径规范化 + 根目录校验 + 扩展名白名单
-- 助教以 `--restricted` 启动（无 Bash 等执行类工具），工具只给 `Read` / `Glob` / `Grep`，**只读不写**
-- 提问 2000 字符上限，选中文本 4000 字符上限，请求体 128KB 上限，单次回答 120 秒超时
+An early version had the tutor go and read them, which cost five extra tool round-trips and about
+ten seconds per question. The service now splices both files **straight into the prompt** when it
+sends the question (4000 characters each, skipped when the file is absent).
 
-## 服务没启动时（这是常态，不是异常）
+The larger files that are only needed **sometimes** — the lesson itself, `CURRICULUM.md`,
+`learning-records/` — are still the tutor's own call to read or not.
 
-页面加载时会探测 `/api/health`。探测不到（比如你直接用 `file://` 打开），
-发送按钮会变成「📋 复制提问」——把格式化好的提问复制到剪贴板，粘到 Claude Code 里问即可。
+## Security
 
-或者直接在 Claude Code 里唤起 `tutor` 子 agent（`.claude/agents/tutor.md`），
-它读同一份 `ROLE.md`，行为完全一致，只是不在网页里。
+- Binds `127.0.0.1` only, never a public interface
+- `spawn` with an argv array, never `shell: true`; user input never reaches a command line
+- Static serving normalises the path, checks it against the root, and allows only known extensions
+- The tutor runs with `--restricted` (no Bash or any other execution tool) and is given `Read` /
+  `Glob` / `Grep` — **read-only**
+- Caps: 2000 characters per question, 4000 per selection, 128KB per body, 120s per answer
+
+## With the service stopped (which is normal, not a fault)
+
+The page probes `/api/health` on load. When the probe finds nothing — because you opened the file
+over `file://`, say — the send button becomes a copy button instead: it puts a well-formed
+question on the clipboard, to paste into Claude Code.
+
+Or invoke the `tutor` subagent directly in Claude Code (`.claude/agents/tutor.md`). It reads the
+same `ROLE.md`, so it behaves identically; it simply is not inside the page.

@@ -18,9 +18,10 @@
 //                      with nothing outside the sentinel alphabet in what they
 //                      render. This is the one that catches a hardcoded
 //                      *English* string
-//   a non-ASCII scan   every script the plugin puts on a Learner's page, which
-//                      catches the other thing: one Learner's language creeping
-//                      back into shared code
+//   a non-ASCII scan   every file the plugin owns, and then the Workspace one
+//                      scaffold run produces, which catches the other thing:
+//                      one Learner's language creeping back into what every
+//                      other Learner is handed
 //   four contracts     every key any of them asks for has an entry, the shipped
 //                      tables agree about which keys exist, every way the Tutor
 //                      service can fail a stream has words on the page to be
@@ -59,6 +60,7 @@ const {
   bootstrapSource,
   keysAskedBy,
   notEnglish,
+  notThisLanguage,
   pseudoTable,
   sentinel,
   SENTINEL,
@@ -94,13 +96,64 @@ function tableReaders() {
 }
 
 /**
- * A shipped script as the non-ASCII scan reads it. `lesson-boot.js` is the one
+ * Every file this plugin owns, found rather than listed, for the reason
+ * `shippedScripts` is: what the plugin ships into a Workspace — copied out of
+ * `templates/` or linked at in `runtime/` — and the scripts that put it there.
+ * A document added and forgotten here is a document nothing holds to English.
+ */
+function pluginFiles() {
+  const found = [];
+
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(abs);
+      else if (entry.isFile()) found.push(path.relative(REPO_ROOT, abs));
+    }
+  };
+
+  for (const dir of ['skills', 'scripts']) walk(path.join(REPO_ROOT, dir));
+  return found.sort();
+}
+
+/**
+ * The source path of everything `init-workspace.sh` installs, read out of the
+ * script rather than written here — `docs/agents/tests.md` bans keeping a copy
+ * of the list the script owns, and a guard listing files would be that list a
+ * line at a time.
+ *
+ * It is what makes the walk above a claim rather than a count: every file a
+ * Workspace is actually handed has to be one the scan read.
+ */
+function scaffoldSources() {
+  const script = read(path.join(REPO_ROOT, 'scripts/init-workspace.sh'));
+  return [...script.matchAll(/(?:place|link)\s+"\$(?:TPL|RUNTIME)\/(\S+?)"/g)].map((m) => m[1]);
+}
+
+/**
+ * Which question a file answers to, which is the split the whole Workspace is
+ * built on — `docs/agents/tests.md`, "The split a scaffolded Workspace is built
+ * on". Read off the directory, because that split *is* the directory.
+ *
+ * A file under `runtime/` is linked: the same bytes in every Workspace, so a
+ * label in one is every Learner's and the strict rule applies. A file under
+ * `templates/` is copied, and is one Workspace's own from the moment it lands —
+ * so the only thing it may not arrive carrying is somebody else's language.
+ * Everything else is a document only a Maintainer reads, and is strict too.
+ */
+function ruleFor(rel) {
+  return rel.includes(`${path.sep}templates${path.sep}`) ? notThisLanguage : notEnglish;
+}
+
+/**
+ * A plugin file as the non-ASCII scan reads it. `lesson-boot.js` is the one
  * exception, and it is the file the table lives in: scanned whole, every line
  * of `zh-CN` would be a finding. Its bootstrap half holds no table and is read
- * like any other.
+ * like any other. Recognised by resolving the helper's own path rather than by
+ * a filename, so moving the table moves the exemption with it.
  */
-function scannable(file) {
-  return file === 'lesson-boot.js' ? bootstrapSource() : read(path.join(ASSETS, file));
+function scannable(rel) {
+  return path.join(REPO_ROOT, rel) === SOURCE ? bootstrapSource() : read(path.join(REPO_ROOT, rel));
 }
 
 /** A synthetic tag no Workspace has, and no plugin table answers for. */
@@ -1121,64 +1174,136 @@ test('a refusal opens with the token its role definition mandates, and both read
 /* ------------------------------------------------------------ the non-ASCII scan */
 
 /**
- * Every line of `text` holding a character no English comment would.
+ * Every line of `text` that `rule` finds a character it should not carry on.
  *
- * What counts as "still English" is `notEnglish` in the helper, because the
- * service's suite reads the payload it builds and the record it writes with the
- * same question — and two answers to it would let a string that fails one check
- * pass the other.
+ * The rule is the caller's because two of them apply, and which one a file
+ * answers to is `ruleFor` above. `notEnglish` is the strict one, and it is the
+ * helper's rather than this file's because the service's suite reads the
+ * payload it builds with the same question — two answers to it would let a
+ * string that fails one check pass the other.
  */
-function foreignLines(text) {
+function foreignLines(text, rule = notEnglish) {
   return text.split('\n').flatMap((line, index) => {
-    const stray = notEnglish(line);
+    const stray = rule(line);
     return stray.length ? [`${index + 1}: ${line.trim()}`] : [];
   });
 }
 
+/**
+ * The findings across a set of files, as `name -> lines`. Both scans below ask
+ * the same question of a different set, so they read them the same way: one
+ * says where the bytes come from, the other which rule each name answers to.
+ */
+function strayLanguage(names, bytesOf, ruleOf) {
+  const stray = {};
+  for (const name of names) {
+    const found = foreignLines(bytesOf(name), ruleOf(name));
+    if (found.length) stray[name] = found;
+  }
+  return stray;
+}
+
 test('the scan can see a string that does not belong, and lets English prose through', () => {
-  // Guard the observer, from both sides. It has to see the three shapes this
-  // has actually taken — a label, a comment, a decorative glyph — and it has to
-  // let through the punctuation almost every paragraph in this repo uses.
+  // Guard the observer, from both sides, and on both rules.
+  //
+  // The strict one is what a linked file answers to. It has to see the three
+  // shapes this has actually taken — a label, a comment, a decorative glyph,
+  // because a glyph in shared source is half a label whose other half is in a
+  // table — and it has to let through the typographic punctuation this repo's
+  // English prose is written with.
   assert.equal(foreignLines("var label = '发送';").length, 1);
   assert.equal(foreignLines('// the header still reading 问答助教').length, 1);
   assert.equal(foreignLines("var fab = '🎓 Ask';").length, 1);
   assert.deepEqual(foreignLines('// a claim — and the caveat beside it… still English'), []);
+  assert.deepEqual(foreignLines('// never started → timed out → stale port · in that order'), []);
+
+  // The narrower one is what a copied file answers to, and it differs in
+  // exactly one way: a glyph on a page that is one Workspace's own is that
+  // Workspace's business, while a language that is not theirs is still not.
+  assert.deepEqual(foreignLines("var ICON = { done: '✅', todo: '⬜' };", notThisLanguage), []);
+  assert.equal(foreignLines("var label = '课程序列';", notThisLanguage).length, 1);
+  assert.equal(foreignLines("var send = 'Enviá';", notThisLanguage).length, 1);
 });
 
-test('no shipped script holds a Learner-facing string of its own', () => {
-  const scripts = shippedScripts();
-  assert.ok(scripts.length >= 8, `expected scripts to scan, found ${scripts}`);
-  assert.ok(scripts.includes('tutor.js'), 'the drawer is not among the files being scanned');
+test('nothing the plugin ships is written in one Learner\'s language', () => {
+  // Every file the plugin owns, in one pass. It used to be the scripts alone,
+  // which was all that could pass while the seeds and the runtime README were
+  // still the pilot Workspace's — and a scan over a subset is a scan the next
+  // document drifts back in behind.
+  const files = pluginFiles();
 
-  const stray = {};
-  for (const file of scripts) {
-    const found = foreignLines(scannable(file));
-    if (found.length) stray[file] = found;
-  }
+  // Guard the observer twice. A walk that quietly stopped descending would
+  // report nothing and pass every assertion below; and a walk that reached
+  // some of it is not the claim, so every file the scaffold installs has to be
+  // one of these. Derived from the script, because the script owns that list.
+  assert.ok(files.length >= 40, `expected the plugin's files to scan, found ${files.length}`);
+
+  const installs = scaffoldSources();
+  assert.ok(installs.length >= 10, `expected the scaffold's install list, found ${installs.length}`);
+  assert.deepEqual(
+    installs.filter((src) => !files.some((rel) => rel.endsWith(`/${src}`))),
+    [],
+    'the scan does not reach every file a Workspace is handed',
+  );
 
   assert.deepEqual(
-    stray,
+    strayLanguage(files, scannable, ruleFor),
     {},
-    'every one of these is linked into every Workspace, so a string here is every Learner\'s language',
+    'this reaches a Learner who may read none of it',
   );
 });
 
-test('both role definitions are English, in every Workspace', () => {
-  // The two documents #1 names outright. They are Maintainer-facing — every
-  // Workspace links at these same bytes, so a sentence of one Learner's
-  // language here is every Learner's — and what makes an *answer* theirs is an
-  // instruction inside them rather than the language they are written in.
-  //
-  // The refusal token is the one thing in either that is neither: ASCII, read
-  // by the service, and the same in every language. It passes this scan for the
-  // same reason it was chosen.
-  const stray = {};
-  for (const role of ['ROLE.md', 'GRADER.md']) {
-    const found = foreignLines(read(path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor', role)));
-    if (found.length) stray[role] = found;
-  }
+test('a scaffolded Workspace is seeded in English, and carries no other course', (t) => {
+  // The same claim from the other end, because the two can disagree: the scan
+  // above reads what the plugin holds, and this reads what a Teacher is
+  // actually handed on day one — the copies and the links together, which is
+  // the only place the split stops being an arrangement and becomes a
+  // directory.
+  const ws = Workspace.create(t);
+  ws.scaffold();
 
-  assert.deepEqual(stray, {}, 'a role definition is shared by every Workspace, so this is every Learner\'s language');
+  // The tables are the one exemption, reached through whichever link the
+  // scaffold pointed at them — resolved rather than named, because naming the
+  // file here would be a second copy of the install list.
+  const entries = Object.keys(ws.snapshot())
+    .filter((rel) => !rel.endsWith('/'))
+    .filter((rel) => fs.realpathSync(ws.path(rel)) !== SOURCE);
+
+  assert.ok(entries.length >= 20, `expected a scaffolded Workspace to read, found ${entries.length}`);
+
+  // Which rule a file in a Workspace answers to is decided the same way, and
+  // by the same fact: a link is the plugin's and a real file is this
+  // Workspace's own, which is the split one directory along from `ruleFor`.
+  const copied = (rel) => (fs.lstatSync(ws.path(rel)).isSymbolicLink() ? notEnglish : notThisLanguage);
+
+  assert.deepEqual(
+    strayLanguage(entries, (rel) => ws.read(rel), copied),
+    {},
+    'a fresh Workspace should start generic, in English, about nobody in particular',
+  );
+});
+
+test('the authoring guide tells a Teacher to write the Learner\'s language', () => {
+  // The page skeleton is what every Lesson is copied from, so a real tag
+  // standing in it is that one language copied forward into every page a
+  // Teacher writes — which is how the pilot Workspace's got everywhere to
+  // begin with. The scan above is blind to this one: `lang="en"` is ASCII.
+  //
+  // Found by the attribute rather than by the document, because which document
+  // holds the skeleton is disclosure's to move.
+  const guide = read(path.join(REPO_ROOT, 'skills/explorable-teach/UNIT.md'));
+  const declared = [...guide.matchAll(/<html lang="([^"]*)"/g)].map((m) => m[1]);
+
+  assert.ok(declared.length >= 1, 'the authoring guide no longer shows a page skeleton');
+
+  // A BCP-47 tag, as a page carries one. Anything that is not one is a
+  // placeholder, and what to put there is the prose beside it.
+  const TAG = /^[a-z]{2,3}(?:-[A-Za-z0-9]+)*$/;
+  assert.deepEqual(
+    declared.filter((value) => TAG.test(value)),
+    [],
+    'the skeleton mandates a language, so every Lesson copied from it is written in that one',
+  );
 });
 
 test('the fixture Unit is built for a language rather than in one', () => {

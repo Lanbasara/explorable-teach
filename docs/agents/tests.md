@@ -30,7 +30,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
-| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, and both role definitions are English down to the token a Grader refuses with |
+| `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, the role definitions are English down to the token a Grader refuses with, and nothing the plugin ships — nor the Workspace one scaffold run produces — is written in one Learner's language |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
 | `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives, and the reader that finds the Grader's refusal token refuses to guess at it |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
@@ -366,18 +366,45 @@ selector, and a Component that replaced an authored sentence with one of its own
 because the replacement is text that was not there before.
 
 **The non-ASCII scan ships as well, and fails on a different thing**: one Learner's language
-creeping back into a file every Workspace links at. It allows the typographic punctuation this
-repo's English prose is written with — em dashes, ellipses, curly quotes — and nothing else
-beyond ASCII, so a letter, a digit or an emoji in shared source is a finding. Its observer is
-guarded from both sides: it has to recognise the three shapes this has actually taken (a label, a
-comment, a decorative glyph) and it has to let an ordinary English sentence through.
+creeping back into what every other Learner is handed. It reads **every file the plugin owns**,
+found by walking `skills/` and `scripts/` rather than listed — a document nobody remembered to add
+to a list is exactly the one that drifts back. Its observer is guarded twice: on a count, because
+a walk that quietly stopped descending would report nothing and pass; and against the scaffold's
+own install list, read out of the script, because reaching *some* of it is not the claim.
 
-It reads **every** script the plugin puts on a page, found by reading the directory rather than
-listed — a Component nobody remembered to add to a list is exactly the one that ships English at
-a Learner who reads none. `lesson-boot.js` is the single exception, and it is the file the tables
-live in: scanned whole, every line of `zh-CN` would be a finding, so its bootstrap half is read
-and its table half is not. A Component's own header comment shows the markup an author writes,
-which makes that comment Maintainer-facing and therefore English like every other one.
+**Two rules, and which one a file answers to is the split the Workspace is built on** — the same
+question one section up, read off the directory because that split *is* the directory.
+
+A file under `runtime/` is **linked**: the same bytes in every Workspace, so a label in one of
+them is every Learner's. That gets the strict rule — the typographic punctuation this repo's
+English prose is written with, and nothing else beyond ASCII, so a letter or a decorative glyph in
+shared source is a finding. A glyph there is half a label whose other half belongs in a table. Any
+document that is neither linked nor copied is read by a Maintainer alone and is strict too.
+
+A file under `templates/` is **copied**, and is one Workspace's own from the moment it is placed.
+It has no other Workspace to stay consistent with, so a glyph on its own cover — the `✅` a Dossier
+marks a finished Unit with — is that Workspace's business rather than a missing table entry. The
+only thing a seed may not arrive carrying is somebody *else's* language, and that is all the
+narrower rule asks. `CONTEXT.md` defines **Seed** as the term for this.
+
+`lesson-boot.js` is the single exception to being read at all, and it is the file the tables live
+in: scanned whole, every line of `zh-CN` would be a finding, so its bootstrap half is read and its
+table half is not. It is recognised by resolving the helper's own path rather than by a filename,
+so moving the tables moves the exemption with them.
+
+**The same claim is then made from the other end**, over a Workspace one scaffold run produced —
+the copies and the links together, which is the only place the split stops being an arrangement
+and becomes a directory a Teacher is handed. Which rule each file answers to is decided there by
+the same fact one directory along: a link is the plugin's, a real file is the Workspace's own. The
+two scans can disagree, which is why both ship.
+
+A Component's own header comment shows the markup an author writes, which makes that comment
+Maintainer-facing and therefore English like every other one.
+
+One thing no scan of the bytes can see sits beside them: the page skeleton in the authoring
+document, whose `lang` is ASCII whatever language it names. A real tag standing there is that
+language copied forward into every Lesson written from it — which is how the pilot Workspace's
+reached every page in the first place — so it is asserted to be a placeholder rather than a tag.
 
 **Four consistency contracts here, all derived rather than listed.** Decision 30 describes them
 as one set because they are one argument: a fact with one home, and every other place that needs

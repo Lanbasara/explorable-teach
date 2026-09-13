@@ -23,9 +23,9 @@ with it. The learner gets a real back-and-forth; the Tutor gets a clean context 
 Context is acquired **progressively**. The service inlines what is always needed (`NOTES.md`,
 `MISSION.md`, the selected passage, recent turns); the Tutor goes and reads the Lesson,
 `CURRICULUM.md`, or `learning-records/` when the question actually demands it. Resist the urge
-to tune this toward "read less for lower latency" — a question containing 这段 or "the part
-above" cannot be answered from the selection alone, and a wrong answer costs far more than two
-seconds.
+to tune this toward "read less for lower latency" — a question containing "this bit" or "the part
+above", in whatever language the learner asks it in, cannot be answered from the selection alone,
+and a wrong answer costs far more than two seconds.
 
 ## How an answer reaches the page
 
