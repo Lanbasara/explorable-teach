@@ -84,3 +84,9 @@
 }
 
 @media print { .tnav { display: none; } }
+
+/* The preference the Learner set wins over the feedback: the link still
+   highlights under the pointer, at once rather than over .15s. */
+@media (prefers-reduced-motion: reduce) {
+  .tnav a, .tnav .tnav-here, .tnav .tnav-off { transition: none; }
+}

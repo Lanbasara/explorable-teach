@@ -1563,6 +1563,77 @@ one-entry list stops seeing the next place the offer is written. It reads every 
 names a prediction in its own prose instead, and requires the judgement decision 37 wrote on each
 of them.
 
+## 40. Elements before a canvas, and motion in three kinds
+
+**Decided:** two authoring rules join the imagery policy of decision 36 — one deciding how a
+Lesson's visuals are built, one deciding how they are allowed to move.
+
+**Elements before a canvas, and stated as a rule rather than as a preference.** Where the same
+diagram could be built either from ordinary elements and styles or by drawing into a canvas,
+elements win. A diagram made of elements is labelled, focusable, reachable by keyboard and
+readable by assistive technology, and it is inspectable: the page pass from decision 35 reads real
+boxes, so it can name the label that escaped its box. A canvas is an opaque rectangle with a
+picture in it, and the only check it can ever support is `canvasHasContent` — whether anything was
+drawn at all. The rule therefore buys accessibility and checkability at once and costs nothing,
+which is exactly what makes it a rule: there is nothing on the other side to weigh, and a
+preference is what an author overrides with whichever form it already knows how to write.
+
+**A canvas or a renderer is for what elements genuinely cannot express**: continuous curves,
+particles in the thousands, real three-dimensional geometry, and data too large to give a node
+apiece. Those cases are named rather than gestured at, for the reason decision 36 names its borrow
+categories — "when elements cannot express it" is a judgement an author makes in the direction of
+whatever it already knows how to build.
+
+**The list of what markup and styles draw natively is what makes the rule actionable rather than
+aspirational.** An author told to prefer elements and shown none of them reaches for the canvas:
+gradients for dials, sweeps and spectra; grid for matrices, boards and layouts, where every cell
+is a real element; transforms for pseudo-three-dimensional views with no renderer; clipping for
+cutaways and reveals; the native disclosure elements for progressive reveal with no script at all;
+a range input bound to a custom property for a draggable value in about three lines; and the
+semantic elements for tables, progress and measured quantities.
+
+**Motion sorts into three kinds, because one rule laid over all of it gets the middle case
+wrong.** Motion that *is* the explanation is permitted — what moves is the causal structure being
+taught, and it is strongest where the subject is itself a procedure. Motion that is interface
+feedback is **explicitly permitted**, under three constraints: short, interruptible, and
+honouring the reduced-motion preference. Motion competing with the content for attention is
+removed, and that is Decoration's verdict from decision 39 rather than a taste argument — draft
+it, delete it, reread the passage.
+
+**The middle kind is called out by name because the evidence is about content.** The case against
+decoration is made about mascots, jokes, tangent anecdotes and ornamental art; none of it is about
+an interface affordance. A Teacher reading that material with the distinction left undrawn does
+not dare put a transition on a disclosure, which is the state this plugin was in — the reference
+argued hard against decoration and said nothing at all about a panel opening, so the safe reading
+was to animate nothing and leave the Learner to find what changed.
+
+**The reduced-motion preference is required rather than suggested**, which is a claim about the
+plugin's own files as much as about a Lesson. Every shipped stylesheet that moves something now
+carries a `@media (prefers-reduced-motion: reduce)` block — five gained one here, and
+`step-animation.css` already had it — because a Teacher models a new Component on a shipped one,
+so a stylesheet that animates unguarded teaches the opposite of the rule it sits beside. The
+explanatory kind gets a path rather than an exemption: under the preference it stops being
+automatic, the Learner steps it, and what would have tweened jumps instead.
+
+**Rejected:** a global `*` override in `style.css`, with `!important` on every duration. It is the
+usual shape and it is the wrong one here, because it cannot tell the three kinds apart — it would
+take the motion that *is* the explanation away along with the easing on a button, and that is the
+one case where removing the motion removes the teaching. The guard belongs where the motion is
+declared, which is also where an author can see it.
+
+**Rejected:** stating the elements rule as a preference with exceptions listed under it. A
+preference invites a weighing, and there is nothing on the other side of this one to weigh: the
+canvas version of the same diagram is worse on four counts and better on none.
+
+**Consequence:** `motion.test.js` holds the sort and the requirement, and it is the first document
+check here with a half that reads code — a shipped rule declaring a transition or an animation
+whose selector is not named inside a guard block fails it, held selector by selector rather than
+file by file, and the reader cuts the guards out before looking so that a file does not read as
+animating *because* it was already fixed. `imagery.test.js` gains the
+elements rule, since the section it belongs to is decision 36's. What neither can hold is whether
+a Lesson actually built its diagram out of elements, or whether a transition was short enough;
+that is what opening the page is for.
+
 ---
 
 ## Where the full record lives

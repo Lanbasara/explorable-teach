@@ -92,10 +92,14 @@ const RUNBOOK = [
  * one when the Teacher gained a pass to run over the page it had just written,
  * and three when it gained a policy for imagery: a borrowed image's
  * licence, and the two mitigations that keep a hand-drawn label inside its box.
- * The last three arrived when choosing a Component from a table became deriving
- * a description from the passage — the derivations, the cheapest version of one
+ * Three arrived when choosing a Component from a table became deriving a
+ * description from the passage — the derivations, the cheapest version of one
  * that still teaches, and the anti-patterns beside them; `deriving.test.js`
- * holds what that material has to say.
+ * holds what that material has to say. The last three when the reference gained
+ * a rule about what a diagram is built out of and what a page may move: the
+ * clipping property from the list of what markup draws natively, the media
+ * query a Lesson's motion sits behind, and the kind of motion that is permitted
+ * by name; `motion.test.js` holds those.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -119,6 +123,9 @@ const AUTHORING = [
   /\bderivations?\b/i,
   /cheapest/i,
   /anti-pattern/i,
+  /clip-path/,
+  /prefers-reduced-motion/,
+  /interface feedback/i,
 ];
 
 /**

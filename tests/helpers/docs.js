@@ -33,11 +33,12 @@
  * which is the only place they can mean anything.
  */
 
+const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const { REPO_ROOT } = require('./workspace.js');
-const { logicalLines } = require('./markdown.js');
+const { logicalLines, sections } = require('./markdown.js');
 
 /** Directories this repo owns, so a path starting with one is ours to check. */
 const OWNED_ROOTS = ['scripts', 'templates', 'commands', 'docs', 'skills', 'tests'];
@@ -162,6 +163,34 @@ const carriedTogether = (text, list) =>
   text.split('\n').some((line) => list.every((e) => e.re.test(line)));
 
 /**
+ * The one section of `markdown` at heading `level` whose title matches `re`,
+ * bounded at the next heading of **any** level — `what` naming it, so a failure
+ * says which section went missing rather than that a count was wrong.
+ *
+ * Both halves of that are learned rather than chosen. *Exactly one*, because a
+ * `find` quietly redirects a check at whichever section matched first on the day
+ * a second one's title also mentions the subject. And the bound, because
+ * `sections` asked for level three runs a body to the next level-*three*
+ * heading, so the last subsection of a section bleeds into whatever follows the
+ * section itself — a check then reads material it makes no claim about and can
+ * match a pattern in by accident. `from-disk.test.js` found that the hard way,
+ * by measuring that a paragraph moved out of the section entirely still
+ * satisfied the check that was supposed to hold its placement.
+ *
+ * It lives here for the reason `foldedDoc` does: four suites now find a section
+ * this way, and a reading rule kept in four copies is one that can disagree
+ * with itself — which two of those copies already did, over whether to search a
+ * whole document or only the section that owns the subject. Passing the text in
+ * makes that a decision at the call site rather than a difference nobody meant.
+ */
+function oneSection(markdown, level, re, what) {
+  const found = sections(markdown, level).filter((s) => re.test(s.title));
+
+  assert.equal(found.length, 1, `expected exactly one ${what} section, found ${found.length}`);
+  return found[0].body.split(new RegExp(`^#{1,${level - 1}} `, 'm'))[0];
+}
+
+/**
  * Every relative pointer in one document, as
  * `{ doc, line, raw, target, root, fragment }` — `root` being the single
  * directory the target must resolve against, and `fragment` the heading it
@@ -219,6 +248,7 @@ module.exports = {
   foldedDoc,
   absentFrom,
   carriedTogether,
+  oneSection,
   DOC_ROOTS,
   SKILL_DIR,
 };

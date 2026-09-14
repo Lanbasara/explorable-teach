@@ -83,3 +83,9 @@
 }
 .drag-order.is-correct .drag-order-verdict { color: var(--accent-good); }
 .drag-order.is-wrong .drag-order-verdict { color: var(--accent-bad); }
+
+/* The preference the Learner set wins over the feedback: the item still
+   changes colour and still moves in the list, it just stops sliding there. */
+@media (prefers-reduced-motion: reduce) {
+  .drag-order-item { transition: none; }
+}

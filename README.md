@@ -102,6 +102,20 @@ simultaneous rather than remembered, and a stepper over a precomputed run preser
 simulation teaches at a fraction of its cost. Beside them is a list of the forms that look
 impressive and teach nothing, each with the reason it fails.
 
+A lesson's pictures are drawn rather than found, and they are drawn out of ordinary elements and
+styles before anything is drawn into a canvas — an element-built diagram is labelled, focusable,
+reachable by keyboard and readable by a screen reader, and it is the one a check can look inside,
+while a canvas supports exactly one question: was anything drawn at all. Continuous curves,
+particles, real three-dimensional geometry and data too large for a node apiece are what a canvas
+is still for.
+
+Motion is sorted rather than banned. Motion that *is* the explanation is allowed, and so is
+interface feedback — a panel opening, a value changing, focus moving — as long as it is short,
+interruptible, and behind the reduced-motion preference, which is required and not a nicety. What
+goes is motion competing with the prose for attention. The middle kind is spelled out because the
+case against decoration is a case about *content*, and a lesson whose author does not dare animate
+a disclosure is harder to follow, not purer.
+
 The stack is picked per subject, on the first run. A philosophy course and an algorithms course
 should not end up with the same tooling.
 

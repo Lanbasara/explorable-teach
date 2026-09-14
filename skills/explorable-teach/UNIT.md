@@ -204,10 +204,10 @@ where the appetite runs. So a Lesson that explains a structure and shows none ha
 cheapest thing it could have had on the table. Reach for a picture early, and before reaching for
 an interaction.
 
-**Default to drawing.** Write the diagram yourself — inline `<svg>` in the page, or a canvas a
-Component draws into. The test for when to **borrow** one instead is a single question: *would a
-drawing of this be a claim about how reality looks?* If yes, borrow, because a drawing there is a
-fabrication. If no, draw.
+**Default to drawing.** Write the diagram yourself — elements and styles, an inline `<svg>`, or a
+canvas a Component draws into when neither of those can. The test for when to **borrow** one
+instead is a single question: *would a drawing of this be a claim about how reality looks?* If
+yes, borrow, because a drawing there is a fabrication. If no, draw.
 
 So borrow for: photographs of real apparatus and instruments; historical documents and artefacts;
 microscopy and medical imaging; astronomical and remote-sensing imagery; organisms and mineral
@@ -223,6 +223,49 @@ its box is visible in a screenshot. A borrowed image poses the opposite question
 depict what the sentence beside it claims?* — and that is the question a look at the page answers
 badly, since an image looks like something whether or not it is the thing. Drawing trades an
 unverifiable risk for a verifiable one, and that trade is the whole of the argument.
+
+### Build it from elements before you reach for a canvas
+
+Where the same diagram could be built either from ordinary elements and styles or by drawing into
+a canvas, **elements win — and that is a rule rather than a preference**, because of what the two
+are worth once they exist. A diagram made of elements is **labelled**, **focusable**, reachable by
+**keyboard** and readable by **assistive technology**, and it is **inspectable**: the [page
+pass](#look-at-the-page-before-handing-it-over) reads real boxes, so it can tell you which label
+escaped which box. A canvas is an opaque rectangle with a picture inside it, and the only check it
+can ever support is `canvasHasContent` — whether anything was drawn at all. So the rule buys
+accessibility and checkability at once, for no cost: it is the same picture, written in markup.
+
+**Reach for a canvas, or for a renderer, when elements genuinely cannot express the thing.**
+Continuous curves — a field, a flow, an isoline; particles in the thousands; real
+three-dimensional geometry that has to be projected rather than faked; and data too large to give
+a node apiece. Those are the cases, and they are not the common one. A Component that draws into a
+canvas still owes its [stand-in sentence](#building-a-component-for-this-subject) — which is the
+accessibility the markup would have given you, written out by hand.
+
+What markup and styles draw natively, so the rule is actionable rather than aspirational:
+
+- **Gradients** — `conic-gradient()` for a dial, a sweep or a share of a whole;
+  `linear-gradient()` for a spectrum, a scale or a legend; `radial-gradient()` for a falloff. The
+  colour stops are the data.
+- **Grid** — `display: grid` for a matrix, a board, a lattice, a timetable, a layout of cells,
+  where every cell is a real element you can label, colour, focus and write a value into.
+- **Transforms** — `perspective` with `rotate3d()` and `translateZ()` for a
+  pseudo-three-dimensional view: an exploded stack, a layered model, a card that turns over. No
+  renderer, and no library.
+- **Clipping** — `clip-path` for a cutaway, a cross-section or a reveal, over a picture that is
+  all there underneath and merely not all shown.
+- **Native disclosure** — `<details>` and `<summary>` for progressive reveal with no script at
+  all, which is the one form still standing when nothing else on the page is.
+- **A range bound to a custom property** — an `<input type="range">` whose handler sets one custom
+  property the styles read, `--t` say, which is a draggable value for three lines of script and no
+  Component at all.
+- **The semantic elements** — `<table>` for tabular data, `<progress>` for a task underway,
+  `<meter>` for a measured quantity in a known range. Each of those is the picture and its
+  accessible description in one element.
+
+An inline `<svg>` counts as elements and is the usual answer where a diagram has real geometry in
+it: its shapes are nodes, they take `<title>` and `<desc>`, and everything above reaches them —
+which is why the default names it beside markup rather than beside the canvas.
 
 ### No image ships in a Lesson that has not been rendered and looked at
 
@@ -308,6 +351,58 @@ Then look at it. Three of the page pass's checks are about exactly this class of
 sits off the page, no label is covered or overlapping, the text can be read against what is behind
 it — and each of those three carries a documented misread, so read them off the file before
 trusting a verdict.
+
+## Motion, in three kinds
+
+Motion is not one thing, and one rule laid over all of it gets the middle case wrong in whichever
+direction it was written. Sort what you are about to animate into one of these three before you
+write it, because the verdicts differ.
+
+**Motion that is the explanation.** *Permitted*, and sometimes the only honest form: what moves
+**is** the causal structure being taught — the pointer walking the list, the wavefront arriving,
+the queue draining while the server stays busy. It is strongest where the subject is itself a
+procedure, because then what has to be learned is an ordering in time, and a static picture has to
+encode that as arrows the Learner decodes back. It is an interaction like any other, so it comes
+out of [the derivations](#the-derivations) and passes the two gates before anything is built.
+
+**Motion that is interface feedback.** A panel opening, a value changing under a slider, an
+element moving to where it now belongs, focus shifting to the thing that just appeared.
+**Explicitly permitted** — and it is called out by name because the evidence against **decoration**
+is about *content*: mascots, jokes, tangent anecdotes, ornamental art beside the prose. None of
+that evidence is about an interface affordance, and a Teacher reading the coherence material with
+the distinction left undrawn does not dare put a transition on a disclosure. A change that happens
+instantly is one the Learner has to notice and then go and find; a change they watched happen is
+one whose new position they already know.
+
+Three constraints, all of them cheap: **short** — the shipped Components sit between 140 and 260
+ms, and nothing is ever long enough to be watched for its own sake; **interruptible** — a second
+click during the transition is obeyed rather than queued, and nothing waits for an animation to
+end before it will accept input; and **it honours the reduced-motion preference**, which is the
+rule below rather than a footnote to this one.
+
+**Motion competing with the content for attention.** *Removed.* A looping background, an element
+that keeps drifting while the prose is being read, a transition slow enough to be watched. This is
+[Decoration](#the-two-gates--most-passages-stop-here) wearing motion, so it takes Decoration's
+verdict rather than a taste argument: draft it, delete it, reread the passage, and if the argument
+still stands then what was deleted was spending the attention the explanation needed.
+
+**The reduced-motion preference is required, not suggested.** A Learner who has asked their system
+for less motion has a reason you do not get to see — vestibular disorder, migraine, nausea — so
+every transition and every animation a Lesson writes sits behind a
+`@media (prefers-reduced-motion: reduce)` block that takes it back off:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .orbit { transition: none; animation: none; }
+}
+```
+
+Interface feedback simply goes, and the state change it was reporting still happens, at once.
+Motion that *is* the explanation is the one case where removing the motion removes the teaching,
+so its reduced-motion path is not removal: it stops being automatic, the Learner **steps** it, and
+what would have tweened jumps instead. `assets/style.css` and every shipped Component that moves
+already carry the block, so what a page inherits is guarded before you touch it; what you write on
+top of them carries its own.
 
 ## Deriving the interaction from the material
 
@@ -560,7 +655,7 @@ carries the library's is an implementation detail in every page that used it.
 ### What every Component has to hold
 
 Three of those steps are rules rather than advice — reuse before building, declare what it needs,
-degrade to something the learner can still read. Four more apply to anything that ends up in `assets/`:
+degrade to something the learner can still read. Five more apply to anything that ends up in `assets/`:
 
 1. **Every interaction has a keyboard and a touch path.** Drag-only is unusable on a phone and
    invisible to a keyboard; the shipped drag Component pairs dragging with move buttons.
@@ -570,6 +665,9 @@ degrade to something the learner can still read. Four more apply to anything tha
    type rather than any technology: [what breaks when a page is opened from
    disk](#what-breaks-when-a-page-is-opened-from-disk).
 4. **Read the tokens, define none** — colours, spacing and fonts come from `assets/style.css`.
+5. **Anything that moves is guarded** — a transition or an animation a Component declares sits
+   behind `@media (prefers-reduced-motion: reduce)`, and what it is allowed to move in the first
+   place is [motion, in three kinds](#motion-in-three-kinds).
 
 One rule belongs to the Lesson rather than to the Component: a `hidden` attribute written into
 the markup by hand hides content from the learner whose scripts never ran, so **never author a

@@ -170,6 +170,32 @@ because the failure past it is geometric rather than semantic: the Teacher knows
 must say, and cannot know how wide a label renders, so it cannot know the label escaped its box.
 _Avoid_: diagram limit, size cap
 
+**Element-built diagram**:
+A diagram made of ordinary elements and styles — including an inline `<svg>` — rather than drawn
+into a canvas. It is the required form wherever both are possible, because it is labelled,
+focusable, reachable by keyboard, readable by assistive technology and inspectable by the **Page
+pass**, and a canvas is none of those: the only check a canvas can ever support is whether
+anything was drawn at all. A rule rather than a preference, since there is nothing on the other
+side of it to weigh — a canvas is reached for when elements genuinely cannot express the thing.
+_Avoid_: DOM diagram, SVG diagram, HTML chart
+
+**Explanatory motion**:
+Motion that *is* the causal structure being taught — the pointer walking the list, the wavefront
+arriving. The first of three kinds of motion, permitted, and strongest where the subject is itself
+a procedure, since what has to be learned is then an ordering in time. It is the one kind the
+reduced-motion preference cannot simply remove, because removing it removes the teaching: it stops
+being automatic instead, and the Learner steps it.
+_Avoid_: animation, demo, playback
+
+**Interface feedback**:
+Motion that reports a change in the page rather than teaching anything — a panel opening, a value
+changing under a slider, focus shifting to what just appeared. The middle of three kinds of
+motion, and explicitly permitted: short, interruptible, and behind the reduced-motion preference.
+It is named because the evidence against **Decoration** is about *content* — mascots, jokes,
+ornament — and a rule that leaves the distinction undrawn leaves a Teacher not daring to animate
+anything at all.
+_Avoid_: polish, micro-interaction, eye candy
+
 **Page pass**:
 The short set of checks the Teacher runs in a browser over a Lesson it has just written, before
 handing it over. It catches a Lesson that is *broken* — blank, erroring, missing a dependency —

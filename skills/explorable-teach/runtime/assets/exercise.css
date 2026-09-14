@@ -83,3 +83,9 @@
   color: var(--fg-dim);
   font-size: 15px;
 }
+
+/* The preference the Learner set wins over the feedback: the option still
+   turns right or wrong the instant they answer, without easing into it. */
+@media (prefers-reduced-motion: reduce) {
+  .exercise-option { transition: none; }
+}

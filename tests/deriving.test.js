@@ -22,8 +22,8 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const { foldedDoc, absentFrom, carriedTogether, SKILL_DIR } = require('./helpers/docs.js');
-const { sections, headings } = require('./helpers/markdown.js');
+const { foldedDoc, absentFrom, carriedTogether, oneSection, SKILL_DIR } = require('./helpers/docs.js');
+const { headings } = require('./helpers/markdown.js');
 
 /**
  * The authoring reference with its hard wrapping folded back out, so one
@@ -79,20 +79,12 @@ const AS_WRITTEN = [
  * because every check below reads a part rather than the whole.
  */
 function deriving() {
-  const found = sections(UNIT, 2).filter((s) => /^deriving\b/i.test(s.title));
+  const whole = oneSection(UNIT, 2, /^deriving\b/i, 'deriving an interaction from the material');
 
-  assert.equal(
-    found.length,
-    1,
-    'the authoring reference should derive an interaction from the material, in exactly one section',
-  );
-
-  const whole = found[0].body;
-  const part = (re, what) => {
-    const matching = sections(whole, 3).filter((s) => re.test(s.title));
-    assert.equal(matching.length, 1, `the section should carry exactly one ${what} part`);
-    return matching[0].body.split(/^#{1,2} /m)[0];
-  };
+  // Read within the section rather than across the document: unlike the imagery
+  // subsections, these titles are general enough that another section's could
+  // match one.
+  const part = (re, what) => oneSection(whole, 3, re, `${what} part of the derivation section`);
 
   return {
     whole,

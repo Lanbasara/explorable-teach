@@ -291,3 +291,11 @@ img, svg, canvas { max-width: 100%; height: auto; }
      learner with scripting off already sees. */
   .is-live [hidden] { display: revert !important; }
 }
+
+/* Interface feedback is permitted and this is the shared piece of it, so the
+   preference the Learner set is honoured here rather than in each Component
+   that uses the button: the state still changes, it stops easing. A Lesson's
+   own transitions are not covered by this — it carries its own block. */
+@media (prefers-reduced-motion: reduce) {
+  .t-btn { transition: none; }
+}

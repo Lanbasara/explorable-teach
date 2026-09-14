@@ -4,6 +4,54 @@
 
 ### Changed
 
+- **A diagram is built from elements before anything is drawn into a canvas.** Where the same
+  picture could be made either way, elements win, and that is a rule rather than a preference:
+  a diagram made of elements is labelled, focusable, reachable by keyboard, readable by assistive
+  technology and **inspectable**, so the page pass can name the label that escaped its box — while
+  a canvas is an opaque rectangle whose only supportable check is whether anything was drawn at
+  all. There is nothing on the other side of that to weigh, which is why it is not offered as a
+  taste. A canvas or a renderer is reached for where elements genuinely cannot express the thing:
+  continuous curves, particles in the thousands, real three-dimensional geometry, data too large
+  to give a node apiece. And the reference now lists what markup and styles draw **natively**, so
+  the rule is actionable rather than aspirational — gradients for dials, sweeps and spectra; grid
+  for matrices, boards and layouts, where every cell is a real element; transforms for
+  pseudo-three-dimensional views with no renderer; clipping for cutaways and reveals; the native
+  disclosure elements for progressive reveal with no script at all; a range input bound to a
+  custom property for a draggable value in about three lines; and the semantic elements for
+  tables, progress and measured quantities.
+- **Motion is sorted into three kinds instead of being covered by one rule.** Motion that *is* the
+  explanation is **permitted** — what moves is the causal structure being taught, strongest where
+  the subject is itself a procedure. Motion that is **interface feedback** — a panel opening, a
+  value changing under a slider, focus shifting to what just appeared — is **explicitly
+  permitted**, short, interruptible and behind the reduced-motion preference. Motion competing
+  with the content for attention is **removed**, which is Decoration's verdict rather than a taste
+  argument: draft it, delete it, reread the passage. The middle kind is named because the evidence
+  against decoration is about *content* — mascots, jokes, tangent anecdotes, ornamental art — and
+  a Teacher reading that with the distinction left undrawn does not dare put a transition on a
+  disclosure, which is the state this plugin was in.
+- **The reduced-motion preference is required, not suggested — including of the plugin's own
+  files.** Every transition and every animation a Lesson writes sits behind
+  `@media (prefers-reduced-motion: reduce)`, and the explanatory kind gets a path rather than an
+  exemption: it stops being automatic, the Learner steps it, and what would have tweened jumps.
+  Five shipped stylesheets gained a guard — `style.css`, `exercise.css`, `drag-order.css`,
+  `nav.css` and `tutor.css`, the last of which also stops the caret blinking — beside
+  `step-animation.css`, which already had one. That half is checked against the code rather than
+  against a document, because a Teacher models a new Component on a shipped one, so a stylesheet
+  that animates unguarded teaches the opposite of the rule beside it.
+- **`motion.test.js` holds the sort, and `imagery.test.js` gains the elements rule.** Each kind of
+  motion has to arrive on one logical line with its verdict, the four constraints on interface
+  feedback in one breath with the permission, and the preference three ways: the media query as
+  the thing an author types, a requirement word beside it, and no hedge on any line that names it
+  — `suggest` deliberately excluded, since the rule states itself as *required, not suggested*.
+  The stylesheet half is held selector by selector rather than file by file — a file-wide read
+  passes a seventh animating rule on the strength of the block guarding the other six — and it
+  cuts every guard out before it looks, because guards are written as `transition: none` and a
+  naive reader would report a file as animating *because* it had already been fixed. Finding the
+  one section that owns a subject moves into `helpers/docs.js` beside the folding reader, this
+  being the fourth suite to do it and two of the four having already disagreed about whether to
+  search a whole document or only the section. The authoring vocabulary guard gains `clip-path`,
+  `prefers-reduced-motion` and *interface feedback*; the glossary gains **Explanatory motion**,
+  the **Element-built diagram** and **Interface feedback**; the reasoning is decision 40.
 - **What a passage needs is derived from the passage, instead of selected from a table.** Both
   tables leave the authoring reference — the eleven teaching acts each routed to what to reach
   for, and the shipped Components with their file paths. Indexing by teaching act rather than by

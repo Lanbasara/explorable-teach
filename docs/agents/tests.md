@@ -21,7 +21,8 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — including a Lesson's own local assets, with both ways round it — and no longer ban a technology, nor sell serving on a restriction it does not lift |
-| `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
+| `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that a diagram is built from elements before anything is drawn into a canvas, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
+| `tests/motion.test.js` | Motion is sorted into three kinds, each with its verdict; interface feedback is permitted by name and carries its constraints; the reduced-motion preference is required rather than suggested — in the reference, and in every stylesheet the plugin ships |
 | `tests/deriving.test.js` | The authoring reference derives an interaction from the passage instead of selecting one off a list — gates first, derivations that each carry their trigger question and their cheapest honest version, a match against the Workspace's own assets with three named outcomes, and the anti-patterns beside them |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
@@ -850,6 +851,16 @@ the mechanism has to arrive whole: *geometric rather than semantic*, with the wi
 the same breath. All six mitigations are required, each of which removes one way for a label to be
 wider than the author guessed.
 
+**Elements before a canvas, read as a rule rather than as a preference.** The subsection has to
+say which of the two words it is, name all five things a diagram of elements is worth — labelled,
+focusable, reachable by keyboard, readable by assistive technology, inspectable — and put what a
+canvas costs in one sentence with the canvas: the *only* check it can ever support is whether
+anything was drawn at all. Then the escape hatch, by its four cases rather than by the phrase
+*when elements cannot express it*, which is a judgement an author makes in the direction of
+whatever it already knows how to build. And the list of what markup and styles draw natively,
+entry by entry, because that list is the whole difference between a rule and an aspiration: an
+author told to prefer elements and shown none of them reaches for the canvas.
+
 **The formats are read off the service, not restated.** `server.js` owns the MIME table, so the
 check parses the image types out of it and requires the document to offer each one and to offer
 nothing else. This is the rule about never restating what another file owns, applied to a document:
@@ -867,6 +878,10 @@ every document here — the record is hard-wrapped, so `rendered and looked\nat`
 broken across two lines and nothing that reads raw lines can see it. Both document suites now read
 through one folding reader, in `helpers/docs.js`: two copies of a reading rule is how a reader ends
 up disagreeing with itself, which is the defect the Markdown module's own head comment records.
+Finding the one section that owns a subject moved there for the same reason when the motion check
+became the fourth suite to do it — and two of the four copies had already disagreed, over whether
+to search a whole document or only the section that owns the subject. Passing the text in makes
+that a decision at the call site rather than a difference nobody meant.
 
 ## The derivation check
 
@@ -930,6 +945,60 @@ Every check here reads `UNIT.md` with its hard wrapping folded back out, through
 Markdown reader, because every claim it makes is about a sentence rather than a line. The section
 is found by its heading and each part of it is bounded at the next heading of *any* level — the
 bound the from-disk check arrived at the hard way, applied here in advance.
+
+## The motion check
+
+`motion.test.js` is the only suite here with one foot in each kind of subject: most of it asks
+whether a document still says something, the way the imagery and derivation checks do, and one
+check reads code. Decision 40 has the reasoning.
+
+The complaint it answers is a rule that was true and incomplete. The material arguing against
+decoration is about **content** — mascots, jokes, tangent anecdotes, ornamental art — and a
+Teacher reading it with no distinction drawn does not dare put a transition on a disclosure. So
+the fix is a sort rather than a permission, and what is checked is that the sort survives.
+
+**Three kinds, each on one logical line with its verdict.** Motion that *is* the explanation,
+motion that is interface feedback, and motion competing with the content, carrying *permitted*,
+*permitted* and *removed* respectively. One-line-carries-both is the shape for the reason each
+imagery ban sits on a line with its reason: a verdict that has drifted off its kind is a verdict
+nobody reads while deciding, and a kind named without one is a taxonomy.
+
+**The middle kind's reason for existing is checked, not just its permission.** One sentence has to
+carry the case against decoration, the word *content*, and the interface affordance it is not
+about — and the four things the evidence is really about have to be named, because "decoration"
+is a word every author believes it is already avoiding.
+
+**Its constraints arrive in the same breath that permits it**, all four together: *short*, a
+number in milliseconds, *interruptible*, and the reduced-motion preference. Permission in one
+paragraph and constraints in another is permission with a footnote. The number is required because
+*short* with nothing on it is a word an author reads as agreeing with whatever it wrote.
+
+**The preference is required rather than suggested, and that is checked three ways.** The media
+query has to appear as the thing an author types rather than as a paraphrase of it; a requirement
+word has to sit on the same line as the preference; and no line that names the preference may also
+carry a hedge — *consider*, *where possible*, *if you can*, *optional*. `suggest` is deliberately
+not one of those, since the rule states itself as *required, not suggested* and a guard that could
+not tell those apart would forbid the document from saying what it is. The explanatory kind's
+path — it stops being automatic and the Learner steps it — is required too, because a rule with no
+answer for the one case where removing the motion removes the teaching is a rule broken silently.
+
+**And the requirement is held against the plugin's own stylesheets, selector by selector.** Every
+rule under `runtime/assets/` that declares a transition or an animation **of its own** has to have
+its selector named inside a `prefers-reduced-motion` block in the same file. Per selector rather
+than per file, because a file-wide "does the words appear" test passes a seventh animating rule on
+the strength of the block guarding the other six. *Of its own* is the other half: the reader cuts
+every guard out before it looks, since guards are written as `transition: none` and a reader
+counting declarations naively would report a file as animating **because** it had already been
+fixed. Both halves were got wrong first, and the second wrongly enough to be worth recording — the
+optional whitespace after the colon has to sit *inside* the lookahead, because written outside it
+backtracks to nothing and the lookahead reads the space rather than the word, so every guard in
+the repo reads as a rule that moves. Five files gained a block when this arrived. The reason to
+check the code at all is that a Teacher models a new Component on a shipped one, so a stylesheet
+that animates unguarded teaches the opposite of the rule sitting beside it.
+
+Selectors are compared **as text**, which is deliberately strict: a guard written more loosely
+than the rule it means to cover is not counted as covering it. The alternative is a check that
+decides CSS specificity for itself, and a wrong answer there signs off a page that still moves.
 
 ## The spine check
 
@@ -1153,6 +1222,12 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   `.jxl` would pass it. The other direction has no floor: the formats the service *does* serve are
   read off `server.js`, so one added there and not offered in the document fails on the day it is
   added.
+- **Neither taste constraint on motion can be measured here.** *Short* is checked as "a number in
+  milliseconds appears beside the word", and *interruptible* as the word itself — nothing here
+  runs a transition, clicks through one, or reads a duration out of a Lesson's stylesheet. What is
+  real is the third constraint: the preference is held against every stylesheet the plugin ships.
+  A Lesson's own CSS is written in a Workspace that does not exist when this suite runs, so the
+  rule reaches it as a rule and not as a check.
 - **Whether an image was drawn, borrowed, or looked at is not knowable here.** `imagery.test.js`
   checks that the rule is stated and argued; it cannot check a Learner's Lesson, which is where
   the rule either was or was not followed. Nothing here can tell a drawing from a borrowed

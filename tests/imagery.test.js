@@ -24,8 +24,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
-const { foldedDoc, absentFrom, carriedTogether, SKILL_DIR } = require('./helpers/docs.js');
-const { sections } = require('./helpers/markdown.js');
+const { foldedDoc, absentFrom, carriedTogether, oneSection, SKILL_DIR } = require('./helpers/docs.js');
 const { mediaTypes } = require('./helpers/tutor.js');
 
 // Every document here is read with its hard wrapping folded back out, through
@@ -39,32 +38,13 @@ const UNIT = foldedDoc(SKILL_DIR, 'UNIT.md');
  * subsection — where the rule and its reason are stated.
  */
 function imagery() {
-  const found = sections(UNIT, 2).filter((s) => /draw the diagram/i.test(s.title));
+  const whole = oneSection(UNIT, 2, /draw the diagram/i, 'when to draw and when to borrow');
 
-  assert.equal(
-    found.length,
-    1,
-    'the authoring reference should say when to draw and when to borrow, in exactly one section',
-  );
-
-  return { whole: found[0].body, rule: found[0].body.split(/^###\s+/m)[0] };
+  return { whole, rule: whole.split(/^###\s+/m)[0] };
 }
 
-/**
- * One subsection of it, bounded at the next heading of *any* level.
- *
- * `sections` runs a body to the next heading at the level it was asked for, so
- * the last subsection of a section bleeds into whatever follows the section
- * itself — here, the opening of the section that derives an interaction from the
- * material, which is material these checks make no claim about and could match a
- * pattern in by accident.
- */
-function part(re, what) {
-  const found = sections(UNIT, 3).filter((s) => re.test(s.title));
-
-  assert.equal(found.length, 1, `the imagery section should carry exactly one ${what} subsection`);
-  return found[0].body.split(/^#{1,2} /m)[0];
-}
+/** One subsection of it, found in the document the section sits in. */
+const part = (re, what) => oneSection(UNIT, 3, re, `imagery ${what}`);
 
 /**
  * The borrow test's categories: the cases where a drawing would be a claim
@@ -96,6 +76,47 @@ const REASON = [
   // list of roots to try" mistake made about a pattern: the guard is supposed
   // to track the document, and fail on the day the document stops saying it.
   { what: 'and a look at the page answers that one badly', re: /badly/i },
+];
+
+/**
+ * What a diagram built from elements is worth, and a canvas is not. All four
+ * are properties of the thing *after* it is written, which is what makes this a
+ * rule rather than a preference: the same picture, built the other way, loses
+ * every one of them and nothing is gained back.
+ */
+const WORTH = [
+  { what: 'labelled', re: /labelled/i },
+  { what: 'focusable', re: /focus/i },
+  { what: 'reachable by keyboard', re: /keyboard/i },
+  { what: 'readable by assistive technology', re: /assistive/i },
+  { what: 'inspectable by the page pass', re: /inspectab/i },
+];
+
+/**
+ * The cases a canvas or a renderer is genuinely for. Named, because "when
+ * elements cannot express it" is a judgement an author makes in the direction
+ * of whatever it already knows how to build.
+ */
+const WARRANTS_A_CANVAS = [
+  { what: 'continuous curves', re: /continuous curve/i },
+  { what: 'particles', re: /particle/i },
+  { what: 'real three-dimensional geometry', re: /three-dimensional geometry/i },
+  { what: 'large data', re: /too large|large data/i },
+];
+
+/**
+ * What markup and styles draw natively. This list is the difference between a
+ * rule and an aspiration: an author told to prefer elements and given no idea
+ * what elements can draw reaches for the canvas it already knows.
+ */
+const NATIVELY = [
+  { what: 'gradients, for dials, sweeps and spectra', re: /conic-gradient|linear-gradient/ },
+  { what: 'grid, for matrices, layouts and boards', re: /display: grid/ },
+  { what: 'transforms, for pseudo-three-dimensional views', re: /perspective|rotate3d/ },
+  { what: 'clipping, for cutaways and reveals', re: /clip-path/ },
+  { what: 'native disclosure, for progressive reveal with no script', re: /<details>|<summary>/ },
+  { what: 'a range bound to a custom property', re: /type="range"/ },
+  { what: 'the semantic elements for tables, progress and measured quantities', re: /<meter>|<progress>/ },
 ];
 
 /** The four bans, each beside the reason that makes it more than a preference. */
@@ -168,6 +189,48 @@ test('and states why the default is what it is, rather than only that it is', ()
   assert.ok(
     carriedTogether(rule, [{ re: /unverifiab\w+/i }, { re: /(?<!un)verifiab\w+/i }]),
     'the two risks have to meet in one sentence; that trade is the whole reason for the default',
+  );
+});
+
+test('a diagram is built from elements before anything is drawn into a canvas', () => {
+  const elements = part(/canvas/i, 'elements-before-a-canvas');
+
+  // A rule rather than a preference, and said so. "Prefer elements" is advice,
+  // and advice loses to whichever form the author already knows how to write.
+  assert.ok(
+    carriedTogether(elements, [{ re: /\brule\b/i }, { re: /preference|taste/i }]),
+    'stated as a preference this loses every time to the form the author already knows',
+  );
+
+  assert.deepEqual(
+    absentFrom(WORTH, elements),
+    [],
+    'these are what the rule buys, and a rule whose payment is unstated is one nobody weighs',
+  );
+
+  // What a canvas costs, in the one currency this document keeps accounts in:
+  // the page pass supports exactly one check over it — whether anything was
+  // drawn at all — and that has to arrive beside the canvas rather than
+  // somewhere in the section.
+  assert.ok(
+    carriedTogether(elements, [{ re: /canvas/i }, { re: /\bonly\b/i }, { re: /drawn at all|anything was drawn/i }]),
+    'the cost of a canvas is that one check is all it can ever support; that is the sentence',
+  );
+
+  assert.deepEqual(
+    absentFrom(WARRANTS_A_CANVAS, elements),
+    [],
+    'a rule with no escape hatch named is one an author takes without saying so',
+  );
+});
+
+test('and the list of what markup and styles draw natively is concrete enough to act on', () => {
+  const elements = part(/canvas/i, 'elements-before-a-canvas');
+
+  assert.deepEqual(
+    absentFrom(NATIVELY, elements),
+    [],
+    'told to prefer elements and shown none, an author reaches for the canvas it already knows',
   );
 });
 
@@ -343,13 +406,7 @@ test('the reasoning behind the rule is in the decisions record', () => {
   // and an argument that leaves without being recorded is one a later
   // maintainer re-derives or reverses without knowing it.
   const decisions = foldedDoc(REPO_ROOT, 'docs', 'DECISIONS.md');
-  const found = sections(decisions).filter((s) => /draw the diagram|imagery/i.test(s.title));
-
-  // Exactly one, the way the section lookups above are exactly one. A `find`
-  // here would quietly redirect the check at whichever entry matched first on
-  // the day a later decision's title also mentions drawing.
-  assert.equal(found.length, 1, 'the decisions record should carry the imagery decision, once');
-  const record = found[0];
+  const record = oneSection(decisions, 2, /draw the diagram|imagery/i, 'decisions-record entry for imagery');
 
   const REASONS = [
     { what: 'that drawing is the default', re: /default/i },
@@ -361,7 +418,7 @@ test('the reasoning behind the rule is in the decisions record', () => {
   ];
 
   assert.deepEqual(
-    absentFrom(REASONS, record.body),
+    absentFrom(REASONS, record),
     [],
     'the record keeps the decision but has dropped what argued for it',
   );

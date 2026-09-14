@@ -561,3 +561,17 @@
   .tutor-drawer { width: 100vw; }
   .tutor-fab { right: 14px; bottom: 14px; padding: 9px 14px; font-size: 13px; }
 }
+
+/* The drawer is interface feedback from end to end — it slides, fades and
+   grows to report a change the Learner asked for. Under the preference every
+   one of those changes still happens, at once, and the caret that marks an
+   answer still arriving stops blinking and simply stays. */
+@media (prefers-reduced-motion: reduce) {
+  .tutor-chip,
+  .tutor-fab,
+  .tutor-backdrop,
+  .tutor-drawer,
+  .tutor-histpanel,
+  .tutor-suggest { transition: none; }
+  .tutor-caret { animation: none; }
+}
