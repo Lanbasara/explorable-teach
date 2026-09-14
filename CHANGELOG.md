@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 ### Added
 
@@ -9,6 +9,26 @@
   a learner is one they copied rather than one they assembled, and it stays right after
   `PORT=5000 ./tutor/tutorctl.sh start`. Lessons only: where the course as a whole opens is the
   documents' business.
+- **The serving precondition is stated where a teacher reads it, and printed by a tool they
+  already run.** The in-page tutor connects only on a Lesson the service served, and nothing in
+  the skill said so — while two instructions actively pointed the other way, which cost the
+  originating session two confusing round-trips. The runbook now states it beside the instruction
+  not to ask the learner to reload: that instruction is true of a served Lesson, false of one
+  opened from disk, and exactly the sentence a teacher acts on. The instruction to open a Lesson
+  names both readings and says which address to hand over, in both places that carry it — the
+  skill spine and the Unit authoring guide. And `scripts/wire-lessons.sh` now prints the served
+  address of every Lesson beside the command that starts the service, **whether or not the
+  service is running**: it asks nothing about the service, because falling silent while it is
+  down would withhold the address at the moment it is most needed. The documentation disclosure
+  check holds the precondition, so it cannot be deleted silently later; it cannot hold it against
+  being wrong, which stays review's job.
+- **The glossary names the Tutor service.** It is the transport both the tutor and the grader
+  reach the learner over, it is argued about in two design decisions, and until now it had no
+  name — the runbook called it "the service" throughout. The **Dossier** entry is corrected in
+  the same pass, and now holds under both readings rather than only on disk: it is the Workspace
+  entry point served as well as opened from a directory. Nothing is named for the two readings
+  themselves, because opening a file from disk is an operating system fact rather than a concept
+  this project owns.
 
 ### Fixed
 
@@ -34,7 +54,9 @@
   relocated, along with the helper that found the first Lesson, so nothing is left behind to be
   rediscovered and re-wired; the Dossier already lists every Unit with a link to its Lesson, so
   the affordance survives as one click. Recorded as decision 32, because it changes what a
-  memorised address means.
+  memorised address means: the service root used to open the first lesson and now opens the
+  dossier, which anyone who wrote that address down will observe — and which is why this ships
+  as 0.5.0 rather than as a patch.
 - **A page that cannot reach the tutor says which of the two it is.** The in-page drawer had two
   states, and offline's hint told the learner to run the command that starts the service. On a
   lesson opened from disk that instruction cannot work — the drawer talks to the service that

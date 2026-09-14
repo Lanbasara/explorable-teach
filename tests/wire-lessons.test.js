@@ -6,9 +6,11 @@
 // again is free.
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 
-const { Workspace } = require('./helpers/workspace.js');
+const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
 
 const BOOT = /<script src="\.\.\/assets\/lesson-boot\.js"([^>]*)><\/script>/g;
 
@@ -143,4 +145,96 @@ test('wiring a workspace with no pages is a no-op, not an error', (t) => {
   // wire-lessons.sh does its editing in python3.
   assert.equal(run.status, 0, `wire-lessons.sh failed — it needs python3:\n${run.stderr}`);
   assert.deepEqual(ws.snapshot(), before);
+});
+
+// The Teacher runs this after writing a Lesson and then hands an address over.
+// The in-page Tutor only connects on a page the Tutor service served, so the
+// address is printed rather than described: one that is copied carries the port
+// the control script would serve it on, and one assembled by hand is where that
+// port gets lost.
+
+/** The served addresses in a run's output, in the order it printed them. */
+function addresses(stdout) {
+  return [...stdout.matchAll(/^\s*(http:\/\/\S+)\s*$/gm)].map((m) => m[1]);
+}
+
+/**
+ * The port the control script serves on when nobody says otherwise, read out of
+ * it rather than written here. The two scripts' defaults disagreeing is an
+ * address a Teacher hands over that opens nothing — the same defect as the
+ * hard-coded port the Dossier's status probe was fixed for — so this is the
+ * check that would see it, and a literal here would be this suite keeping its
+ * own copy of a fact `tutorctl.sh` owns.
+ */
+function defaultPort() {
+  const control = fs.readFileSync(
+    path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/tutorctl.sh'),
+    'utf8',
+  );
+  const found = control.match(/^PORT=\$\{PORT:-(\d+)\}/m);
+
+  assert.ok(found, 'the control script no longer states a default port, so there is nothing to agree with');
+  return found[1];
+}
+
+/** Where a Lesson is served, as the wiring script should print it. */
+const servedAt = (page, port = defaultPort()) => `http://127.0.0.1:${port}/${page}`;
+
+test('the served address of each Lesson is printed, with the precondition', (t) => {
+  const ws = Workspace.create(t);
+  ws.write('lessons/0001-intro.html', '<html><body><h1>Intro</h1></body></html>');
+  ws.write('lessons/0002-loops.html', '<html><body><h1>Loops</h1></body></html>');
+  ws.write('assignments/0002-audit.html', '<html><body><h1>Audit</h1></body></html>');
+
+  const run = ws.wire();
+
+  assert.deepEqual(addresses(run.stdout), [
+    servedAt('lessons/0001-intro.html'),
+    servedAt('lessons/0002-loops.html'),
+  ], 'a Lesson is what gets handed over; an Assignment page is reached from one');
+
+  // The precondition travels with the addresses, because an address that only
+  // works once something has been started is not self-explanatory.
+  assert.match(run.stdout, /tutorctl\.sh start/, 'the addresses arrive without the step that makes them work');
+});
+
+test('the addresses are printed even when the run wired nothing', (t) => {
+  // Nothing here starts the Tutor service, so this is also the "service down"
+  // case: the script asks nothing about it, and a run that found every page
+  // already fine is exactly when the Teacher is handing an address over.
+  const ws = Workspace.create(t);
+  ws.write('lessons/0001-intro.html', '<html><body><h1>Intro</h1></body></html>');
+  ws.wire();
+
+  const second = ws.wire();
+
+  assert.match(second.stdout, /^0 wired/m);
+  assert.deepEqual(addresses(second.stdout), [servedAt('lessons/0001-intro.html')]);
+});
+
+test('the printed addresses follow an overridden port', (t) => {
+  // The hard-coded port is the defect the Dossier's status probe was fixed for;
+  // an address printed on the default port after `PORT=5000 ./tutor/tutorctl.sh
+  // start` is the same wrong answer in a different place.
+  const ws = Workspace.create(t);
+  ws.write('lessons/0001-intro.html', '<html><body><h1>Intro</h1></body></html>');
+
+  const before = process.env.PORT;
+  t.after(() => {
+    if (before === undefined) delete process.env.PORT;
+    else process.env.PORT = before;
+  });
+  process.env.PORT = '5000';
+
+  assert.deepEqual(addresses(ws.wire().stdout), [servedAt('lessons/0001-intro.html', '5000')]);
+});
+
+test('a workspace with no Lesson prints no address block', (t) => {
+  const ws = Workspace.create(t);
+  ws.write('assignments/0002-audit.html', '<html><body><h1>Audit</h1></body></html>');
+
+  const run = ws.wire();
+
+  assert.deepEqual(addresses(run.stdout), []);
+  assert.ok(!/tutorctl/.test(run.stdout), 'there is nothing to hand over, so there is nothing to precondition');
 });

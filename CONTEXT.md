@@ -28,8 +28,15 @@ The ordered plan of Units, carrying a progress marker on each.
 _Avoid_: syllabus, roadmap, lesson plan
 
 **Dossier**:
-The workspace entry point (`index.html`) — the one page from which every Unit is reachable.
+The Workspace entry point (`index.html`) — the one page from which every Unit is reachable,
+under both readings: opened from disk, and served, where every address that names it returns it.
 _Avoid_: index, home, cover
+
+**Tutor service**:
+The local http service that serves a Workspace's pages, and the transport the Tutor and the
+Grader reach the Learner on. A page it did not serve cannot reach it, which is why the in-page
+drawer is offline by design on a Lesson opened from disk.
+_Avoid_: server, backend, daemon
 
 **Learning Record**:
 What one Unit demonstrated the learner can now do, written after they engage with it. Numbered

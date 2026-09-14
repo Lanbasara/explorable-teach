@@ -100,6 +100,26 @@ const AUTHORING = [
   /Deps:/,
 ];
 
+/**
+ * The serving precondition, as the three things a Teacher has to read together:
+ * the in-page Tutor connects only on a page the Tutor service served, a Lesson
+ * opened from disk is the other reading, and that reading is by design rather
+ * than a fault to go and chase.
+ *
+ * This check holds the precondition in place; it cannot hold it against being
+ * wrong, which is review's job. What it rules out is the precondition
+ * disappearing again — it was never written down in the first place, and the
+ * Teacher who read the instruction beside it acted on the half that was left.
+ */
+const PRECONDITION = [
+  { what: 'the drawer connects only on a page the service served', re: /\bonly\b[^.]*\bserv(?:ed|es|ing)\b/i },
+  { what: 'a Lesson opened from disk is the other reading', re: /\bfrom disk\b/i },
+  { what: 'that reading is by design rather than a fault', re: /\bby design\b|\bnot a (?:failure|fault)\b/i },
+];
+
+/** The instruction the precondition has to sit beside, as an instruction shape. */
+const NO_RELOAD = /(?:do not|don't|never)[^.]*\breload\b/i;
+
 /** Where the four format specifications live now that they live together. */
 const FORMATS = path.join(SKILL_DIR, 'formats');
 
@@ -350,4 +370,26 @@ test('the teaching loop still reaches its own steps', () => {
   for (const n of [1, 2, 3]) {
     assert.ok(step(loop.body, n), `the teaching loop lost step ${n}`);
   }
+});
+
+test('the serving precondition sits beside the instruction not to ask for a reload', () => {
+  const tutorDoc = read(SKILL_DIR, 'TUTOR.md');
+
+  // Guard the observer on the instruction: a shape that matched no section
+  // would leave every assertion below with nothing to be wrong about, and a
+  // shape that matched several would not be naming one place.
+  const owning = sections(tutorDoc).filter((s) => NO_RELOAD.test(s.body));
+  assert.equal(
+    owning.length,
+    1,
+    'the runbook should tell the Teacher not to ask for a reload, in exactly one section',
+  );
+
+  const missing = PRECONDITION.filter((p) => !p.re.test(owning[0].body)).map((p) => p.what);
+  assert.deepEqual(
+    missing,
+    [],
+    'that instruction is true of a served Lesson and false of one opened from disk, ' +
+      'and it is the sentence a Teacher acts on — so the precondition belongs beside it',
+  );
 });

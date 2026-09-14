@@ -69,8 +69,17 @@ it.
 - **Never** write a Lesson that depends on the service being up. The page must be fully readable,
   and the in-page drawer must degrade to a clipboard prompt when `/api/health` is unreachable — which is
   a normal state, not a failure.
-- **Do not tell the learner to reload after starting it.** The drawer keeps asking while it is
-  offline and connects itself, so starting the service is the whole of the instruction.
+- **The drawer connects only on a Lesson the service is serving.** It is the precondition under
+  everything here, and the one a first Workspace trips over: a Lesson opened from disk is offline
+  *by design*, not a failure to debug. The drawer asks the service that served the page, so on a
+  page nothing served there is nothing for it to ask — starting the service cannot change that,
+  and the page says so rather than offering a command. So hand the
+  learner a served address: `./tutor/tutorctl.sh status` prints one per Lesson, and so does
+  `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh`, which you run anyway once a Lesson is written.
+- **Do not tell the learner to reload after starting it.** True of a served Lesson: the drawer
+  keeps asking while it is offline and connects itself, so starting the service is the whole of
+  the instruction. On a Lesson opened from disk a reload changes nothing, which is the
+  precondition above rather than an exception to it.
 
 ## Installing it
 

@@ -21,12 +21,12 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
-| `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline |
+| `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the page readable without it — including the hand-in on an Assignment page, which refuses what it cannot grade |
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
-| `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
+| `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, re-running is free, and every Lesson's served address is printed with the precondition that makes it work |
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, writes the scaffolding it builds in English while the answer comes back in the Learner's language, and — started the way its documents say to start it — outlives the shell that launched it and says where each Lesson is served |
 | `tests/dossier.test.js` | The Workspace entry point reports the Tutor service in three states — reached, not running, and cannot tell from here — and asks the service nothing from a page it never served |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
@@ -619,6 +619,15 @@ was measured, not assumed.
   spend that budget — it is not Tutor material. Two facts and two signposts is the whole of it,
   so there is no headroom by design: raising the number is a decision to argue, not a way to
   make a red suite green.
+
+**The serving precondition sits beside the instruction not to ask for a reload.** The in-page
+Tutor connects only on a Lesson the Tutor service served, and the runbook's instruction not to ask
+the Learner to reload is true when served and false on disk — which is the sentence a Teacher acts
+on. The check finds the one section carrying that instruction, by its shape rather than its
+wording, and requires all three parts of the precondition in it: that the drawer connects only on
+a page the service served, that a Lesson opened from disk is the other reading, and that this
+reading is by design rather than a fault to go and chase. It holds the precondition in place; it
+cannot hold it against being *wrong*, which is review's job.
 
 **The rationale the skill no longer carries is in the decisions record.** Why the Tutor is a
 Workspace template rather than a plugin-level agent is a maintainer's reasoning, so it left the

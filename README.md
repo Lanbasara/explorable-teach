@@ -143,9 +143,11 @@ is a downgrade:
 ```
 
 It is a dev-server. You start it when you sit down to study; no AI conversation owns it. It
-exits after 8 hours idle. **Lessons must always work without it** — the widget degrades to a
-clipboard prompt when it cannot reach `/api/health`, which is a normal state rather than a
-failure.
+exits after 8 hours idle. **Open lessons at the address it serves them on** — `status` prints
+one per lesson, and so does `scripts/wire-lessons.sh`. A lesson opened from the disk instead is
+one the drawer cannot reach, by design rather than by failure, and it says so on the page.
+**Lessons must always work without it** — the widget degrades to a clipboard prompt when it
+cannot reach `/api/health`, which is a normal state rather than a failure.
 
 Security: loopback-only bind, `spawn` with an argv array and no shell, path-traversal guards and
 an extension allowlist on static serving, input caps, answers rendered into nodes rather than

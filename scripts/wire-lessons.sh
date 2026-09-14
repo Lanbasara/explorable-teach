@@ -10,6 +10,10 @@
 # not declare one — reading the language from assets/units.js, where the
 # workspace states it once. Idempotent: re-run it any time, and after writing a
 # new lesson.
+#
+# It closes by printing where each lesson is served, on $PORT (default 4173),
+# with the command that starts the service — the in-page tutor only connects on
+# a page the service served, so that address is what a teacher hands over.
 
 set -eu
 TARGET=${1:-$(pwd)}
@@ -19,6 +23,7 @@ python3 - <<'PY'
 import glob, os, re
 
 PAGES = sorted(glob.glob('lessons/*.html') + glob.glob('assignments/*.html'))
+PORT = os.environ.get('PORT', '4173')          # what tutorctl.sh reads too
 OLD = [
     re.compile(r'^[ \t]*<link[^>]*assets/(?:nav|tutor)\.css[^>]*>[ \t]*\n?', re.M),
     re.compile(r'^[ \t]*<script[^>]*assets/(?:units|nav|tutor)\.js[^>]*>\s*</script>[ \t]*\n?', re.M),
@@ -100,6 +105,35 @@ def with_lang(body, lang):
     return body[:m.start()] + '<html lang="%s"%s>' % (lang, m.group(1).rstrip()) + body[m.end():]
 
 
+def hand_over(pages):
+    """Where each lesson is served, for the teacher to hand one of them over.
+
+    The in-page tutor connects only on a page the service served, so what the
+    teacher owes the learner is an address rather than a file. It is printed
+    rather than described, because an address that is copied carries the port
+    and one assembled by hand is where the port gets lost.
+
+    Printed without asking whether the service is up, and so printed whether it
+    is or not: the moment this is most needed is the moment before it is
+    started, and a block that fell silent then would withhold the address
+    exactly there. The port is $PORT for the same reason it is in tutorctl.sh —
+    one env var decides it — and this is the port the service would be started
+    on rather than a claim about one already running elsewhere.
+
+    Lessons only, as in tutorctl.sh's own status output: an assignment page is
+    reached from a lesson, and where the course as a whole opens is the
+    documents' business rather than this script's.
+    """
+    lessons = [p for p in pages if p.startswith('lessons/')]
+    if not lessons:
+        return
+    print('\nThe in-page tutor connects only on a page the service served, so hand the')
+    print('learner one of these rather than the file — and start the service first:')
+    print('\n    ./tutor/tutorctl.sh start\n')
+    for p in lessons:
+        print('    http://127.0.0.1:%s/%s' % (PORT, p))
+
+
 LANG = workspace_lang()
 wired = langed = skipped = 0
 
@@ -122,4 +156,5 @@ for p in PAGES:
         print('  lang    %s  (%s)' % (p, LANG)); langed += 1
 
 print('\n%d wired, %d given a language, %d already fine.' % (wired, langed, skipped))
+hand_over(PAGES)
 PY

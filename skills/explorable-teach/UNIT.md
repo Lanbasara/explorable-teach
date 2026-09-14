@@ -35,7 +35,11 @@ Every Lesson:
 - keeps working when nothing else is — the constraint [the Unit](./SKILL.md#the-unit) states —
   while still telling the learner they can ask about anything that did not land.
 
-Open the Lesson file for the learner once you have written it.
+Hand the Lesson to the learner once you have written it, and mind which of the two you hand
+over. With the Tutor service running, it is the served address
+`${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` prints for that page; with the service stopped,
+the file itself — on which the in-page drawer is offline by design, because it can only reach
+the service that served the page. [TUTOR.md](./TUTOR.md) states that precondition.
 
 ### The page
 
