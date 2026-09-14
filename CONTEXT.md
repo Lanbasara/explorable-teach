@@ -35,7 +35,10 @@ _Avoid_: index, home, cover
 **Tutor service**:
 The local http service that serves a Workspace's pages, and the transport the Tutor and the
 Grader reach the Learner on. A page it did not serve cannot reach it, which is why the in-page
-drawer is offline by design on a Lesson opened from disk.
+drawer is offline by design on a Lesson opened from disk. Serving buys exactly two things: that
+drawer, and an origin for the page — without which it may not fetch its own files. It does not
+decide whether a module or a library loads, because a pinned https CDN answers a page opened from
+disk just as well.
 _Avoid_: server, backend, daemon
 
 **Learning Record**:
@@ -96,6 +99,14 @@ _Avoid_: widget, plugin, library
 **Explorable**:
 A Lesson that teaches by letting the learner manipulate the subject before it is explained.
 _Avoid_: interactive lesson, demo
+
+**Stand-in sentence**:
+The one sentence a Component that is a picture carries in its markup: what would be shown, and
+what it demonstrates. It is three things at once — what the Learner reads when no script ran, the
+picture's accessible description, and what the Tutor has to go on when they ask about something
+it cannot see. A Component made of text needs none, because it can write its content into the
+markup and let the script take it over; a drawing cannot.
+_Avoid_: alt text, caption, fallback, placeholder
 
 **Zone of proximal development**:
 The band of difficulty where the learner is challenged but not stalled. Determines which Unit

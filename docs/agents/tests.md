@@ -20,6 +20,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 |-------|--------------------|
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
+| `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — and no longer ban a technology, nor sell serving on a restriction it does not lift |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
@@ -572,14 +573,16 @@ one place the pointer has to be.
 
 **Unit authoring is not in the main document.** `UNIT.md` holds the forms, the page conventions,
 the Component selection guide and the navigation rules, and the check reads `SKILL.md` for the
-vocabulary only an authoring reference uses — markup, asset filenames, CDN hosts, `is-live`, a
-Component's `Deps:` declaration, a Lesson's numbering. Same shape as the runbook check below it,
-and guarded the same way: every pattern must be found in `UNIT.md`, or the check is describing no
-authoring material.
+vocabulary only an authoring reference uses — markup, asset filenames, CDN hosts, `type="module"`,
+`crossorigin`, `new Worker(`, `is-live`, the stand-in sentence a picture carries, a Component's
+`Deps:` declaration, a Lesson's numbering. Same shape as the runbook check below it, and guarded
+the same way: every pattern must be found in `UNIT.md`, or the check is describing no authoring
+material.
 
 That vocabulary tracks the document, not the reverse: it read `Tier N` until the catalog stopped
 being tiered, and the guard failed on the spot rather than going on passing while looking for
-words nobody writes.
+words nobody writes. The four newest entries arrived the same way, when the ban on ES modules
+became a list of what an author types that breaks from disk.
 
 **The skill root is the main document and the documents it points at.** Every `.md` beside
 `SKILL.md` must be one of the disclosed documents, which are already required to exist, carry
@@ -634,6 +637,70 @@ Workspace template rather than a plugin-level agent is a maintainer's reasoning,
 skill — and reasoning that leaves without being recorded is reasoning a future maintainer
 re-derives, or reverses without knowing it. The check reads the record for the four things that
 argued for it, and fails if the skill still carries them too.
+
+## The from-disk check
+
+`from-disk.test.js` is the one suite here whose subject is whether the documents are **right**
+rather than where their material sits. It exists because a rule that is wrong in the safe
+direction is still wrong, and this one was: the authoring reference banned ES modules and CDN
+loading — "`file://` compatible by default, UMD or IIFE, never ES modules" — to buy an offline
+property that the ban does not buy, and three other documents restated a matching claim from the
+other side. Decision 34 in `docs/DECISIONS.md` has the argument; these are the checks that keep
+it from being quietly undone.
+
+**The authoring reference carries both halves of the list.** One section of `UNIT.md`, found by
+its heading, has to name what an author types that breaks — a module script with a relative
+source, a dynamic import of a sibling file, a relative `fetch`, a worker from a relative path —
+*and* what does not: an image, a stylesheet, a classic script, anything at all aimed at an https
+CDN. The second half is not decoration. A list of only what fails reads as a ban again, because
+an author extends it to everything that looks similar.
+
+Each list is read against **its own part** of that section rather than the whole of it, and that
+is not tidiness. Review measured the whole-section version: the CDN row under *these do not*
+carries `type="module"`, so it satisfied the pattern that exists to hold the row about a
+*relative* module script, and deleting that row left the check green.
+
+**The two consequences that do not follow from the rule.** `crossorigin` and `integrity` on a
+local classic script — as a pair or not at all, since an integrity check cannot run against an
+opaque response — and the ban on a cross-origin worker script, with the blob that gets a CDN
+library around it. Neither is derivable from "a relative URL fails", and both break a page that
+looks correct.
+
+**Nothing that instructs still carries the ban**, in any of the three spellings the documents
+carried it in. `docs/` is exempt: `DECISIONS.md` records the removal, and a record that may not
+name what it removed is not a record. The observer is guarded against the sentences as they were
+actually written, kept in the test file rather than in a document, because the document they came
+from no longer has them.
+
+**No document sells serving on a restriction it does not lift.** The claim is matched by its
+shape — *lifts … restriction* — rather than by its wording, and it is guarded against both
+spellings that existed. What has to be there instead is what serving does buy: the in-page Tutor,
+which only works on a page the service served, and an origin, so the page may fetch its own files
+by relative path — and both **in one paragraph**. Review measured the looser version and it held
+nothing: the runbook already carried "the drawer connects only on a Lesson the service is
+serving" as a precondition, so half the check passed with the answer deleted entirely. The two
+facts are the answer only when they are given together.
+
+**Both documents say why the plugin's rule and the Lesson's differ**, and say it in one place a
+reader meets at once — one logical line carrying all three of: the shipped Components touch no
+network, they are the same bytes in every Workspace, and a Lesson is not held to that rule. One
+line rather than one document, because `UNIT.md` already argues the same-bytes point about the
+*language* of the plugin's files, and a document-wide check would pass on the strength of a
+sentence that says nothing about the network.
+
+**A picture Component carries a stand-in sentence**, and a text one keeps being taken over by its
+script. And nothing that needs the network or the service may fail silently — the page names
+which of the two is missing.
+
+Every check here reads the documents with their hard wrapping folded back out, through the
+Markdown reader, because every claim it makes is about a sentence rather than a line. The scan
+over "the documents that instruct" is guarded by name — `UNIT.md`, `TUTOR.md`, both READMEs —
+because a scan that found nothing satisfies every *this claim survives nowhere* assertion by
+having nowhere to look.
+
+What this suite cannot do is check the browser. Nothing here opens a page from disk, so what it
+defends is that the documents go on agreeing with the measurement and with each other — see
+"`file://` is inferred, not observed" below.
 
 ## The spine check
 
@@ -802,7 +869,10 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   DOM runs `<script src>` only, so nothing here mounts it. What `assets.test.js` covers is the
   paths it names; the cover itself is still judged by opening it.
 - **`file://` is inferred, not observed.** `assets.test.js` reads the Components for `fetch`,
-  `XMLHttpRequest`, module syntax and URLs; nothing here actually opens a page from disk.
+  `XMLHttpRequest`, module syntax and URLs, and `from-disk.test.js` reads the documents for what
+  they claim about a page opened from disk; nothing here actually opens one. The claim itself —
+  that a module from a CDN loads and a module from a sibling file does not — was measured by hand
+  once, and is recorded in decision 34 rather than re-measured on every run.
 - **The decoupling check stops at the skill directory.** That is the boundary that matters —
   an agent *running* the skill can open nothing else. `AGENTS.md` and `docs/` are read by
   agents working on this repo instead, and `README.md` is checked for the opposite thing. If a

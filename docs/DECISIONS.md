@@ -1145,6 +1145,72 @@ refuse on a course that has not written a subtitle. Bending shipped code to suit
 worth saying out loud; this is the smallest form of it, and the splice that remains is the
 Teacher's own authored HTML, which stays exactly as it was.
 
+## 34. The offline ban becomes a list of what an author types
+
+**Decided:** the authoring reference stops banning a technology — "`file://` compatible by
+default, UMD or IIFE, never ES modules" — and carries instead the list of writing patterns that
+actually fail when a page is opened from disk, beside the list of the ones that do not. A module
+script or a `fetch` aimed at a sibling file, a dynamic import of one, a loader pointed at a
+relative asset, a worker built from a relative path: those break. An image, a stylesheet, a
+classic script, and anything at all aimed at a pinned https CDN: those do not.
+
+**Why the ban was wrong rather than merely strict.** The boundary is what a URL points at, not
+ES-modules-versus-classic and not CDN-versus-local. A page opened from disk has a null origin, so
+every fetch it makes is cross-origin; a CDN answers with a permissive CORS header and passes the
+check, while the file sitting beside the page answers with no header at all and fails it. The ban
+was written to protect a property nobody had measured, and the measurement says it does not buy
+it: almost every library a Lesson might want loads fine from disk, and almost nothing the ban
+allowed was at risk. What it did buy was the absence of every interaction it forbade — a plotting
+library, a layout engine, a physics engine, an in-page Python — so the only Lessons ever built
+were the ones the shipped Components already made easy.
+
+**Two consequences are stated because neither follows from the rule.** A local classic script may
+carry neither `crossorigin` nor `integrity`, because either attribute opts a fetch that was not
+subject to the CORS check into it — which is how adding a security attribute breaks a page. On a
+CDN script the same two are worth having, and only as a pair: an integrity check cannot be run
+against a response the browser handed back opaque, so `integrity` without `crossorigin` beside it
+is a network error rather than a stricter page. And a
+worker script may never be cross-origin on any scheme, so a library that spawns one is usable
+from a CDN only when the library itself fetches the script and constructs the worker from a blob.
+Both are invisible from "a relative URL fails", and both break a page that looks correct.
+
+**The same claim was wrong in three other places, and all three are corrected.** `TUTOR.md` and
+the service's own README said serving *lifts the `file://` restrictions* that gate Pyodide, sql.js
+and ES modules. It lifts nothing of the sort: what serving buys is the in-page Tutor — the drawer
+asks the service that served the page — and an origin, so the page may fetch its own files. The
+README's claim that a lesson works from `file://` with no network described the shipped
+Components rather than Lessons, and is scoped to them.
+
+**The two rules stay different, and both documents say why.** The shipped Components keep the
+no-network constraint, for a reason that is not offline capability: they are the same bytes in
+every Workspace, so staying dependency-free is what keeps them small and what lets one fix reach
+every learner at once. Only the rule addressed to the author of a Lesson is loosened.
+`assets.test.js` is untouched and still holds the six of them to no network, no module syntax and
+no fetch.
+
+**Rejected:** keeping the ban and adding an exception for CDNs. That is the same closed list one
+row longer, and it still answers the author's question — *may I use this?* — with a technology
+rather than with something they can check their own page against. A rule an author cannot apply
+is a rule they route around or over-obey, and this one was over-obeyed for the whole life of the
+plugin so far.
+
+**Consequence:** the degradation rule splits. A Component made of text goes on writing its
+content into the markup and being taken over by script — that is how the shipped six already work
+and it costs nothing. A Component that is a picture cannot satisfy that, and carries one
+**stand-in sentence** instead: what would be shown and what it demonstrates. That sentence is
+three things at once — what a Learner reads when no script ran, the accessible description, and
+what the Tutor has to go on when the Learner asks about something it cannot see — which is why it
+is worth a glossary entry rather than a line of advice. Alongside it, nothing that depends on the
+network or on the service may fail silently: a page that needs one of them names which of the two
+is missing, because the two have different fixes and a blank rectangle proposes neither.
+
+**Consequence:** `from-disk.test.js` holds the claim rather than its placement. It is the first
+suite here whose subject is whether a document is *right*: the ban may not come back in anything
+that instructs, no document may sell serving on a restriction it does not lift, and the
+authoring reference has to carry both halves of the list. It cannot check the browser behaviour
+underneath — nothing here opens a page from disk — so what it defends is that the documents go on
+agreeing with the measurement, and with each other.
+
 ---
 
 ## Where the full record lives

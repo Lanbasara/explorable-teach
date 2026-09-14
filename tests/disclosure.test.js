@@ -77,7 +77,8 @@ const RUNBOOK = [
 
 /**
  * Unit authoring, as the vocabulary only an authoring reference uses: markup,
- * the asset filenames a page links, CDN hosts, a Component's `Deps:`
+ * the asset filenames a page links, CDN hosts, the attributes and constructors
+ * that decide whether a page opened from disk works, a Component's `Deps:`
  * declaration, the numbering of a Lesson file. A word here sitting in
  * `SKILL.md` means the authoring material came back — whatever heading it came
  * back under.
@@ -85,7 +86,9 @@ const RUNBOOK = [
  * The list tracks the document rather than the reverse. It read `Tier \d` until
  * the Component catalog stopped being tiered, and the guard below failed on the
  * spot — which is the point: the alternative is a check that goes on passing
- * while looking for words nobody writes.
+ * while looking for words nobody writes. The last four entries arrived the same
+ * way, when the ban on ES modules became a list of what an author types that
+ * breaks from disk; `from-disk.test.js` holds what that list has to say.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -98,6 +101,10 @@ const AUTHORING = [
   /is-live/,
   /0001-slug/,
   /Deps:/,
+  /type="module"/,
+  /crossorigin/,
+  /new Worker\(/,
+  /stand-in sentence/i,
 ];
 
 /**

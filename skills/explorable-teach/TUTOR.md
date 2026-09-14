@@ -97,9 +97,22 @@ would be editing every other learner's Tutor. What this Workspace gets to say go
 input caps, loopback-only bind, idle auto-shutdown. That is exactly why the Workspace links at it
 rather than any Session writing it: re-deriving that from prose risks silently dropping a guard.
 
-The service is zero-dependency Node. It serves the Lessons over http — which also lifts the
-`file://` restrictions that gate Pyodide, sql.js and ES modules — and exposes `POST /api/ask`,
+The service is zero-dependency Node. It serves the Lessons over http and exposes `POST /api/ask`,
 which runs headless Claude with `--restricted` and read-only tools.
+
+**What serving buys is two things, and neither is what this document used to claim.** It buys the
+in-page Tutor, which works only on a page the service served — the drawer asks the service that
+served it, so a page nothing served has nothing to ask. And it gives the page an origin, so a
+Lesson may fetch its own files by relative path, load a module of its own, or point a library at
+an asset beside it — every one of which is refused on a page opened from disk, for want of an
+origin to fetch from. What it does **not** buy
+is a module script or an in-page runtime as such: Pyodide, sql.js and anything else loaded from a
+pinned https CDN run on a page opened from disk, because the CDN answers with the CORS header
+that a file beside the page does not. [Authoring a Unit](./UNIT.md#what-breaks-when-a-page-is-opened-from-disk)
+lists what an author types that needs serving. The shipped Components need none of it, and stay
+that way for a reason unrelated to being usable offline — they are the same bytes in every
+Workspace, so staying dependency-free is what keeps them small and lets one fix reach all of
+them.
 
 ## Two ways to reach the same Tutor
 

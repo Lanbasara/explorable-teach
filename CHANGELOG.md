@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The authoring reference says what actually breaks a Lesson opened from disk, instead of
+  banning a technology.** It required `file://` compatibility by default — UMD or IIFE, never ES
+  modules — to buy an offline property nobody had measured, and the measurement says the ban does
+  not buy it. The boundary is what a URL points at: a page opened from disk has a null origin, so
+  a CDN passes the CORS check with its permissive header while the file sitting beside the page
+  does not. So the ban is replaced by the list of things an author *types* that fail — a module
+  script or a `fetch` aimed at a sibling file, a dynamic import of one, a loader pointed at a
+  relative asset, a worker built from a relative path — beside the list of the ones that do not:
+  images, stylesheets, classic scripts, and anything at all aimed at a pinned https CDN. A
+  plotting library, a layout engine, an in-page Python or a renderer is now available to a
+  Lesson, and was only ever ruled out by a rule measuring the wrong thing. Two consequences are
+  stated because neither follows from the rule: a local classic script may carry neither
+  `crossorigin` nor `integrity`, either of which opts it into the check it was not subject to,
+  and a worker script may never be cross-origin on any scheme, so a CDN library that spawns one
+  is usable only if it builds the worker from a blob. On a CDN script the same two attributes are
+  worth having and are written as a pair: an integrity check cannot run against a response the
+  browser handed back opaque, so `integrity` without `crossorigin` is a network error rather than
+  a stricter page.
+- **What serving buys is stated correctly in the three documents that oversold it.** The Tutor
+  documentation and the service's own README said serving lifts the `file://` restrictions that
+  gate Pyodide, sql.js and ES modules. It lifts nothing of the sort: it buys the in-page Tutor —
+  the drawer asks the service that served the page — and an origin, without which the page may
+  not fetch its own files. The README's claim that a Lesson works from `file://` with no network
+  described the **shipped Components** rather than Lessons, and is scoped to them.
+- **Both documents now say why the two rules differ.** The shipped Components keep their
+  no-network constraint for a reason unrelated to offline capability: they are the same bytes in
+  every Workspace, so staying dependency-free is what keeps them small and lets one fix reach
+  every course at once. Only the rule addressed to the author of a Lesson is loosened, and the
+  check holding the Components to no network, no module syntax and no fetch is untouched.
+- **The degradation rule splits by what a Component is made of.** One made of text goes on
+  writing its content into the markup and being taken over by script, which is how the shipped
+  six already work. One that is a picture cannot, and carries a single **stand-in sentence**
+  instead — what would be shown and what it demonstrates. That sentence is what a Learner reads
+  when no script ran, the picture's accessible description, and what the Tutor has to go on when
+  they ask about something it cannot see. Alongside it: nothing that depends on the network or on
+  the service may fail silently, so a page that needs one of them says which of the two is
+  missing rather than leaving a blank rectangle.
+- **A suite of its own holds the claim.** `from-disk.test.js` is the first check here whose
+  subject is whether a document is *right* rather than where its material sits: the ban may not
+  come back in anything that instructs, no document may sell serving on a restriction it does not
+  lift, and the authoring reference has to carry both halves of the list. The authoring
+  vocabulary guard tracks the document as it always has, and now reads the words it actually
+  uses. The reasoning is decision 34; the glossary gains the stand-in sentence, and the Tutor
+  service entry gains what serving buys.
+
 ## 0.5.0
 
 ### Added

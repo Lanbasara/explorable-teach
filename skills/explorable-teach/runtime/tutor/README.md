@@ -52,10 +52,12 @@ so that detachment is hardening rather than a diagnosis.
 
 ## It does three things
 
-1. **Serves the workspace** over http, which lifts the `file://` restrictions a lesson would
-   otherwise be under (Pyodide, sql.js and anything else that fetches wasm). A file under
-   `assets/` that the workspace does not have falls back to the plugin's copy, so a broken link
-   still leaves the page styled.
+1. **Serves the workspace** over http. That is what the in-page tutor needs — the drawer asks the
+   service that served the page — and it is what gives a page an origin, so a lesson may fetch its
+   own files by relative path. It is not what makes Pyodide or sql.js work: a library loaded from
+   a pinned https CDN, wasm and all, runs on a page opened from disk too. A file under `assets/`
+   that the workspace does not have falls back to the plugin's copy, so a broken link still leaves
+   the page styled.
 2. **`POST /api/ask`** — hands the question to `claude` in the background and streams the answer
    back to the page over SSE.
 3. **Logs the questions** — one line per exchange, appended to

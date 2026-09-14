@@ -96,9 +96,15 @@ What does not vary by subject ships with the plugin and lands in `assets/` when 
 scaffold: the shared stylesheet, and components for **exercises** (judged the instant you
 answer), **predict-reveal**, **step animations**, **drag-to-order**, the **checkpoint** that
 gates a unit at its end — built out of the exercises it counts — and the **assignment** hand-in,
-the one whose verdict does not come from the page. None of them loads a
-library, so a lesson works from `file://` with no network; each one degrades to plain readable
-text with scripting off; and every interaction has a keyboard and a touch path, not just a drag.
+the one whose verdict does not come from the page. None of them loads a library and none of them
+touches the network — and the reason is not offline capability: they are the same bytes in every
+workspace, so staying dependency-free is what keeps them small and what lets one fix reach every
+course at once. **Your lessons are not held to that rule.** A lesson may load a pinned library
+from an https CDN, module or not, because what breaks a page opened from disk is a short list of
+things an author types — a module script or a `fetch` aimed at a sibling file, a worker built
+from a relative path — and a CDN is on none of it. Each shipped component degrades to plain
+readable text with scripting off; and every interaction has a keyboard and a touch path, not just
+a drag.
 Every other teaching act on the list is built on demand, for the subject that needs it, so the
 catalog names no file the plugin does not ship.
 

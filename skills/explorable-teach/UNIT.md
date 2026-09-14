@@ -57,7 +57,7 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
 <body>
   <!-- Content using 1-3 Components -->
 
-  <!-- CDN deps, if a Component needs one — pinned, never @latest -->
+  <!-- Library deps, if a Component needs one — an https CDN, pinned, never @latest -->
   <!-- Component JS for the Components this lesson uses, e.g.: -->
   <script src="../assets/predict-reveal.js"></script>
 
@@ -74,6 +74,61 @@ see [the language the learner reads](#the-language-the-learner-reads) below for 
 
 `style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
 Lesson has to be styled whether or not a script ever runs.
+
+### What breaks when a page is opened from disk
+
+A Lesson is authored to be **served** — that is the address you hand over, and it is the only
+reading the in-page Tutor works on. It gets opened from disk anyway: by a learner who clicked the
+file, and by you when you check your own work. So it is worth knowing exactly what stops working
+there, because it is not what a rule of thumb would tell you.
+
+The boundary is **what a URL points at** — not ES-modules-versus-classic, and not
+CDN-versus-local. A page opened from disk has a **null origin**, so every fetch the browser makes
+for it is a cross-origin one, and anything subject to the CORS check is refused. A CDN answers with a
+permissive CORS header and passes; the file sitting beside the page answers with no header at all
+and does not.
+
+Stated as things you type. **These break:**
+
+| What you write | Why it fails |
+|----------------|--------------|
+| `<script type="module" src="./orbit.js">` | a module script is fetched under CORS, and a file beside the page cannot pass it |
+| `import('./physics.js')` — a dynamic import of a sibling file | the same fetch, refused the same way |
+| `fetch('./data.json')`, and `XMLHttpRequest` with it | the same again, and this is the common one |
+| a loader aimed at a relative asset — a `.wasm`, a font, a model, a dataset | the loader fetches, so it is the row above wearing a library's name |
+| `new Worker('./worker.js')` | a worker script is fetched, and a null origin cannot fetch one |
+
+**These do not:**
+
+| What you write | Why it is fine |
+|----------------|----------------|
+| `<img src="../images/pipeline.svg">`, `<link rel="stylesheet" href="../assets/style.css">` | ordinary elements with relative paths are not subject to the check |
+| `<script src="../assets/predict-reveal.js"></script>` — a classic script | neither is this one |
+| `<script type="module" src="https://cdn.jsdelivr.net/npm/pkg@1.2.3/+esm">`, and any `fetch` or `import` at the same host | the CDN answers with the header the check asks for |
+
+So a plotting library, a layout engine, an in-page Python, a renderer — pinned, from a CDN — are
+all available to a Lesson, and were only ever ruled out by a rule that was measuring the wrong
+thing.
+
+Two consequences ride along, and neither follows from the rule above:
+
+- **A local classic script carries neither `crossorigin` nor `integrity`.** Either attribute opts
+  that fetch into the CORS check the plain form is not subject to, so adding one to
+  `../assets/exercise.js` is how a page that looks more careful stops working. On a CDN script the
+  same two are worth having — but only **together**: `integrity` is checked against a response the
+  browser will not let it read unless `crossorigin="anonymous"` is there too, so
+  `integrity` on its own turns a working CDN script into a network error. Write the pair or
+  neither.
+- **A worker script may never be cross-origin — on any scheme, served or not.** So a library that
+  spawns a worker is usable from a CDN only if the library itself fetches the script and
+  constructs the worker from a blob. Its own documentation is where that is answered; check
+  before choosing it, because serving the page does not fix it.
+
+And one rule about failure, which starts to matter the moment a page reaches for either:
+**nothing that depends on the network or on the Tutor service may fail silently.** A CDN that did
+not answer and a service that is not running are different problems with different fixes, so a
+page that needs one of them says which of the two is missing, in the place the thing would have
+been.
 
 ## The language the learner reads
 
@@ -171,8 +226,17 @@ the scaffold reads that as a deliberate override and leaves it alone from then o
 
 Each file's head comment holds the markup its author writes — **read that before using one**, and
 do not re-derive the markup from this table. Every one of them degrades to plain text with
-scripting off, and none of them touch the network, so a Lesson works opened from `file://` on a
-plane. The first four build a Lesson; the last two have pages of their own, reached once the
+scripting off.
+
+**None of them touches the network, and that constraint is the plugin's rather than a Lesson's.**
+These six are the same bytes in every Workspace, so keeping them free of any dependency is what
+keeps them small and what lets one fix reach every learner at once — a reason that has nothing to
+do with being usable offline. Only the rule addressed to a Lesson you write is loosened, and
+[what breaks when a page is opened from disk](#what-breaks-when-a-page-is-opened-from-disk) is
+the whole of it: a pinned library from a CDN is allowed by it, and is how everything the table
+below sends you off to build gets built.
+
+The first four build a Lesson; the last two have pages of their own, reached once the
 Lesson is behind the learner — the Checkpoint gates the Unit, and the Assignment sends a task out
 of it. The Assignment is the one whose verdict does not come from the page: it hands what the
 learner wrote to the in-page drawer and lets that carry it, so with the service stopped it still
@@ -194,10 +258,13 @@ wrote it, not because the plugin shipped it.
 
 1. **Read `assets/` first.** Reuse beats reinvention, and a Component already there has a head
    comment telling you what it expects.
-2. **Search for a library only if the teaching act needs one.** What qualifies: a UMD or IIFE
-   build, small enough to load from disk, and documented well enough that you can write against it
-   without guessing. Pin the version in the URL — `cdn.jsdelivr.net/npm/<pkg>@1.2.3/…`, never
-   `@latest` — because a Lesson written today has to still run next year.
+2. **Search for a library only if the teaching act needs one.** What qualifies: it loads from an
+   https CDN; it is documented well enough that you can write against it without guessing; and if
+   it spawns a worker, it builds that worker from a blob rather than from a URL of its own. A
+   module build is fine and so is a classic one — [what breaks when a page is opened from
+   disk](#what-breaks-when-a-page-is-opened-from-disk) is the rest of the test. Pin the version in
+   the URL — `https://cdn.jsdelivr.net/npm/<pkg>@1.2.3/…`, never `@latest` — because a Lesson
+   written today has to still run next year.
 3. **Wrap it.** Write a Component in `assets/` that hides the library behind the teaching act, so
    the Lesson author writes markup rather than API calls. Model it on a shipped one —
    `assets/exercise.js` is the plainest example of the shape — so a Component written for one
@@ -206,23 +273,35 @@ wrote it, not because the plugin shipped it.
    page must load before it — `Deps: none.` when there is nothing — alongside the markup its
    author is expected to write. That comment is the Component's documentation; there is nowhere else for a
    later Session to look.
-5. **Degrade gracefully.** The Lesson has to read as plain text before your script runs, and stay
-   readable if it never does — because a CDN can be unreachable and scripting can be off. So
-   write the content into the markup and let the Component *take it over*: mark the root `is-live`
-   on mount, and scope every hiding rule to a class only your own script sets.
+5. **Degrade gracefully, and never in silence.** The Lesson has to read as plain text before your
+   script runs, and stay readable if it never does — because a CDN can be unreachable and
+   scripting can be off. What that takes depends on what the Component is made of:
+   - **Made of text** — write the content into the markup and let the Component *take it over*:
+     mark the root `is-live` on mount, and scope every hiding rule to a class only your own script
+     sets. That is how every shipped Component works, and it costs nothing.
+   - **A picture** — a drawing, a plot, a simulation, a rendered scene — cannot satisfy that, so
+     it carries one **stand-in sentence** in its markup instead: what would be shown, and what it
+     demonstrates. That sentence stands in when no script ran, it is the picture's **accessible
+     description**, and it is the only thing the Tutor has to go on when the learner asks about
+     something it cannot see.
+   - **Say which is missing.** A Component that needs the network or the Tutor service names the
+     one that is not there, where the thing would have been — the two have different fixes, and a
+     blank rectangle proposes neither.
 6. **Record it in `TECH-STACK.md`** — the Component, the teaching act it serves, and why this tool
    rather than another. That file is what the next Session reads before reaching for a new one.
 
 ### What every Component has to hold
 
 Three of those steps are rules rather than advice — reuse before building, declare what it needs,
-degrade to text. Four more apply to anything that ends up in `assets/`:
+degrade to something the learner can still read. Four more apply to anything that ends up in `assets/`:
 
 1. **Every interaction has a keyboard and a touch path.** Drag-only is unusable on a phone and
    invisible to a keyboard; the shipped drag Component pairs dragging with move buttons.
 2. **Retina-aware and mobile-friendly** — canvas-based Components use `devicePixelRatio`, and
    every Component lays out on a narrow screen.
-3. **`file://` compatible by default** — UMD or IIFE scripts, never ES modules.
+3. **It opens both ways** — served, and from disk. That rules out a short list of things you
+   type rather than any technology: [what breaks when a page is opened from
+   disk](#what-breaks-when-a-page-is-opened-from-disk).
 4. **Read the tokens, define none** — colours, spacing and fonts come from `assets/style.css`.
 
 One rule belongs to the Lesson rather than to the Component: a `hidden` attribute written into
