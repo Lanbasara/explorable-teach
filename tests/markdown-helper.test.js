@@ -157,11 +157,14 @@ test('a heading slugs to the anchor GitHub would give it', () => {
     ['Knowledge, skills, wisdom', 'knowledge-skills-wisdom'],
     ['4. Write `TECH-STACK.md`', '4-write-tech-stackmd'],
     ['Subject-Specific Tools (if any)', 'subject-specific-tools-if-any'],
-    ['Shipped Components — already in every Workspace', 'shipped-components--already-in-every-workspace'],
+    ['The two gates — most passages stop here', 'the-two-gates--most-passages-stop-here'],
     ['Building a Component for this subject', 'building-a-component-for-this-subject'],
     // Synthetic, and deliberately so: no heading here carries an `&`, and the
     // three that did left with the Component catalog's tiers. Writing one into
     // a document to keep this case real would be the tail wagging the dog.
+    // The em-dash case above is a real heading and has been two of them — it was
+    // `Shipped Components — already in every Workspace` until the table of
+    // shipped Components left with the catalog.
     ['Retention & Review', 'retention--review'],
   ];
 

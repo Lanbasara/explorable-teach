@@ -139,6 +139,29 @@ function foldedDoc(...parts) {
 }
 
 /**
+ * Every entry of `list` whose pattern is absent from `text`, named.
+ *
+ * A claim about a document is a list of the things it has to say, so a failure
+ * has to name *which* of them is missing rather than reporting that the
+ * document is wrong. This and the reader below live here for the reason
+ * `foldedDoc` does: three suites now assert on documents, and a rule kept in
+ * three places is one that can disagree with itself.
+ */
+const absentFrom = (list, text) => list.filter((e) => !e.re.test(text)).map((e) => e.what);
+
+/**
+ * True when **one logical line** of `text` carries every pattern in `list` —
+ * `text` having been folded by `foldedDoc`, so one logical line is one line.
+ *
+ * For the claims that are about patterns arriving *together*. Several of them
+ * are: a consequence stated with no way round it, or a measurement stated
+ * without the permission to act on it, is a different claim from the two said
+ * in different breaths.
+ */
+const carriedTogether = (text, list) =>
+  text.split('\n').some((line) => list.every((e) => e.re.test(line)));
+
+/**
  * Every relative pointer in one document, as
  * `{ doc, line, raw, target, root, fragment }` — `root` being the single
  * directory the target must resolve against, and `fragment` the heading it
@@ -189,4 +212,13 @@ function resolvePointer(pointer) {
   return fs.existsSync(abs) ? abs : null;
 }
 
-module.exports = { agentDocs, pointersIn, resolvePointer, foldedDoc, DOC_ROOTS, SKILL_DIR };
+module.exports = {
+  agentDocs,
+  pointersIn,
+  resolvePointer,
+  foldedDoc,
+  absentFrom,
+  carriedTogether,
+  DOC_ROOTS,
+  SKILL_DIR,
+};

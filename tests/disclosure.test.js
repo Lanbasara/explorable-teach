@@ -86,12 +86,16 @@ const RUNBOOK = [
  * The list tracks the document rather than the reverse. It read `Tier \d` until
  * the Component catalog stopped being tiered, and the guard below failed on the
  * spot — which is the point: the alternative is a check that goes on passing
- * while looking for words nobody writes. The last four entries arrived the same
+ * while looking for words nobody writes. Four entries arrived the same
  * way, when the ban on ES modules became a list of what an author types that
  * breaks from disk; `from-disk.test.js` holds what that list has to say. Then
  * one when the Teacher gained a pass to run over the page it had just written,
- * and the last three when it gained a policy for imagery: a borrowed image's
+ * and three when it gained a policy for imagery: a borrowed image's
  * licence, and the two mitigations that keep a hand-drawn label inside its box.
+ * The last three arrived when choosing a Component from a table became deriving
+ * a description from the passage — the derivations, the cheapest version of one
+ * that still teaches, and the anti-patterns beside them; `deriving.test.js`
+ * holds what that material has to say.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -112,6 +116,9 @@ const AUTHORING = [
   /licen[cs]e/i,
   /coarse grid/i,
   /monospace/i,
+  /\bderivations?\b/i,
+  /cheapest/i,
+  /anti-pattern/i,
 ];
 
 /**

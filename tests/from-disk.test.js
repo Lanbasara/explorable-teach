@@ -24,7 +24,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
-const { agentDocs, foldedDoc, SKILL_DIR } = require('./helpers/docs.js');
+const { agentDocs, foldedDoc, absentFrom, SKILL_DIR } = require('./helpers/docs.js');
 const { sections, logicalLines } = require('./helpers/markdown.js');
 
 const rel = (abs) => path.relative(REPO_ROOT, abs);
@@ -48,9 +48,6 @@ const folded = foldedDoc;
 const UNIT = folded(SKILL_DIR, 'UNIT.md');
 const TUTOR = folded(SKILL_DIR, 'TUTOR.md');
 const README = folded(REPO_ROOT, 'README.md');
-
-/** Every entry of `list` whose pattern is absent from `text`, named. */
-const absentFrom = (list, text) => list.filter((e) => !e.re.test(text)).map((e) => e.what);
 
 /** The service's own runbook, which made the same claim and is not an `agentDocs()` document. */
 const SERVICE_README = path.join(SKILL_DIR, 'runtime', 'tutor', 'README.md');

@@ -47,7 +47,8 @@ case where guessing is a coin flip.
 
 - Search the web: "best interactive {subject} tutorial", "explorable explanation {subject}"
 - Identify what existing interactive teaching does well for this subject
-- Determine which teaching acts this subject is made of — not all subjects need the same tools
+- Determine what this subject is made of — processes, structures, quantities, things to operate —
+  because not all subjects need the same tools
 
 Record the sources worth returning to in `RESOURCES.md`, using
 [the Resources format](./formats/resources.md). Until it is well populated, finding good sources
@@ -55,11 +56,12 @@ Record the sources worth returning to in `RESOURCES.md`, using
 
 ## 4. Select the tech stack
 
-Walk [the selection guide](./UNIT.md#choosing-a-component) by teaching act and settle which
-Components this subject actually earns. Four of them are already installed; every other teaching
-act on that list is one you build here, and a subject-specific tool — the Web Audio API for music
-theory, a step-by-step visualiser for algorithms — is found by searching for it now rather than
-by expecting it to be there.
+Take two or three passages this subject will actually have to teach and run each through [the
+derivations](./UNIT.md#the-derivations) — the gates first, because most passages come out of them
+wanting nothing at all. What survives is a description of an interaction; match those against what
+`assets/` already holds, and whatever is left over is what this subject earns. A subject-specific
+tool — the Web Audio API for music theory, a step-by-step visualiser for algorithms — is
+something you go and search for now rather than expect to be sitting there.
 
 Settle this by subject, not by appetite. A philosophy course and an algorithms course should not
 end up with the same tooling, and most subjects earn fewer tools than the first plan gives them.

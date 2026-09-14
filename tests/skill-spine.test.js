@@ -90,18 +90,32 @@ const CLASSIFIES = [
 ];
 
 /**
- * The Component that asks for a prediction, as the three places the authoring
- * reference offers it — the move it comes from, the row a teaching act is
- * chosen on, and the row in the shipped table. Each is a place the Teacher
- * decides to reach for it, so each has to carry the judgement rather than an
- * invitation. The markup lines naming the same files are not offers and are
- * matched by none of these.
+ * Wherever the authoring reference names a prediction in its own prose, it is
+ * offering one — a place the Teacher decides to reach for it — so each of those
+ * places has to carry the judgement rather than an invitation.
+ *
+ * Read as a rule over the document rather than as a list of places in it. The
+ * list version named three: the move the Component came from, the row a
+ * teaching act was chosen on, and the row in the shipped table. Two of the
+ * three were table rows, and both tables are gone — a list would now be one
+ * entry long, and a list one entry long is a check that stops seeing the next
+ * place the offer is written.
  */
-const OFFERS_A_PREDICTION = [
-  { where: 'the move it comes from', re: /\*\*Predict, then reveal\.\*\*/ },
-  { where: 'the teaching act it answers', re: /^\|.*\|\s*Predict-reveal\s*\|/i },
-  { where: 'the row in the shipped table', re: /^\|\s*\*\*Predict-Reveal\*\*/ },
-];
+const NAMES_A_PREDICTION = /\bpredict(?:ion|ions|ed|ing|s)?\b/i;
+
+/**
+ * Markup is not an offer. The page skeleton links the Component's stylesheet
+ * and loads its script, and the from-disk table names the same script as an
+ * example of what a browser will fetch; all three tell an author what to type
+ * rather than proposing that they ask for a prediction.
+ *
+ * Recognised by the tag brackets **alone**. The first version also excused any
+ * line naming an `assets/…` path, which is wider than markup: a sentence
+ * offering a prediction would have escaped the check by citing the file it lives
+ * in. Every markup line that names this Component carries a tag, so the narrower
+ * test loses nothing.
+ */
+const isMarkup = (text) => /[<>]/.test(text);
 
 /** The terms `CONTEXT.md` defines under one of its `###` groupings. */
 function glossaryTerms(grouping) {
@@ -483,23 +497,32 @@ test('the Component that asks for a prediction is offered on the same judgement'
   assert.doesNotMatch('Where you can write down the wrong answer the learner will give', INVITATION,
     'this check reads the description that replaced it as an invitation too');
 
-  const lines = logicalLines(authoring);
+  // Guard the recogniser on both sides, on lines written to be obviously
+  // synthetic: one that read markup as an offer would demand the judgement in a
+  // `<script>` tag, and one that read no offer at all would pass this for free.
+  const offered = ({ text }) => NAMES_A_PREDICTION.test(text) && !isMarkup(text);
 
-  for (const { where, re } of OFFERS_A_PREDICTION) {
-    const found = lines.filter(({ text }) => re.test(text));
-    assert.equal(found.length, 1, `expected ${where}, found ${found.length} lines`);
+  assert.ok(offered({ text: 'Ask for a prediction when the intuition is nameable.' }), 'prose is an offer');
+  assert.ok(
+    offered({ text: 'Reach for a prediction — `assets/predict-reveal.js` — where intuition is wrong.' }),
+    'a sentence that happens to cite a path is still prose',
+  );
+  assert.ok(!offered({ text: '<script src="../assets/predict-reveal.js"></script>' }), 'markup is not');
 
-    const [{ line, text }] = found;
-    assert.ok(!INVITATION.test(text), `${where} (UNIT.md:${line}) still offers it for anything at all`);
-    assert.match(
-      text,
-      WRITABLE,
-      `${where} (UNIT.md:${line}) does not say what makes the question worth asking`,
-    );
+  const offers = logicalLines(authoring).filter(offered);
+
+  assert.ok(
+    offers.length >= 2,
+    `the authoring reference should name a prediction where it proposes one, found ${offers.length}`,
+  );
+
+  for (const { line, text } of offers) {
+    assert.ok(!INVITATION.test(text), `UNIT.md:${line} still offers it for anything at all`);
+    assert.match(text, WRITABLE, `UNIT.md:${line} does not say what makes the question worth asking`);
     assert.match(
       text,
       /wrong|misread|mistak/i,
-      `${where} (UNIT.md:${line}) does not name a wrong answer as what is being confronted`,
+      `UNIT.md:${line} does not name a wrong answer as what is being confronted`,
     );
   }
 });

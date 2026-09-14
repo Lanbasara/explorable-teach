@@ -6,9 +6,9 @@
 //
 // So the rule here is a promise about promises: **naming an `assets/…` path in
 // a shipped document or template is a promise that the scaffold installs it.**
-// The selection guide in `UNIT.md` now writes a path only for a Component the
-// plugin ships, and names every other one by the teaching act it performs — so
-// what reaches this check is exactly what the guide promised.
+// `UNIT.md` no longer lists the Components at all — it sends the Teacher to read
+// the Workspace's own `assets/`, which is the one list that cannot be wrong — so
+// every path that reaches this check is one a document wrote on purpose.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

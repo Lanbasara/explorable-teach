@@ -4,6 +4,39 @@
 
 ### Changed
 
+- **What a passage needs is derived from the passage, instead of selected from a table.** Both
+  tables leave the authoring reference — the eleven teaching acts each routed to what to reach
+  for, and the shipped Components with their file paths. Indexing by teaching act rather than by
+  library was the right direction and is not being reversed; what a table cannot fix is that it is
+  read *before* writing, so it decides the answer, and the two commonest true answers are not rows
+  at all: *this passage needs nothing*, and *this passage needs something nobody has built*. In
+  their place the decision runs one way. **Two gates** come first and are expected to stop most
+  passages — say in one sentence what the Learner must leave believing and stop if prose or an
+  annotated picture can produce it; draft the interaction, delete it, reread the passage, and if
+  the argument still stands it was decoration. *Default to minimal* survives as the first of
+  those, restated as a question with an answer. That **nothing** is the commonest result is
+  written down beside them, because an author who derives nothing has to be able to tell "I found
+  nothing" from "I did not look hard enough".
+- **Ten derivations, each a question asked of the material.** What survives the gates goes through
+  them in order, and each carries its trigger question, the form it outputs, whether that output
+  is reusable plumbing or subject-specific content, and **the cheapest version that still does the
+  teaching**. That last one is load-bearing rather than a concession: a static strip of frames
+  often beats a slider because the comparison is then simultaneous rather than remembered, and a
+  stepper over a precomputed run preserves what a simulation teaches at a fraction of the cost.
+  What comes out is a **description** of an interaction and never a Component name, and the set
+  says it is open — a passage whose need none of the questions asks is one that earns a Component
+  written for this subject. The five moves are gone: where one was carrying something real it
+  survives as a derivation with a trigger in front of it.
+- **The match against what exists happens afterwards, with three named outcomes.** A description
+  in hand, the Teacher reads the Workspace's own `assets/` and each Component's head comment —
+  the one copy that cannot drift from the code — and lands on **reuse**, **build** or
+  **nothing**, all three of them normal. So the reference no longer carries a second list of what
+  ships, which was already wrong: the first-run document claimed four Components were installed
+  when six were. An **anti-pattern** list accompanies the derivations, each form with the reason
+  it fails — a rotatable scene with no variable that changes the claim, a control whose
+  consequence is off-screen, an open sandbox before the Learner has a question, a prediction with
+  no nameable prior, scroll that only advances time, an abstraction with no way back down to a
+  concrete case, and simulating a three-step process.
 - **A Lesson can serve its own local assets.** The Tutor service's media-type table admitted ten
   extensions, so a Lesson could reach a renderer on a CDN and not the model it renders: geometry,
   audio, video, typefaces, the modern image formats and a Lesson's own module or dataset were all

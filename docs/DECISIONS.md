@@ -1483,6 +1483,86 @@ allowlist is the first gate, so the containment check, the symlink check and the
 never had anything to say about a `.glb` before, and each 404 is paired with an honestly placed
 `.glb` that does come back, or the check is one on a service that refuses everything.
 
+## 39. The interaction is derived from the passage, and most passages earn none
+
+**Decided:** both tables leave the authoring reference — the teaching-act table and the
+shipped-Components table. In their place the decision runs in one direction: **two gates**, then an
+ordered set of **derivations**, then a match of what came out of them against the Workspace's own
+`assets/`, with three named outcomes — **reuse**, **build**, or **nothing** — and an
+**anti-pattern** list beside it. The gates are: state in one sentence what the Learner must leave
+believing, and stop if prose or a static picture can produce that belief; draft the interaction,
+delete it, reread the passage, and if the argument still stands it was decoration. What survives
+produces a *description* of an interaction, never a Component name.
+
+**Why a table indexed the right way still had to go.** Decision 22 moved the catalog from a shelf
+of libraries to a column of teaching acts, which was the right direction and is not being
+reversed. What it could not fix is that a table is read *before* writing, so it decides the
+answer: the author scans eleven rows, finds the one this material most nearly fits, and builds
+that. The two commonest true answers are not expressible as rows — *this passage needs nothing*,
+and *this passage needs something nobody has built* — so a Teacher reading the table had no way
+to arrive at either. And a list of interactions is, in practice, a list of things that are
+pleasant to build, which is the failure this genre is known for and the one decision 3 exists to
+resist. Decision 3's rule survives as the first gate, restated as a question with an answer:
+*what can the Learner not understand without this interaction?*
+
+**Why the gates come first, rather than being a caveat under the list.** *Default to minimal* sat
+below the table and was therefore read after it, which is the wrong way round for a rule whose
+job is to stop you: by the time you read it you have already chosen the row, and the rule is
+something to argue against rather than a decision to make. Stated first and given two concrete
+tests, it is the common path — and that it is the common path is now written down, because an
+author who derives nothing has to be able to tell "I found nothing" from "I did not look hard
+enough".
+
+**Why the output is a description rather than a Component name.** Naming a Component is the lookup
+happening one step further in: a derivation that answers *reach for Predict-reveal* has decided
+what to build before anyone has looked at what exists, and the answer cannot then come out as
+*nothing*. A description — what the Learner does, what changes on screen, what they should
+conclude — is the first artifact that can be priced, and pricing it against what the passage
+actually claims is where the third outcome comes from. That is also why the match happens
+afterwards and reads the *directory* rather than a document: `assets/` is what this course has,
+and each Component's head comment is documentation that cannot drift from the code it sits above.
+A table of shipped Components in the reference was a second copy of both, and it was already
+wrong — `FIRST-RUN.md` still said four of them were installed when six were.
+
+**Why the cheapest honest version is part of every derivation.** It is load-bearing rather than a
+concession. A static strip of frames often beats a slider, because the comparison is then
+simultaneous rather than remembered; a stepper over a precomputed run preserves what a simulation
+teaches at a fraction of its cost. Without that line each derivation names the most expensive form
+of itself, which is how a page ends up with a simulation of a three-step process — and the Teacher
+reading it has no way to know that the cheap version is often the better teaching rather than the
+compromise.
+
+**Rejected:** keeping the table as a menu with the gates in front of it. The gates would have
+stopped some passages, and every passage that got through would still have been fitted to a row —
+including the ones whose need no row names. A closed list in front of an author is an answer key
+whatever is written above it.
+
+**Rejected:** keeping the five moves. *Interaction before explanation*, *predict then reveal*,
+*show the process*, *sandbox at the end*, *progressive disclosure* were shapes to aim at with
+nothing attached saying when a passage earns one — the same defect decision 37 removed from the
+spine, one document along. Where a move was carrying something real it survives as a derivation
+with a trigger question in front of it; the sandbox is derivation 8's unconstrained end, and
+progressive disclosure is derivation 9 with its trigger stated.
+
+**Rejected:** making the derivations a four-column table of trigger, output, mark and cheapest
+version. It carries the same four facts and reads as the closed list again, scanned from the left
+exactly as before. The shape of the page is part of the decision, which is why the check forbids a
+table row anywhere in the section rather than forbidding the two tables by name.
+
+**Consequence:** `deriving.test.js` holds the direction the section runs in — the order of its
+parts, both tables absent in the spelling they were written in, every ordered entry in the
+derivations carrying all four of its fields with the trigger *asked* rather than stated, three
+named outcomes with none of them marked as the failure, the seven anti-patterns each named and each
+with room for a reason after it — a length proxy, recorded as one — and no line pairing a Component
+with its files.
+
+**Consequence:** the authoring vocabulary in `disclosure.test.js` gains *derivation*, *cheapest*
+and *anti-pattern*, and the prediction check in `skill-spine.test.js` stops being a list of three
+places. Two of those three were table rows, so a list would now be one entry long — and a
+one-entry list stops seeing the next place the offer is written. It reads every logical line that
+names a prediction in its own prose instead, and requires the judgement decision 37 wrote on each
+of them.
+
 ---
 
 ## Where the full record lives

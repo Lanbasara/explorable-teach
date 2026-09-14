@@ -93,8 +93,48 @@ _Avoid_: page, article, tutorial
 
 **Component**:
 A reusable interaction pattern a Lesson is built from (predict-reveal, step animation, simulated
-terminal). Named by the teaching act it performs, not by the library implementing it.
+terminal). Named by the teaching act it performs, not by the library implementing it. What a
+Workspace has is whatever sits in its own `assets/`, and each Component's head comment is its
+documentation — the only copy that cannot drift from the code, which is why no document carries a
+second one.
 _Avoid_: widget, plugin, library
+
+**Interaction gate**:
+One of the two tests a passage passes before any interaction is derived for it: state in one
+sentence what the Learner must leave believing, and stop if prose or a static picture can produce
+that belief; then draft the interaction, delete it, reread the passage, and stop if the argument
+still stands. Both exist to stop a passage, and most passages are stopped. Not a **Checkpoint**,
+which is the gate on a *Unit* and is about the Learner rather than about the page.
+_Avoid_: filter, criterion, hurdle
+
+**Description**:
+What a Derivation yields, and the only thing a Teacher carries into the look at what already
+exists: what the Learner does, what changes on screen, and what they are meant to conclude from
+the change. It names no Component on purpose — a Component named before the Workspace has been
+looked at has decided both the reuse question and the cost question in advance.
+_Avoid_: spec, requirement, design
+
+**Derivation**:
+A question asked of one passage which, when it fires, yields a *description* of an interaction —
+what the Learner does, what changes, and what they are meant to conclude — and never a Component
+name. Each one carries its trigger question, the form it outputs, whether that output is reusable
+plumbing or subject-specific content, and the cheapest version that still teaches. Read after the
+two gates, and never as a list before writing: a list read first decides the answer.
+_Avoid_: catalog row, teaching-act row, move
+
+**Decoration**:
+An interaction whose deletion leaves the passage's argument standing — the verdict of the second
+gate rather than a matter of taste, since the test is to draft it, delete it, and reread the
+passage. It is a measured negative rather than a neutral, because it spends the attention the
+explanation needs.
+_Avoid_: eye candy, polish, flourish
+
+**Cheapest version that still teaches**:
+The least expensive form a description can take without losing what it teaches: a static strip of
+frames rather than a slider, a stepper over a precomputed run rather than a simulation. It is
+load-bearing rather than a concession — a comparison laid side by side is simultaneous rather
+than remembered, so the cheap form is often the better teaching as well as the smaller one.
+_Avoid_: MVP, simplest thing that works
 
 **Explorable**:
 A Lesson that teaches by letting the learner manipulate the subject before it is explained.
@@ -165,7 +205,8 @@ _Avoid_: quiz, question, practice
 
 **Checkpoint**:
 The gate on a Unit, judged by the page at the Unit's end. Measures whether the Unit can be
-closed.
+closed. The word *gate* is also spent on the two **Interaction gate**s, which stop a passage
+rather than a Learner; where either could be meant, say which.
 _Avoid_: test, review, assessment
 
 **Assignment**:

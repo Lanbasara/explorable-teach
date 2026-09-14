@@ -24,7 +24,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
-const { foldedDoc, SKILL_DIR } = require('./helpers/docs.js');
+const { foldedDoc, absentFrom, carriedTogether, SKILL_DIR } = require('./helpers/docs.js');
 const { sections } = require('./helpers/markdown.js');
 const { mediaTypes } = require('./helpers/tutor.js');
 
@@ -33,13 +33,6 @@ const { mediaTypes } = require('./helpers/tutor.js');
 // a line — and because folding makes one logical line one line of the string,
 // which is what lets a check require several patterns to arrive *together*.
 const UNIT = foldedDoc(SKILL_DIR, 'UNIT.md');
-
-/** Every entry of `list` whose pattern is absent from `text`, named. */
-const absentFrom = (list, text) => list.filter((e) => !e.re.test(text)).map((e) => e.what);
-
-/** True when one logical line of `text` carries every pattern in `list`. */
-const carriedTogether = (text, list) =>
-  text.split('\n').some((line) => list.every((e) => e.re.test(line)));
 
 /**
  * The one section that owns imagery, and the part of it before the first
@@ -62,9 +55,9 @@ function imagery() {
  *
  * `sections` runs a body to the next heading at the level it was asked for, so
  * the last subsection of a section bleeds into whatever follows the section
- * itself — here, the whole of the Component selection guide down to its first
- * subsection, which is material these checks make no claim about and could
- * match a pattern in by accident.
+ * itself — here, the opening of the section that derives an interaction from the
+ * material, which is material these checks make no claim about and could match a
+ * pattern in by accident.
  */
 function part(re, what) {
   const found = sections(UNIT, 3).filter((s) => re.test(s.title));

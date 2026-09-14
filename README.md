@@ -84,12 +84,23 @@ This is why the state files are not bookkeeping. They are the handoff.
 
 ### Interactivity is a tool, not a decoration
 
-The catalog is a list of teaching acts rather than a shelf of libraries — *confront an intuition
-before explaining it*, *walk one process through its stages*, *teach an order that is the
-knowledge*, *let the learner run the thing being taught* — so you pick the row you are actually
-in. The rule on top of it is **default to minimal**: before adding anything, answer *what can the
-learner not understand without this interaction?* If there is no answer, plain prose and one good
-question beat a WebGL scene.
+There is no catalog to pick a component off, deliberately: a list read before writing decides the
+answer, and a list of interactions is in practice a list of things that are pleasant to build. So
+what a passage needs is **derived** from the passage. Say in one sentence what the learner must
+leave believing — if prose or an annotated picture can produce that belief, that is the answer.
+Then draft the interaction, delete it, and reread the passage: if the argument still stands, what
+was deleted was decoration. Most passages come out of those two gates with nothing, which is the
+result rather than a failure to find one, and a lesson of good typography, one drawing and one
+exercise is a finished lesson.
+
+What survives goes through questions asked of the material — *is there a number here the claim
+depends on? does the learner have to know what happens between the start and the end? would
+getting these in the wrong order* be *the misunderstanding?* — and each of those comes with the
+cheapest version that still does the teaching. That last part is load-bearing rather than a
+concession: a static strip of frames often beats a slider, because the comparison is then
+simultaneous rather than remembered, and a stepper over a precomputed run preserves what a
+simulation teaches at a fraction of its cost. Beside them is a list of the forms that look
+impressive and teach nothing, each with the reason it fails.
 
 The stack is picked per subject, on the first run. A philosophy course and an algorithms course
 should not end up with the same tooling.
@@ -107,8 +118,8 @@ things an author types — a module script or a `fetch` aimed at a sibling file,
 from a relative path — and a CDN is on none of it. Each shipped component degrades to plain
 readable text with scripting off; and every interaction has a keyboard and a touch path, not just
 a drag.
-Every other teaching act on the list is built on demand, for the subject that needs it, so the
-catalog names no file the plugin does not ship.
+Anything else is built on demand, for the subject that needs it — and no document lists what a
+course has, because the course's own `assets/` is that list and it cannot be out of date.
 
 ## The tutor
 

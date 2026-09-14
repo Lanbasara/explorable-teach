@@ -22,6 +22,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — including a Lesson's own local assets, with both ways round it — and no longer ban a technology, nor sell serving on a restriction it does not lift |
 | `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
+| `tests/deriving.test.js` | The authoring reference derives an interaction from the passage instead of selecting one off a list — gates first, derivations that each carry their trigger question and their cheapest honest version, a match against the Workspace's own assets with three named outcomes, and the anti-patterns beside them |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
@@ -205,6 +206,13 @@ linesMentioning(SKILL, 'tutor');          // every mention, with the line it sta
 sentencesOf(SKILL);                       // every sentence, wrapping folded back out
 ```
 
+`tests/helpers/docs.js` holds what sits on top of it for the suites that assert on *what a
+document says*: `foldedDoc` reads one with its wrapping folded back out, `absentFrom` names which
+entries of a list of claims the document is missing, and `carriedTogether` answers whether one
+logical line carries all of them — which is the difference between a claim and two remarks made
+in the same breath. All three live there for one reason: three suites now read documents, and a
+reading rule kept in three copies is one that can disagree with itself.
+
 Everything here walks the document through one `eachLine`, so there is **one** rule for what
 fenced code is. Three copies of that rule had drifted into three different spellings before
 review caught it, which is how a parser ends up disagreeing with itself about what a heading is.
@@ -231,8 +239,8 @@ orphan carries no words, which is what makes it harmless — but it means a coun
 floor to guard an observer with, not a measurement of prose.
 
 **Slugging replaces each space, never a run of them.** Dropping the `—` in
-`Shipped Components — already…` leaves *two* spaces, and GitHub hyphenates both, so the real
-anchor is `shipped-components--already…`. Collapsing them — which this did until review caught
+`The two gates — most passages…` leaves *two* spaces, and GitHub hyphenates both, so the real
+anchor is `the-two-gates--most-passages…`. Collapsing them — which this did until review caught
 it — inverts the check: the correct link fails and the broken one passes.
 
 ## The running Tutor service
@@ -655,19 +663,20 @@ by pointer rather than by in-document anchor — the branch is the only route th
 one place the pointer has to be.
 
 **Unit authoring is not in the main document.** `UNIT.md` holds the forms, the page conventions,
-the Component selection guide and the navigation rules, and the check reads `SKILL.md` for the
+the derivation of an interaction and the navigation rules, and the check reads `SKILL.md` for the
 vocabulary only an authoring reference uses — markup, asset filenames, CDN hosts, `type="module"`,
 `crossorigin`, `new Worker(`, `is-live`, the stand-in sentence a picture carries, a Component's
-`Deps:` declaration, a Lesson's numbering, a borrowed image's licence, and the coarse grid and
-monospace label a hand-drawn diagram is held to. Same shape as the runbook check below it, and
-guarded the same way: every pattern must be found in `UNIT.md`, or the check is describing no
-authoring material.
+`Deps:` declaration, a Lesson's numbering, a borrowed image's licence, the coarse grid and
+monospace label a hand-drawn diagram is held to, and the derivations, the cheapest version of one
+and the anti-patterns beside them. Same shape as the runbook check below it, and guarded the same
+way: every pattern must be found in `UNIT.md`, or the check is describing no authoring material.
 
 That vocabulary tracks the document, not the reverse: it read `Tier N` until the catalog stopped
 being tiered, and the guard failed on the spot rather than going on passing while looking for
 words nobody writes. Four entries arrived the same way when the ban on ES modules became a list
 of what an author types that breaks from disk, one when the Teacher gained a pass to run over the
-page it had just written, and the last three when it gained a policy for imagery.
+page it had just written, three when it gained a policy for imagery, and the last three when
+choosing a Component off a table became deriving a description from the passage.
 
 **The skill root is the main document and the documents it points at.** Every `.md` beside
 `SKILL.md` must be one of the disclosed documents, which are already required to exist, carry
@@ -859,6 +868,69 @@ broken across two lines and nothing that reads raw lines can see it. Both docume
 through one folding reader, in `helpers/docs.js`: two copies of a reading rule is how a reader ends
 up disagreeing with itself, which is the defect the Markdown module's own head comment records.
 
+## The derivation check
+
+`deriving.test.js` has the same kind of subject as the from-disk and imagery checks — whether a
+document is **right** — and it is about the shape of a decision rather than about a fact. Deciding
+what a passage needs was a table of eleven teaching acts, each routed to what to reach for.
+Indexing by teaching act rather than by library was the right direction, and the defect it left is
+structural: a table is read *before* writing, so it decides the answer, and the two commonest true
+answers — *this passage needs nothing*, and *this passage needs something nobody has built* — are
+not expressible as rows. Decision 39 has the reasoning.
+
+**Both tables are gone, in the spelling they were written in.** The two row patterns are kept in
+the test file rather than in a document, for the reason the from-disk check keeps the ban it
+forbids: the document they came from no longer has them, so a pattern with nothing to see would be
+a check that cannot fail.
+
+**The derivations are not a table wearing another shape**, which is the half that matters. Four
+columns of trigger, output, mark and cheapest version carry the same facts and read as the closed
+list again, so **no table row may appear anywhere in the section** — not the two by name.
+
+**The gates are first, and the order of the parts is asserted.** A document stating the gates
+after the derivations has the Teacher deciding what to build and then asking whether to build
+anything, which is a decision it would defend rather than make. The match against what exists has
+to come after the derivations for the same reason: a description is the first artifact that can be
+priced, and *nothing* stops being reachable once a Component has been named.
+
+**"This passage needs nothing" arrives on one logical line, which is one paragraph.** Both halves
+are required and neither is enough: that most passages stop at the gates is a measurement, and
+that stopping is a legitimate place to stop is the permission an author needs in order to act on
+it. Said in separate paragraphs, the second reads as consolation.
+
+**Every ordered entry in the derivations carries all four of its fields** — the question it asks
+of the passage, the form it outputs, whether that output is reusable plumbing or subject-specific
+content, and the cheapest version that still teaches. Two of the four are held to more than their
+label: the trigger has to contain a question mark, because a trigger stated rather than asked is a
+row describing a thing to build, and the mark has to name *plumbing*, *content* or *neither* after
+its label rather than merely carrying it. Reading every entry is also what holds the five moves
+out: a surviving move is an ordered entry with no trigger question, so it fails as an incomplete
+derivation rather than needing a check of its own.
+
+**Three outcomes, all of them named and none marked as the failure.** *Reuse*, *build* and
+*nothing*, with the sentence that they are all normal on the same line as the third of them — a
+three-outcome decision whose third outcome reads as the other two having failed is a two-outcome
+decision.
+
+**The Teacher is sent to the directory and to the head comments.** `assets/` is what a course has
+and a Component's head comment is documentation that cannot drift from the code above it, so the
+match part has to name both and say why the copy in the code is the one to trust.
+
+**The seven anti-patterns are each named, and each has room for a reason after it.** The names are
+patterns; the reason is a **length proxy** and is recorded as one — nothing here can read whether
+a sentence is a reason. What the proxy catches is the shape the list would collapse into, a bare
+bullet per form, which is what the imagery bans were written against.
+
+**No line pairs a Component with its files** — the shape of the `Files` column the shipped table
+carried. Read against this section rather than the whole document, and markup is exempt: it is
+recognised by the tag brackets alone, since the `assets/…` paths are what this check is made of.
+Both bounds are recorded under "What is deliberately not tested" below.
+
+Every check here reads `UNIT.md` with its hard wrapping folded back out, through the shared
+Markdown reader, because every claim it makes is about a sentence rather than a line. The section
+is found by its heading and each part of it is bounded at the next heading of *any* level — the
+bound the from-disk check arrived at the hard way, applied here in advance.
+
 ## The spine check
 
 `skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
@@ -927,11 +999,21 @@ classification nobody wrote is not evidence of anything.
 `UNIT.md`, which is otherwise the disclosure check's business, and it reads it because the spine's
 sentence and the Component's description are one claim: a claim held in two documents is one that
 can drift, and this pair had already drifted apart — the Component was offered for *anything where
-intuition can be wrong*, which an author believes about every passage it has just written. All
-three places the reference offers it have to name the test instead, and none may offer it for
-anything at all. The markup lines naming the same files are not offers, and the selectors match
-none of them — each has to find exactly one line, so a reworded table cannot make this check pass
-by matching nothing.
+intuition can be wrong*, which an author believes about every passage it has just written.
+
+It reads a rule over the document rather than a list of places in it, and that is the second
+shape it has had. The first named three — the move the Component came from, the row a teaching act
+was chosen on, and the row in the shipped table — and two of the three were table rows, so the
+day both tables left, a list would have been one entry long. A one-entry list is a check that
+stops seeing the next place the offer is written. So every logical line that names a prediction in
+its own **prose** has to carry the judgement and may not offer it for anything at all. Markup is
+not an offer and is excluded by the tag brackets alone, since the page skeleton links the
+Component's stylesheet and the from-disk table names its script. **Alone** is the correction
+review made: the first version also excused any line naming an `assets/…` path, which is wider
+than markup — a sentence offering a prediction would have escaped by citing the file it lives in.
+The recogniser is guarded on three sides, because one that read markup as an offer would demand
+the judgement inside a `<script>` tag, one that read a path-citing sentence as markup would let a
+real offer through, and one that read no offer anywhere would pass for free.
 
 ## The decoupling check
 
@@ -1031,14 +1113,15 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   writes resolve *there*. `assets.test.js` covers the part that matters — every `assets/…` path
   either one names must exist in a scaffolded Workspace.
 - **The Components the Teacher builds are not checked**, because there is nothing there to
-  check. Every file the selection guide names is one the plugin ships — the shipped Components,
-  the shared stylesheet, the bootstrap — and every other row names a teaching act and what to
-  reach for, which resolves to no file at all. (No count here on purpose: a number written into
-  prose is a fact this file does not own, and it was already one behind before it was two.) The underlying rule is unchanged and still enforced: an
-  `assets/…` path in any shipped document is a promise that the scaffold installs it, so writing
-  a row with that prefix is how a Component opts into `assets.test.js`. Nothing stops a future
-  row naming `scrolly.js` as a bare filename — that would be invisible here, and it is also what
-  the guide was rewritten to stop doing.
+  check. No document lists what a Workspace has any more — the authoring reference sends the
+  Teacher to read `assets/` and each Component's head comment — so the only `assets/…` paths left
+  in the documents are the ones a page is shown linking, and the plugin ships every one of them.
+  (No count here on purpose: a number written into prose is a fact this file does not own, and it
+  was already one behind before it was two.) The underlying rule is unchanged and still enforced:
+  an `assets/…` path in any shipped document is a promise that the scaffold installs it, so
+  writing one is how a Component opts into `assets.test.js`. Nothing stops a document naming
+  `scrolly.js` as a bare filename — that would be invisible here, and it is also what the
+  reference was rewritten to stop doing.
 - **No browser runs any of this.** The fixture DOM dispatches events and mutates the tree; it
   computes no styles and lays nothing out. `components.test.js` checks that every class a
   Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,
@@ -1057,6 +1140,13 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   already bought elsewhere and better — a Teacher opens the real page, on the real service, once
   per Lesson. What the suite must never do is *simulate* enough of a browser to look like it
   covers this; the stub page is deliberately small enough that nobody could mistake it for one.
+- **A catalog could come back outside the section that had one.** The check that no line pairs a
+  Component with both of its files reads the derivation section, not the whole document, and that
+  bound is the honest one: elsewhere a paragraph naming both files is an author being told what to
+  type — the Checkpoint page links two stylesheets and loads two scripts — which is instruction
+  rather than a list. A table of shipped Components rebuilt under some other heading would be
+  caught only if it used one of the two removed spellings. What is checked in full is the positive
+  half: the reference has to send the Teacher to `assets/` and to each head comment.
 - **A format nobody has named yet is offered for free.** The half of the imagery check that
   forbids offering an image format the service will not serve recognises formats from a fixed list
   written into the test — there is no registry of them to read instead — so a document offering

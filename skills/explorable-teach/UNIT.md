@@ -25,8 +25,8 @@ carrying meaning — think Tufte. The learner will come back to these to review.
 
 Every Lesson:
 
-- uses **1-3 Components** — pick what fits from [the selection guide](#choosing-a-component),
-  don't use everything;
+- uses **no more than three Components, and often none** — what a passage earns is [derived from
+  the material](#deriving-the-interaction-from-the-material) rather than picked off a list;
 - **shows** what it can rather than describing all of it — [draw the
   diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) beside the prose, and
   reach for that before reaching for an interaction;
@@ -60,7 +60,7 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
   <link rel="stylesheet" href="../assets/predict-reveal.css">
 </head>
 <body>
-  <!-- Content using 1-3 Components -->
+  <!-- Content, using whatever Components this Lesson earned — often none -->
 
   <!-- Library deps, if a Component needs one — an https CDN, pinned, never @latest -->
   <!-- Component JS for the Components this lesson uses, e.g.: -->
@@ -309,114 +309,223 @@ sits off the page, no label is covered or overlapping, the text can be read agai
 it — and each of those three carries a documented misread, so read them off the file before
 trusting a verdict.
 
-## Choosing a Component
+## Deriving the interaction from the material
 
-A Component is named by the teaching act it performs, never by the library underneath it. So the
-way into this section is *what am I trying to make the learner do?* — and what the thing is built
-out of, if it is built out of anything, is the last question rather than the first.
+What a passage needs is **derived** from the passage, never selected from a list. A list read
+before writing decides the answer: you scan it, find the row this material most nearly fits, and
+build that — which is how a genre whose reputation is decorative interactivity earned the
+reputation. A list is also, in practice, a list of things that are pleasant to build.
 
-Five moves, inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
+So what follows is an interrogation of the material, and it runs in one direction: two gates,
+then a set of questions asked *of the passage*, then — and only then — a look at what already
+exists. What comes out is a **description** of an interaction, or nothing at all.
 
-1. **Interaction before explanation.** Let the learner *discover* through interaction, then name
-   what they found.
-2. **Predict, then reveal.** Ask for a prediction before showing how something works. Cognitive
-   conflict — a wrong prediction meeting the real answer — is the strongest learning signal there
-   is, and it arrives only when there was a real prediction to be wrong: ask when you can write
-   down the wrong answer the learner is likely to give, and not when you cannot. See
-   [interaction before explanation](./SKILL.md#interaction-before-explanation).
-3. **Show the process, not the result.** Animate *how* something happens, step by step.
-4. **Sandbox at the end.** Leave a space for free exploration.
-5. **Progressive disclosure.** One concept at a time; each interaction adds one layer.
+### The two gates — most passages stop here
 
-**Default to minimal.** Before adding any interactive Component, answer one question: *what can
-the learner not understand without this interaction?* No answer means do not add it. Interactivity
-is for what prose cannot teach — never for how the page looks, never to demonstrate what you can
-build, and never because a page feels too plain. If plain text and one Exercise teach the concept
-well, they are the right answer rather than a lesser one, and a Unit about philosophy needs good
-typography and a question worth arguing with, not a 3D engine.
+Both run before anything is built, and both exist to stop you.
 
-### From teaching act to Component
+1. **Say what the Learner must leave believing**, in one sentence. Then ask what would produce
+   that belief. If prose can produce it, or an annotated picture can — [draw the
+   diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) — then **stop**: you
+   have your answer, and it is cheaper, steadier and likelier to be right than anything
+   interactive. This is *default to minimal* as a question you can actually answer: *what can the
+   Learner not understand without this interaction?* No answer means there is nothing to build.
+2. **Draft the interaction, delete it, and reread the passage.** A sentence describing it is
+   draft enough. If the argument still stands without it, what you deleted was decoration — it
+   was spending the Learner's attention rather than carrying meaning, and attention is the one
+   currency a Lesson is short of. Keep it deleted.
 
-Read the left column first and stop at the row you are actually in. A row you cannot place
-yourself in is a Component this Unit does not need.
+**Most passages come out of the two gates with nothing, and nothing is the result rather than a
+failure to find one.** Prose and a static picture teach most things better than an interaction
+does, and a Lesson made of good typography, one drawing and one Exercise is a finished Lesson
+rather than a thin one. A Unit about philosophy needs a question worth arguing with, not a 3D
+engine. Subjects differ in how much of this they earn, so if the learner asks for more or less
+interactivity, respect that and record it in `NOTES.md`.
 
-| What you are trying to do | Reach for | Where it comes from |
-|---------------------------|-----------|---------------------|
-| Confront an intuition before explaining it — where you can write down the wrong answer the learner is likely to give | Predict-reveal | Shipped |
-| Check that an idea landed, the moment it lands | Exercise | Shipped |
-| Walk one process through its stages — `fork`/`exec`, a TCP handshake, a request's life | Step animation | Shipped |
-| Teach an order that *is* the knowledge — pipeline stages, protocol steps, a proof's line | Drag ordering | Shipped |
-| Find out whether a Unit may be closed, once it is over | Checkpoint | Shipped |
-| Send a task out into the learner's real work and get it judged | Assignment | Shipped |
-| Let the learner run the thing being taught — a shell, a query, a snippet, a synth | A playground for that subject, which unconstrained is also the sandbox a Lesson ends on | You build it |
-| Show a structure they have to hold in their head — a process tree, a memory layout | A diagram they can manipulate | You build it |
-| Show how a set of things relate — dependencies, a state machine, an architecture | A graph they can rearrange | You build it |
-| Carry one argument through a long descent — a history, an evolution, a philosophy | A page that reveals as it scrolls | You build it |
-| Make a fact survive to next month — notation, signal names, vocabulary | Scheduled retrieval across later Units — no Component at all | Neither |
+### The derivations
 
-The last row is not an oversight. Retention is a property of *when* material is asked for, so it
-is bought by interleaving earlier material into later Units — see [storage
-strength](./SKILL.md#storage-strength-over-fluency) — and a flashcard box added to one page buys
-none of it.
+What survives the gates goes through these. Each one is a question asked of the passage rather
+than a thing you might like to build, and what it yields is a description of an interaction:
+what the Learner does, what changes on screen, and what they are meant to conclude from the
+change. No Component is named here, because naming one is what turns a derivation back into a
+lookup. The last of them is the exception that shows the direction these run in: its answer is
+that no interaction is what this passage needs, and where the need goes instead.
 
-Subjects differ in how much of this they earn. A subject made of processes and structures earns
-several of these; a historical or philosophical one earns typography, one good question, and
-little else. If the learner asks for more or less interactivity, respect that and record it in
-`NOTES.md`.
+Run them over **one passage at a time**, in the order they are written: the earlier ones are what
+most surviving passages need, so a passage that fires on one of those has usually found its answer
+and can stop there. A Lesson has several passages, so two of them each earning something is
+ordinary, and the ceiling on how many a page carries is [the Lesson](#the-lesson)'s rather than
+this list's. And the set is **open** by construction: a passage whose need none of these questions
+asks is not a passage with no need, it is one that earns [a Component written for this
+subject](#building-a-component-for-this-subject).
 
-### Shipped Components — already in every Workspace
+The last line of each is load-bearing rather than a concession. A static strip of frames often
+beats a slider, because the comparison is then simultaneous rather than remembered; a stepper
+over a precomputed run preserves what a simulation teaches at a fraction of its cost.
 
-These do not vary by subject, so they belong to the plugin rather than to any one Workspace.
-A Workspace holds a *link* at each, not a copy — which is what lets one fix reach every Workspace,
-and also means **editing one in place edits every other learner's course**. Use them as they are.
-When one is nearly right but not right, write a new Component beside it rather than changing it.
-If this subject genuinely has to replace one, delete the link and write a real file in its place:
-the scaffold reads that as a deliberate override and leaves it alone from then on.
+1. **The prediction worth asking for.** *Ask:* can I write down the answer this Learner is
+   likely to give, and is it wrong?
+   - *It produces:* the question put before the explanation, with the real answer arriving beside
+     the Learner's own.
+   - *Plumbing or content:* plumbing — asking and revealing does not vary by subject; the
+     question and the wrong belief it confronts are this subject's.
+   - *Cheapest that still teaches:* one question, one revealed answer, and nothing animated
+     between them.
+2. **The claim that could have been misread.** *Ask:* if the Learner has just misunderstood this
+   sentence, what would they answer?
+   - *It produces:* one question judged the instant it is answered, while the sentence is still
+     on the screen above it.
+   - *Plumbing or content:* plumbing — judging an answer in the page does not vary by subject;
+     the question and its distractors are the content, and writing those is the work. See
+     [Exercises](#exercises).
+   - *Cheapest that still teaches:* one question where the idea lands, rather than a set of them
+     collected at the end where it has stopped being the moment of understanding.
+3. **The shape the prose is walking around.** *Ask:* is there a structure here — a tree, a
+   layout, a set of relations — that the sentences are describing instead of showing?
+   - *It produces:* an annotated picture of it beside the prose; where the edges rather than the
+     boxes carry the argument, a picture the Learner can rearrange.
+   - *Plumbing or content:* content, almost entirely — the drawing is about this subject. Only
+     the *placement* of a large one is generic, which is what the [complexity
+     ceiling](#how-complex-a-hand-drawn-diagram-may-get) is about.
+   - *Cheapest that still teaches:* the static annotated drawing, which is also the most
+     consistently effective format there is. Reach past it only when a position has to change
+     while the Learner watches.
+4. **The quantity whose value changes the conclusion.** *Ask:* is there a number this passage's
+   claim depends on, and does the claim read differently at two of its values?
+   - *It produces:* the Learner setting that number, the claim changing on screen, and the
+     reading they should take away written where the change lands.
+   - *Plumbing or content:* plumbing for the control, content for what it drives.
+   - *Cheapest that still teaches:* three frames at three values, side by side and labelled —
+     a comparison you can see at once beats one you have to hold in your head.
+5. **The stages that are themselves the knowledge.** *Ask:* does the Learner have to know what
+   happens *between* the start and the end?
+   - *It produces:* the stages, one at a time, advanced by the Learner rather than by a clock.
+   - *Plumbing or content:* plumbing — stepping does not vary by subject; the stages are this
+     subject's.
+   - *Cheapest that still teaches:* a stepper over a precomputed run. A simulation computing the
+     same stages live teaches the same thing at an order of magnitude more cost.
+6. **The order that is the mistake.** *Ask:* would getting these in the wrong order *be* the
+   misunderstanding, rather than a symptom of one?
+   - *It produces:* the steps out of order, put back by the Learner, with what goes wrong at
+     each misordering there to read.
+   - *Plumbing or content:* plumbing — reordering does not vary by subject; the steps are this
+     subject's.
+   - *Cheapest that still teaches:* four or five items and a pair of move buttons. Dragging is
+     an affordance rather than the teaching, and it needs the keyboard path anyway.
+7. **The outcome nobody can read off the rules.** *Ask:* can the result be derived by reading
+   the rules? If it can, there is nothing to run.
+   - *It produces:* a run the Learner steers, with the rules it is obeying visible beside it.
+   - *Plumbing or content:* content — the rules *are* the subject, and they are what a Learner
+     is being asked to believe.
+   - *Cheapest that still teaches:* one precomputed run stepped through, and a second from a
+     different starting point beside it.
+8. **The thing the Learner will actually operate.** *Ask:* is what is being taught something
+   they will type at, drive or play — a shell, a query, a synth?
+   - *It produces:* a constrained place to run it inside the Lesson; unconstrained, the same
+     thing is the sandbox the Lesson ends on.
+   - *Plumbing or content:* content, and this is the derivation most likely to earn a library.
+   - *Cheapest that still teaches:* a handful of prepared inputs and a run button. An empty box
+     is the slowest thing in a Lesson to be handed.
+9. **The argument that needs its last picture still on screen.** *Ask:* does each step of this
+   argument depend on the state the step before it left the picture in?
+   - *It produces:* a page that reveals as the Learner moves down it, each step changing the one
+     figure rather than introducing another.
+   - *Plumbing or content:* plumbing for the reveal, content for the figure.
+   - *Cheapest that still teaches:* the sections in order, each with its own figure. Reading is
+     already sequential, so scrolling buys nothing until the *same* figure has to change.
+10. **The fact that has to survive to next month.** *Ask:* is the risk that they will not
+    understand this, or that they will not remember it?
+    - *It produces:* no interaction at all, and an entry in the plan: the fact is asked for
+      again in a later Unit. Retention is a property of *when* material is asked for — see
+      [storage strength](./SKILL.md#storage-strength-over-fluency).
+    - *Plumbing or content:* neither. It is a Curriculum decision, and a flashcard box added to
+      one page buys none of it.
+    - *Cheapest that still teaches:* one retrieval question in the Unit after next, written into
+      that Unit when you plan it.
 
-| Component | Files | Use it for |
-|-----------|-------|------------|
-| **Exercise** | `assets/exercise.js` + `assets/exercise.css` | Checking a concept the moment it is taught |
-| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | Confronting a wrong answer you can write down before it is explained |
-| **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | Multi-stage processes |
-| **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | Sequences where the order is the knowledge |
-| **Checkpoint** | `assets/checkpoint.js` + `assets/checkpoint.css` | Gating a Unit at its end — see [Checkpoints](#checkpoints) |
-| **Assignment** | `assets/assignment.js` + `assets/assignment.css` | Handing in a task done elsewhere — see [Assignments](#assignments) |
+### Then look at what exists: reuse, build, or nothing
 
-Each file's head comment holds the markup its author writes — **read that before using one**, and
-do not re-derive the markup from this table. Every one of them degrades to plain text with
-scripting off.
+With a description in hand, go and look — and look at the Workspace rather than at this document.
+**Read `assets/`.** That directory is what this course actually has, and it is the only list that
+cannot be wrong; a second copy of it here would be a list going stale while the code moved. Every
+Component in it documents itself in its own **head comment**: what it expects, the markup its
+author writes, and what has to be loaded before it. Read the comment of anything that looks
+close, because the markup is not derivable from the outside.
 
-**None of them touches the network, and that constraint is the plugin's rather than a Lesson's.**
-These six are the same bytes in every Workspace, so keeping them free of any dependency is what
-keeps them small and what lets one fix reach every learner at once — a reason that has nothing to
-do with being usable offline. Only the rule addressed to a Lesson you write is loosened, and
-[what breaks when a page is opened from disk](#what-breaks-when-a-page-is-opened-from-disk) is
-the whole of it: a pinned library from a CDN is allowed by it, and is how everything the table
-below sends you off to build gets built.
+Three outcomes — **Reuse**, **Build**, or **Nothing** — and all three of them are normal:
 
-The first four build a Lesson; the last two have pages of their own, reached once the
-Lesson is behind the learner — the Checkpoint gates the Unit, and the Assignment sends a task out
-of it. The Assignment is the one whose verdict does not come from the page: it hands what the
-learner wrote to the in-page drawer and lets that carry it, so with the service stopped it still
-collects a Submission and still hands it over — to the clipboard instead of to a Grader, and it
-says which of the two happened rather than reporting work as judged when it was copied.
+- **Reuse.** Something there already does what the description says. Use it as it is. What the
+  scaffold linked from the plugin does not vary by subject — a Workspace holds a *link* at each,
+  not a copy, which is what lets one fix reach every Workspace and also means **editing one in
+  place edits every other learner's course**. When one is nearly right but not right, write a
+  new Component beside it rather than changing it. If this subject genuinely has to replace one,
+  delete the link and write a real file in its place: the scaffold reads that as a deliberate
+  override and leaves it alone from then on.
+- **Build.** Nothing there fits, and the description is worth what the page costs — [building a
+  Component for this subject](#building-a-component-for-this-subject) is the procedure.
+- **Nothing.** The description survived both gates and a derivation, and then you priced it
+  against what the passage is actually claiming and it is not worth it. That is not the gates
+  having failed to catch it: a description is the first point at which the cost is visible at
+  all. Write the prose and the picture, and move on.
+
+**Nothing linked from the plugin touches the network, and that constraint is the plugin's rather
+than a Lesson's.** Those files are the same bytes in every Workspace, so keeping them free of any
+dependency is what keeps them small and what lets one fix reach every learner at once — a reason
+that has nothing to do with being usable offline. Only the rule addressed to a Lesson you write
+is loosened, and [what breaks when a page is opened from
+disk](#what-breaks-when-a-page-is-opened-from-disk) is the whole of it: a pinned library from a
+CDN is allowed by it, and is how anything you build here gets built.
 
 `assets/style.css` is not a Component: every page links it from `<head>`, and it owns the design
 tokens (`--bg`, `--fg`, `--accent`, …). Everything else reads them and defines none. It is linked
-from the plugin like the Components above, so re-theming one Workspace means a small stylesheet of your
-own in `assets/`, linked after it — not an edit to the one every Workspace shares.
+from the plugin like the Components beside it, so re-theming one Workspace means a small
+stylesheet of your own in `assets/`, linked after it — not an edit to the one every Workspace
+shares.
+
+### Anti-patterns: forms that look impressive and teach nothing
+
+Each of these is something a Session reaches for because it is pleasant to build, and each is
+written with the reason it fails, because a named shape with no reason attached is one that gets
+routed around the first time it is inconvenient.
+
+- **A rotatable scene with no variable that changes the claim.** Rotating is not a variable: what
+  the Learner explores is where the camera is, and they can leave having moved it for a minute
+  without meeting a single thing the passage claims.
+- **A control whose consequence is off-screen.** If moving the slider changes something the
+  Learner cannot see while they are moving it, they are being asked to believe a link they never
+  observe — and the more responsive the control feels, the more convincing the nothing is.
+- **An open sandbox before the Learner has a question.** A blank box is the most expensive thing
+  you can hand someone with nothing to ask of it; it reads as being abandoned rather than
+  trusted. A sandbox is what a Lesson *ends* on, once the material has given them something to
+  try.
+- **A prediction with no nameable prior.** If you cannot write down the wrong answer the Learner
+  is likely to give, what comes back is a guess, and a guess meeting the right answer confronts
+  nothing — there was no belief in the way to be corrected.
+- **Scroll that only advances time.** Tying an animation's clock to the scrollbar makes the
+  Learner the transport rather than the operator; they get a video with a worse control surface,
+  and they cannot go back to one frame and ask why it followed the last.
+- **An abstraction with no way back down to a concrete case.** A general form nobody can
+  instantiate is unfalsifiable to the Learner: they cannot tell whether they understood it, and
+  neither can you, so both of you read the nodding as comprehension.
+- **Simulating a three-step process.** Anything a Learner can hold in working memory is something
+  they can already hold; a simulation of it teaches the simulation. Say it in the prose, draw it
+  if it has a shape, and spend the page on something that does not fit in their head.
 
 ### Building a Component for this subject
 
-Every teaching act above that no shipped Component covers is something **you build**, for this
-subject, into this Workspace's `assets/`. Nothing else is sitting there waiting: a music Unit
-earns the Web Audio API and interactive notation, an algorithms Unit earns a step-by-step
-visualiser, a shell Unit earns a simulated terminal — and each of those exists because a Session
-wrote it, not because the plugin shipped it.
+A description the Workspace has nothing for is something **you build**, for this subject, into
+this Workspace's `assets/`. Nothing else is sitting there waiting: a music Unit earns the Web
+Audio API and interactive notation, an algorithms Unit earns a step-by-step visualiser, a shell
+Unit earns a simulated terminal — and each of those exists because a Session wrote it, not
+because the plugin shipped it.
+
+**Name it after the teaching act it performs, never after the library underneath it.** A name the
+Lesson author can write markup against is one that survives replacing the library; a name that
+carries the library's is an implementation detail in every page that used it.
 
 1. **Read `assets/` first.** Reuse beats reinvention, and a Component already there has a head
    comment telling you what it expects.
-2. **Search for a library only if the teaching act needs one.** What qualifies: it loads from an
+2. **Search for a library only if the description needs one.** What qualifies: it loads from an
    https CDN; it is documented well enough that you can write against it without guessing; and if
    it spawns a worker, it builds that worker from a blob rather than from a URL of its own. A
    module build is fine and so is a classic one — [what breaks when a page is opened from

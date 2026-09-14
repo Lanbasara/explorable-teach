@@ -1,7 +1,9 @@
 /* ============================================================
    predict-reveal.js — ask for a prediction, then show what actually
-   happens. The strongest teaching signal in the catalog: a wrong guess
-   followed by the real answer is what makes the real answer stick.
+   happens. Reach for it where you can write down the wrong answer this Learner
+   is likely to give: that wrong guess meeting the real answer is what makes the
+   real answer stick, and a question whose wrong answer nobody can name collects
+   a guess instead of confronting anything.
    Deps: predict-reveal.css, style.css (design tokens), lesson-boot.js (the
          text it renders, and the word that its tables have all arrived). No
          library, no network, no server: works from file://.
