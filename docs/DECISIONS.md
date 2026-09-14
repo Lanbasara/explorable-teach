@@ -1634,6 +1634,86 @@ elements rule, since the section it belongs to is decision 36's. What neither ca
 a Lesson actually built its diagram out of elements, or whether a transition was short enough;
 that is what opening the page is for.
 
+## 41. Simulate only what can be checked against a known-good result
+
+**Decided:** where a Lesson depicts something real, the claim is checked against a **known-good
+result** while it is being authored, and what it was checked against is recorded in
+`TECH-STACK.md` beside the Component. **Four kinds** qualify — a conserved quantity, a closed-form
+solution, a published worked example with a stated answer, and a reference implementation compared
+step by step. Where the subject admits none of them, **a simulation is not built**: the facts are
+stated with a citation, drawn, and the interaction is limited to **pacing** — stepping, scrubbing,
+revealing.
+
+**Why this rule and not another verification pass.** Everything else in this repo checks whether a
+page *works*. Decision 35's page pass reads whether a box is empty, whether a script threw,
+whether anything was drawn; the suite checks whether the documents still describe reality. None of
+it can see a page that renders cleanly, passes every one of those, and depicts something
+**false** — and nothing else closes that gap, because closing it requires knowing what the number
+in the box *means*. The surveyed corpus of generated interactive pages contains no technique for
+catching it either, which is why this is written as a rule about authoring rather than as another
+check.
+
+**Why a real engine is not the answer, stated in the rule itself.** Reaching for an engine instead
+of hand-rolled arithmetic buys **solver stability** — no tunnelling, no energy injected by a bad
+integration step — and it does not buy **physical truth**. Engines are tuned for plausibility and
+stability, and the mapping from the Lesson's subject to the engine's units, scale and timestep
+stays the author's. An engine would have caught the kart flying off the track; it would not catch
+a Lesson teaching the wrong orbital period — and the most-praised page this genre has produced
+shipped with a physics defect on the launch page of the model being praised for its physics. The
+reasoning is in the document rather than here, because the reading it prevents is one a Teacher
+takes *while deciding*: that the rule is a dependency choice it has already made well.
+
+**Why the fourth kind is named as the one most easily overlooked.** The first three are equations,
+so a Teacher whose subject has no equations reads the list and concludes it has no known-good
+result at all — and then simulates anyway, because the alternative looked like giving up the
+interaction. A reference implementation covers exactly that case: no equation exists, but a
+correct algorithm does, and a correct sort, a correct shortest path or a correct checksum can be
+run and compared. Compared **step by step**, because two implementations agreeing at the end can
+disagree about everything in between, and the in-between is what a Lesson about an algorithm
+teaches.
+
+**Why the no-check case is a prohibition with a form attached.** A sequence of named states — a
+protocol exchange, a biological process — has no invariant to test and nothing to run against, so
+nothing can tell a correct sequence from a plausible one. Said as a prohibition alone it is a
+passage a Teacher has been told not to build with no sanctioned way to teach it, and it gets built
+anyway. Said with pacing beside it, the Learner still moves through the material — through
+**asserted** content rather than **computed** content, with the citation carrying the correctness
+and the page carrying only the explanation.
+
+**Why this is the argument for decision 39's cheapest version rather than a separate rule.** A run
+computed while authoring is a run that can be checked while authoring, against the known-good
+result just named, and what ships is a recording that cannot diverge, blow up or drift in the
+Learner's browser because it already happened. So the cheapest honest version is frequently the
+*correct* one rather than the affordable one — and a live simulation has to be right and stay
+right on hardware the Teacher will never see.
+
+**Rejected:** a section of its own at the end of the authoring reference. This is the line in this
+body of work most likely to be skipped quietly, and a rule a Teacher meets after it has built the
+thing is a rule it reads as an audit. So it sits inside decision 39's section, after the
+derivations that can output a run and before the match against what the Workspace has — with both
+of those derivations linking into it, and the procedure for building a Component linking into it
+from the other side. The recording requirement is the other half of making a skip conspicuous: an
+entry that computes something real and names no known-good result is visibly a run nobody checked,
+where an unwritten check is indistinguishable from one that happened.
+
+**Rejected:** requiring the check to ship — an assertion in the page, a test beside the Lesson.
+The check is about the *mapping* from a subject to code, which is the author's reasoning and not a
+runtime property; a conserved quantity asserted in the page can only report drift in the run that
+already shipped, and the run that ships is a recording. A Learner meeting a failed assertion
+learns nothing they can act on.
+
+**Consequence:** `simulation.test.js` holds the rule — the requirement with the moment it happens
+at on one logical line, the hazard beside it, the four kinds each named with room to say what
+checking against one looks like, the no-check case with its prohibition and its pacing forms in
+one breath, what an engine buys and does not buy in one sentence, and the authoring-time argument
+for the cheap version. Placement is asserted rather than only presence: the rule sits after the
+derivations and before the match, every derivation whose output is a computed run links to it, and
+so does the procedure for building a Component. The authoring vocabulary guard in
+`disclosure.test.js` gains *known-good*, *conserved quantity* and *pacing*; the glossary gains the
+**Known-good result** and **Pacing**; and the `TECH-STACK.md` skeleton the first run hands the
+Teacher gains the column the recording goes in, since a requirement to record something into a
+template with no place for it is a requirement that quietly becomes a note at the bottom.
+
 ---
 
 ## Where the full record lives

@@ -136,6 +136,22 @@ load-bearing rather than a concession — a comparison laid side by side is simu
 than remembered, so the cheap form is often the better teaching as well as the smaller one.
 _Avoid_: MVP, simplest thing that works
 
+**Known-good result**:
+What a run depicting something real is checked against while it is being authored, and what that
+check is recorded as in `TECH-STACK.md`. Four kinds qualify: a conserved quantity, a closed-form
+solution, a published worked example with a stated answer, and a reference implementation compared
+step by step. A real engine is not one of them — it buys solver stability, not physical truth, and
+the mapping from the subject to its units, scale and timestep stays the author's. Where a subject
+admits none of the four, the run is not built; the material gets a citation and **Pacing** instead.
+_Avoid_: oracle, ground truth, validation, sanity check
+
+**Pacing**:
+The only interaction a subject with no **Known-good result** is allowed — stepping, scrubbing,
+revealing. It moves the Learner through *asserted* content rather than through *computed* content,
+which is the honest shape for a sequence of named states such as a protocol exchange: the citation
+carries the correctness, and the page carries only the explanation.
+_Avoid_: playback, timeline, walkthrough
+
 **Explorable**:
 A Lesson that teaches by letting the learner manipulate the subject before it is explained.
 _Avoid_: interactive lesson, demo

@@ -24,6 +24,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that a diagram is built from elements before anything is drawn into a canvas, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
 | `tests/motion.test.js` | Motion is sorted into three kinds, each with its verdict; interface feedback is permitted by name and carries its constraints; the reduced-motion preference is required rather than suggested — in the reference, and in every stylesheet the plugin ships |
 | `tests/deriving.test.js` | The authoring reference derives an interaction from the passage instead of selecting one off a list — gates first, derivations that each carry their trigger question and their cheapest honest version, a match against the Workspace's own assets with three named outcomes, and the anti-patterns beside them |
+| `tests/simulation.test.js` | A run that depicts something real is checked against a known-good result while it is authored — the four kinds that qualify are named, an engine is not one of them, a subject admitting none of them is paced rather than simulated, and the rule sits where a Teacher about to build one walks past it |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
@@ -209,10 +210,15 @@ sentencesOf(SKILL);                       // every sentence, wrapping folded bac
 
 `tests/helpers/docs.js` holds what sits on top of it for the suites that assert on *what a
 document says*: `foldedDoc` reads one with its wrapping folded back out, `absentFrom` names which
-entries of a list of claims the document is missing, and `carriedTogether` answers whether one
+entries of a list of claims the document is missing, `carriedTogether` answers whether one
 logical line carries all of them — which is the difference between a claim and two remarks made
-in the same breath. All three live there for one reason: three suites now read documents, and a
-reading rule kept in three copies is one that can disagree with itself.
+in the same breath — `oneSection` finds the one section that owns a subject, `orderedEntries`
+reads the numbered entries of a part, and `namedBullets` reads the bold-led ones, with
+`ROOM_FOR_A_REASON` the length floor two checks hold such a list to. They all live there for one
+reason: several suites now read documents, and a reading rule kept in several copies is one that
+can disagree with itself. The last three arrived that way rather than by design — the derivation
+and simulation checks had a copy each of the entry reader, and one of the copies described itself
+as being the other.
 
 Everything here walks the document through one `eachLine`, so there is **one** rule for what
 fenced code is. Three copies of that rule had drifted into three different spellings before
@@ -1000,6 +1006,70 @@ Selectors are compared **as text**, which is deliberately strict: a guard writte
 than the rule it means to cover is not counted as covering it. The alternative is a check that
 decides CSS specificity for itself, and a wrong answer there signs off a page that still moves.
 
+## The simulation check
+
+`simulation.test.js` holds the one rule here that exists to catch something no other check in this
+repo can see. Decision 41 has the reasoning.
+
+Every other suite asks whether a page *works* or whether a document still describes reality. None
+of them can see a Lesson that renders cleanly, passes the page pass, satisfies every document
+check — and depicts something **false**, because seeing that requires knowing what the number in
+the box means. So what is checked is that the one procedure that catches it is still written
+down, and still written where it is read before the run gets built.
+
+**The requirement and the moment it happens at arrive on one logical line.** "Verify your
+simulation" with no *when* attached is a check that happens after the page ships, which is never.
+The hazard has to sit beside it for a different reason: read without it, the rule looks like
+belt-and-braces next to a dozen checks that already pass, rather than the only one of them that
+can see this defect at all.
+
+**The four kinds are each named, with room to say what checking against one looks like** — a
+conserved quantity, a closed-form solution, a published worked example, and a reference
+implementation compared step by step. The room is a **length proxy** and is recorded as one, the
+way the anti-pattern check records its own. The fourth kind carries two extra claims, because it
+is the one a Teacher does not think of: that the comparison is step by step, since two
+implementations agreeing at the end can disagree about everything in between, and that it is the
+kind most easily overlooked.
+
+**The no-check case carries its prohibition and its sanctioned form in the same breath.** A
+Teacher who reads only the first half has a passage it has been told not to build and no other
+way to teach it, and will build it. So one logical line has to carry the case, *do not simulate*,
+the citation, the drawing and the pacing — and the three forms of pacing have to be named, since
+pacing with no forms under it is a word. The *asserted*-rather-than-*computed* distinction is
+checked too: without it the substitute reads as a cheaper simulation rather than a different kind
+of claim.
+
+**What an engine buys and what it does not buy have to be one sentence.** Said apart, the first
+half is read as the answer and the second as a caveat — which is the reading this paragraph exists
+to prevent, since it is the reading the genre's most-praised example took. The named cases are
+held too: the kart an engine would have caught, the orbital period it would not, and that a better
+library is not an answer here.
+
+**Placement is asserted, not only presence.** This is the line in this body of work most likely to
+be skipped quietly, so the check reads where it sits: after the derivations, because it constrains
+what they may output; before the match against what the Workspace has, because a run with no
+known-good result is not a description to go shopping with; linked from every derivation whose
+output is something the page **computes** — found by reading the entries, with the reader guarded,
+rather than by counting them — and linked from the procedure for building a Component, which is
+the other door into building one. *Computed* rather than *a run*, which is wider than it looks:
+the derivation that has the Learner set a number and watch the claim change computes that claim as
+much as a simulation does, so the three entries naming a precomputed run, a simulation or a number
+the claim depends on are the ones held, rather than the two that say "run".
+
+**And the file the result is recorded in has to have a column for it.** The recording is what makes
+a skip conspicuous, and it lands in the `TECH-STACK.md` skeleton the first run hands the Teacher —
+so the header row listing the Components this subject settled on has to carry *Checked against*,
+and the document has to link the rule beside it — and *only* link it: the four kinds are asserted
+**absent** there, because a second copy of them one link from the document that owns them is a
+copy that can drift, which is what the removed Component table was. A requirement to record something into a template
+with no place for it is one that becomes a note at the bottom, and then nothing. The header is
+found by `Component` being a column of its own, because the deferred table beside it names one
+inside a cell and holds things nobody has built yet.
+
+What none of this can hold is whether a check was actually run, or whether the known-good result
+an entry names is the right one for the subject. That is review's job and the Teacher's, and it is
+recorded under "What is deliberately not tested".
+
 ## The spine check
 
 `skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
@@ -1234,6 +1304,14 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   photograph, say whether a credit names the right source, or know whether anyone opened the page
   — the last of those is what the page pass is, and it runs in a browser a Teacher is sitting in
   front of.
+- **Whether a run was ever checked against anything is not knowable here.**
+  `simulation.test.js` checks that the rule is stated, argued and placed where a Teacher walks
+  past it; it cannot check a Lesson, and it cannot read whether the known-good result an entry
+  names is the right one for the subject or whether the comparison came out equal. That is the
+  point of the recording requirement rather than something the suite recovers: an entry that
+  computes something real and names no known-good result is visible to a reviewer, and a named
+  result that was never actually compared is visible to nobody. Review and the Teacher's own
+  honesty carry that half.
 - **The Grader's judgement is not tested, and cannot be.** The stub agent replays a fixed
   transcript, so every grading check here is about what the Grader is *asked* and what happens to
   what it *said* — never about whether the verdict is right. That it judges against the stored

@@ -191,6 +191,54 @@ function oneSection(markdown, level, re, what) {
 }
 
 /**
+ * The **ordered entries** of a part of a document, as `{ n, text }` — an ordered
+ * list item opens a block, so each entry runs from its own marker to the next
+ * one.
+ *
+ * Two suites read the same entries of the same section: the derivation check
+ * holds each one to its four fields, and the simulation check asks which of them
+ * offer something the page computes. It lives here for the reason `oneSection`
+ * does — a reading rule kept in two copies is one that can disagree with itself,
+ * and the two copies of this one had already started to, one of them describing
+ * itself as the other's reader.
+ */
+function orderedEntries(text) {
+  const lines = text.split('\n');
+  const starts = lines.map((l, i) => (/^\d+\.\s+\*\*/.test(l) ? i : -1)).filter((i) => i >= 0);
+
+  return starts.map((start, n) => ({
+    n: n + 1,
+    text: lines.slice(start, starts[n + 1] ?? lines.length).join('\n'),
+  }));
+}
+
+/**
+ * The **named bullets** of a part of a document, trimmed — a bold lead-in being
+ * how this repo writes a list whose items are each a named thing.
+ *
+ * Shared with the floor below it, because two checks ask the same question of
+ * two such lists: the anti-patterns and the kinds of known-good result each have
+ * to name every member *and* leave room after it for the reason or the
+ * instruction that makes the name worth anything.
+ */
+const namedBullets = (text) =>
+  text
+    .split('\n')
+    .filter((line) => /^\s*-\s+\*\*/.test(line))
+    .map((line) => line.trim());
+
+/**
+ * How long a named bullet has to be before it can be carrying a reason as well
+ * as a name.
+ *
+ * A **length proxy**, and recorded as one: nothing here can read whether a
+ * sentence is a reason. What it catches is the shape such a list collapses into
+ * — a bare bullet per member — which is the form the imagery bans were written
+ * against and the one a Session routes around the first time it is inconvenient.
+ */
+const ROOM_FOR_A_REASON = 120;
+
+/**
  * Every relative pointer in one document, as
  * `{ doc, line, raw, target, root, fragment }` — `root` being the single
  * directory the target must resolve against, and `fragment` the heading it
@@ -249,6 +297,9 @@ module.exports = {
   absentFrom,
   carriedTogether,
   oneSection,
+  orderedEntries,
+  namedBullets,
+  ROOM_FOR_A_REASON,
   DOC_ROOTS,
   SKILL_DIR,
 };

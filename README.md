@@ -102,6 +102,19 @@ simultaneous rather than remembered, and a stepper over a precomputed run preser
 simulation teaches at a fraction of its cost. Beside them is a list of the forms that look
 impressive and teach nothing, each with the reason it fails.
 
+And a lesson that depicts something **real** is checked against a known-good result while it is
+being written — a conserved quantity, a closed-form solution, a published worked example, or a
+correct implementation to compare against step by step. That is the one defect nothing else here
+catches: a page can render cleanly, pass every check there is, and teach something false. Reaching
+for a real physics engine does not settle it either — an engine buys solver stability, not physical
+truth, and the mapping from the subject to its units, scale and timestep stays the author's. Where
+the subject admits no such check, because it is a sequence of named states like a protocol exchange
+or a biological process, nothing is simulated at all: the facts are stated with a citation, drawn,
+and the interaction is limited to pacing — stepping, scrubbing, revealing — so the learner moves
+through *asserted* content rather than *computed* content. It is also the reason the cheap version
+usually wins: a run computed while the lesson is written can be checked while the lesson is
+written, and a recording cannot diverge or blow up in your browser.
+
 A lesson's pictures are drawn rather than found, and they are drawn out of ordinary elements and
 styles before anything is drawn into a canvas — an element-built diagram is labelled, focusable,
 reachable by keyboard and readable by a screen reader, and it is the one a check can look inside,

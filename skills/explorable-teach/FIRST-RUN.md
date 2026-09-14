@@ -77,9 +77,9 @@ At the Workspace root:
 {Why these tools were chosen for this specific subject}
 
 ## Selected Components
-| Teaching act | Component | Shipped, or built here | Why this one |
-|--------------|-----------|-----------------------|--------------|
-| ... | ... | ... | ... |
+| Teaching act | Component | Shipped, or built here | Why this one | Checked against |
+|--------------|-----------|-----------------------|--------------|-----------------|
+| ... | ... | ... | ... | ... |
 
 ## Subject-Specific Tools (if any)
 | Tool | Pinned version | What it is wrapped as |
@@ -89,6 +89,13 @@ At the Workspace root:
 | Teaching act | When it would earn a Component |
 |--------------|-------------------------------|
 ```
+
+**Checked against** is the column that cannot be left to memory. A Component that computes
+something real names there [what it was checked
+against](./UNIT.md#simulate-only-what-can-be-checked-against-a-known-good-result), which is where
+the kinds that qualify are written down; one that computes nothing real writes `—`. An entry that
+computes something real and leaves the column empty is a run nobody checked, and this table is the
+only place that shows.
 
 ## 6. Plan the Curriculum
 

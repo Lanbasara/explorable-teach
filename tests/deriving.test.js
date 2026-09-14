@@ -22,7 +22,16 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
-const { foldedDoc, absentFrom, carriedTogether, oneSection, SKILL_DIR } = require('./helpers/docs.js');
+const {
+  foldedDoc,
+  absentFrom,
+  carriedTogether,
+  oneSection,
+  orderedEntries,
+  namedBullets,
+  ROOM_FOR_A_REASON,
+  SKILL_DIR,
+} = require('./helpers/docs.js');
 const { headings } = require('./helpers/markdown.js');
 
 /**
@@ -94,20 +103,6 @@ function deriving() {
     match: part(/reuse, build/i, 'matching'),
     antipatterns: part(/teach nothing/i, 'anti-pattern'),
   };
-}
-
-/**
- * The ordered set of derivations, as entries. An ordered list item opens a
- * block, so each entry runs from its own marker to the next one.
- */
-function derivations(text) {
-  const lines = text.split('\n');
-  const starts = lines.map((l, i) => (/^\d+\.\s+\*\*/.test(l) ? i : -1)).filter((i) => i >= 0);
-
-  return starts.map((start, n) => ({
-    n: n + 1,
-    text: lines.slice(start, starts[n + 1] ?? lines.length).join('\n'),
-  }));
 }
 
 /**
@@ -290,7 +285,7 @@ test('a derivation produces a description, and names no Component', () => {
 
 test('each derivation carries its question, its output, its mark and its cheapest version', () => {
   const { derivations: part } = deriving();
-  const found = derivations(part);
+  const found = orderedEntries(part);
 
   // Guard the observer: a reader that recognised no entry would find nothing
   // missing from any of them and pass this for free.
@@ -407,15 +402,14 @@ test('the anti-pattern list is present, and names each form it rules out', () =>
   // Each with its reason. A banned shape whose reason is missing is one a
   // Session routes around the first time it is inconvenient — the same argument
   // the imagery bans are written under.
-  const items = linesOf(antipatterns).filter((text) => /^\s*-\s+\*\*/.test(text));
+  const items = namedBullets(antipatterns);
 
   assert.ok(items.length >= ANTIPATTERNS.length, `expected one item per form, found ${items.length}`);
 
-  // Length is a proxy and is recorded as one: nothing here can read whether a
-  // sentence is a reason. What it catches is the shape the list would collapse
-  // into — a bare bullet per form — which is the form the imagery bans were
-  // written against and the one a Session routes around.
-  const unargued = items.filter((text) => text.trim().length < 120).map((text) => text.trim());
+  // Length is the proxy, and the floor lives beside the reader that finds these
+  // — the simulation check asks the same question of its own named list, and a
+  // threshold kept in two places is one the two can disagree about.
+  const unargued = items.filter((text) => text.length < ROOM_FOR_A_REASON);
   assert.deepEqual(unargued, [], 'each of these names a form with no room for a reason after it');
 });
 

@@ -4,6 +4,60 @@
 
 ### Changed
 
+- **A Lesson that depicts something real is checked against a known-good result before it ships,
+  and a subject that admits no such check is not simulated.** This is the one defect nothing else
+  in this plugin can catch: a page that renders cleanly, passes the page pass and every document
+  check, and teaches something **false** — catching that means knowing what the number in the box
+  *means*. So a run depicting something real is checked while it is being authored, against one of
+  **four kinds** of known-good result: a conserved quantity, a closed-form solution, a published
+  worked example with its answer stated, or a reference implementation compared **step by step**.
+  The last is the kind most easily overlooked and the one that covers a subject with no equations
+  in it — a correct sort, a correct shortest path, a correct checksum — and it is compared step by
+  step because two implementations agreeing at the end can disagree about everything in between,
+  which is what a Lesson about an algorithm teaches. What the run was checked against is recorded
+  in `TECH-STACK.md` beside the Component, which is what makes a skip conspicuous rather than
+  silent: an entry that computes something real and names no known-good result is a run nobody
+  checked.
+- **Reaching for a real engine is not that check, and the reference says why.** An engine buys
+  **solver stability** — no tunnelling, no energy injected by a bad integration step — and it does
+  not buy **physical truth**: engines are tuned for plausibility, and the mapping from the subject
+  to their units, scale and timestep stays the author's. An engine would have caught the kart
+  flying off the track; it would not catch a Lesson teaching the wrong orbital period, and the
+  most-praised page this genre has produced shipped with a physics defect on the launch page of the
+  model being praised for its physics. The reasoning sits in the document rather than only in the
+  decisions record, because the reading it prevents is one a Teacher takes *while deciding* — that
+  the rule is a dependency choice it has already made well.
+- **Where there is no such check, the interaction is pacing.** A sequence of named states — a
+  protocol exchange, a biological process — has no quantity to conserve and nothing to run
+  against, so nothing can tell a correct sequence from a plausible one. The facts are stated with
+  a **citation**, drawn, and the interaction is limited to **stepping, scrubbing, revealing**: the
+  Learner moves through *asserted* content rather than *computed* content, the citation carries
+  the correctness and the page carries only the explanation. The prohibition and that form arrive
+  in the same breath on purpose — told not to build it and shown nothing else, a Teacher builds
+  it. And this is the argument for the cheapest version being usually the *correct* one rather
+  than the affordable one: a run computed while authoring can be checked while authoring, and a
+  recording cannot diverge, blow up or drift in a Learner's browser, because it already happened.
+- **`simulation.test.js` holds the rule, and asserts where it sits rather than only that it is
+  there.** This is the line in this body of work most likely to be skipped quietly, so the rule is
+  placed after the derivations that can output a run — it constrains what they may output — and
+  before the match against what the Workspace has, since a run with no known-good result is not a
+  description to go shopping with. Both of those derivations link into it, and so does the
+  procedure for building a Component, which is the other door in. The checks hold the requirement
+  and the moment it happens at on one logical line, the four kinds each with room to say what
+  checking against one looks like, the no-check case with its prohibition and its pacing forms in
+  one breath, and what an engine buys and does not buy in one sentence — said apart, the first
+  half is read as the answer. The authoring vocabulary guard gains *known-good*, *conserved
+  quantity* and *pacing*; the glossary gains the **Known-good result** and **Pacing**; the
+  reasoning is decision 41. The `TECH-STACK.md` skeleton the first run hands the Teacher gains the
+  column the recording goes in — *Checked against* — because a requirement to record something
+  into a template with no place for it is a requirement that becomes a note at the bottom and then
+  nothing at all. Every derivation whose output is something the page **computes** links to the
+  rule, which is three of them rather than the two that say "run": the Learner setting a number
+  and watching the claim change computes that claim as much as a simulation does. Reading the
+  numbered entries of a part, reading a list of bold-led bullets, and the length floor such a list
+  is held to all move into `helpers/docs.js` beside the folding reader — the derivation check and
+  this one had a copy each of the first, and one of the copies described itself as being the
+  other.
 - **A diagram is built from elements before anything is drawn into a canvas.** Where the same
   picture could be made either way, elements win, and that is a rule rather than a preference:
   a diagram made of elements is labelled, focusable, reachable by keyboard, readable by assistive

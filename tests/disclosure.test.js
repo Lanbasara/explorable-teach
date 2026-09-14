@@ -99,7 +99,11 @@ const RUNBOOK = [
  * a rule about what a diagram is built out of and what a page may move: the
  * clipping property from the list of what markup draws natively, the media
  * query a Lesson's motion sits behind, and the kind of motion that is permitted
- * by name; `motion.test.js` holds those.
+ * by name; `motion.test.js` holds those. Three more when a run had to be
+ * checked against something correct before it could ship — the result it is
+ * checked against, the first of the four kinds that qualify, and the only
+ * interaction a subject with no such result is allowed; `simulation.test.js`
+ * holds what that material has to say.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -126,6 +130,9 @@ const AUTHORING = [
   /clip-path/,
   /prefers-reduced-motion/,
   /interface feedback/i,
+  /known-good/i,
+  /conserved quantit/i,
+  /\bpacing\b/i,
 ];
 
 /**

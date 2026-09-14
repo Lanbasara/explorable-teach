@@ -491,14 +491,20 @@ over a precomputed run preserves what a simulation teaches at a fraction of its 
      reading they should take away written where the change lands.
    - *Plumbing or content:* plumbing for the control, content for what it drives.
    - *Cheapest that still teaches:* three frames at three values, side by side and labelled —
-     a comparison you can see at once beats one you have to hold in your head.
+     a comparison you can see at once beats one you have to hold in your head. Either form
+     computes the claim, so it is built only where [a known-good
+     result](#simulate-only-what-can-be-checked-against-a-known-good-result) exists to check it
+     against.
 5. **The stages that are themselves the knowledge.** *Ask:* does the Learner have to know what
    happens *between* the start and the end?
    - *It produces:* the stages, one at a time, advanced by the Learner rather than by a clock.
    - *Plumbing or content:* plumbing — stepping does not vary by subject; the stages are this
      subject's.
    - *Cheapest that still teaches:* a stepper over a precomputed run. A simulation computing the
-     same stages live teaches the same thing at an order of magnitude more cost.
+     same stages live teaches the same thing at an order of magnitude more cost. Either form is
+     built only where [a known-good
+     result](#simulate-only-what-can-be-checked-against-a-known-good-result) exists to check it
+     against.
 6. **The order that is the mistake.** *Ask:* would getting these in the wrong order *be* the
    misunderstanding, rather than a symptom of one?
    - *It produces:* the steps out of order, put back by the Learner, with what goes wrong at
@@ -513,7 +519,9 @@ over a precomputed run preserves what a simulation teaches at a fraction of its 
    - *Plumbing or content:* content — the rules *are* the subject, and they are what a Learner
      is being asked to believe.
    - *Cheapest that still teaches:* one precomputed run stepped through, and a second from a
-     different starting point beside it.
+     different starting point beside it. A run that depicts something real is built only where
+     [a known-good result](#simulate-only-what-can-be-checked-against-a-known-good-result) exists
+     to check it against.
 8. **The thing the Learner will actually operate.** *Ask:* is what is being taught something
    they will type at, drive or play — a shell, a query, a synth?
    - *It produces:* a constrained place to run it inside the Lesson; unconstrained, the same
@@ -537,6 +545,62 @@ over a precomputed run preserves what a simulation teaches at a fraction of its 
       one page buys none of it.
     - *Cheapest that still teaches:* one retrieval question in the Unit after next, written into
       that Unit when you plan it.
+
+### Simulate only what can be checked against a known-good result
+
+A derivation can output a **run**, and a run that depicts something real is a claim about reality
+rather than a shape on a page. That claim is the one defect nothing else here catches: a Lesson
+can render cleanly, pass every check in this document and in [the page
+pass](#look-at-the-page-before-handing-it-over), and still teach something **false** — the checks
+that exist read whether a box is empty, never whether the number in it is right. So a
+page depicting something real is **checked against a known-good result while it is being
+authored**, and what it was checked against is written into `TECH-STACK.md` beside the Component.
+That second half is what makes skipping this conspicuous instead of silent: an entry that computes
+something real and names no known-good result is a run nobody checked.
+
+Four kinds qualify, and a subject that can honestly be run almost always admits one of them:
+
+- **A conserved quantity.** Something the run may not change: total energy, momentum, mass,
+  charge, a probability distribution summing to one, the count of items in a sort. Compute it at
+  each step and watch for drift — a quantity that creeps is an integration error you would
+  otherwise have shipped as physics.
+- **A closed-form solution.** The case where the equation can be solved on paper: a period, a
+  terminal velocity, a steady state, a hitting time. Solve it once for one set of inputs, then
+  require the run to arrive at that number rather than somewhere near it.
+- **A published worked example.** A textbook's or a paper's problem with its answer stated. Run
+  yours at the same inputs and compare — and this kind checks the *mapping* as well as the
+  arithmetic, because a worked example fixes the units and the scale along with the answer.
+- **A reference implementation, compared step by step.** Where no equation exists but a correct
+  algorithm does: a correct sort, a correct shortest path, a correct checksum, a correct parser.
+  Run both over the same input and compare the state at every step rather than only the final
+  output — two implementations agreeing at the end can disagree about everything in between, and
+  the in-between is what the Lesson teaches. **This is the kind most easily overlooked**, and it
+  is the one that covers a subject with no equations in it at all.
+
+**Reaching for a real engine rather than hand-rolled arithmetic is not that check.** An engine
+buys **solver stability** — no tunnelling through a wall, no energy injected by a bad integration
+step — and it does not buy **physical truth**: engines are tuned for plausibility and stability,
+and the mapping from this subject to the engine's units, scale and timestep stays yours. An engine
+would have caught the kart flying off the track; it would not catch a Lesson teaching the wrong
+orbital period. The most-praised page this genre has produced shipped with a physics defect on the
+launch page of the model being praised for its physics — so this is not a problem a better library
+has already solved for you, and picking one is not an answer to this rule.
+
+**Where the subject admits no such check, do not simulate it.** A sequence of named states — a
+protocol exchange, a biological process, the phases of a negotiation — has no quantity to
+conserve, no closed form and no reference implementation to run against, so nothing can tell a
+correct sequence from a plausible one, and a simulation of it is an assertion wearing the costume
+of a computation. State the facts with a **citation**, draw them, and limit the interaction to
+**pacing**: stepping, scrubbing, revealing. The Learner then moves through **asserted** content
+rather than **computed** content, which is the honest shape for this material — the citation
+carries the correctness, and the page carries only the explanation.
+
+**This is also why [the cheapest version](#the-derivations) of a run is usually the right one
+rather than a concession.** A run computed while authoring is a run that can be checked while
+authoring, against the known-good result you just named, and what ships is then a recording the
+Learner steps through — which cannot diverge, blow up or drift in the Learner's browser, because
+it already happened. A live simulation has to be right *and* stay right on hardware you will never
+see, and the page pass you ran on your own machine says nothing about theirs.
 
 ### Then look at what exists: reuse, build, or nothing
 
@@ -649,8 +713,12 @@ carries the library's is an implementation detail in every page that used it.
    - **Say which is missing.** A Component that needs the network or the Tutor service names the
      one that is not there, where the thing would have been — the two have different fixes, and a
      blank rectangle proposes neither.
-6. **Record it in `TECH-STACK.md`** — the Component, the teaching act it serves, and why this tool
-   rather than another. That file is what the next Session reads before reaching for a new one.
+6. **Record it in `TECH-STACK.md`** — the Component, the teaching act it serves, why this tool
+   rather than another, and, if it computes something real, [the known-good result it was checked
+   against](#simulate-only-what-can-be-checked-against-a-known-good-result). That file is what the
+   next Session reads before reaching for a new one, and an entry that computes something real
+   while naming nothing it was checked against is the one gap in this document that nothing else
+   reveals.
 
 ### What every Component has to hold
 
