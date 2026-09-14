@@ -108,6 +108,28 @@ it cannot see. A Component made of text needs none, because it can write its con
 markup and let the script take it over; a drawing cannot.
 _Avoid_: alt text, caption, fallback, placeholder
 
+**Borrowed image**:
+An image a Lesson shows rather than draws, because a drawing of it would be a claim about how
+reality looks: a photograph, a specimen, an artefact, a work of art. It is downloaded into the
+Workspace before it is shown — both so somebody can look at it, and because a local copy is
+reproduction rather than hotlinking, which is what makes the Credit obligatory rather than polite.
+Everything else is drawn, because a diagram is something the Teacher can be *right* about.
+_Avoid_: stock image, external image, asset
+
+**Credit**:
+What a borrowed image owes its source, written into the page beside the image with the licence as
+a real link. It is part of the deliverable rather than a note about it — the same reason a Rubric
+lives inside its Assignment — so it may not sit in a file that can be separated from the page that
+shows the image.
+_Avoid_: attribution file, licence note
+
+**Complexity ceiling**:
+The point past which a hand-drawn diagram stops being reliable and a layout engine places things
+instead — around a dozen labelled boxes, or any edge that has to route around a node. It exists
+because the failure past it is geometric rather than semantic: the Teacher knows what the diagram
+must say, and cannot know how wide a label renders, so it cannot know the label escaped its box.
+_Avoid_: diagram limit, size cap
+
 **Page pass**:
 The short set of checks the Teacher runs in a browser over a Lesson it has just written, before
 handing it over. It catches a Lesson that is *broken* — blank, erroring, missing a dependency —

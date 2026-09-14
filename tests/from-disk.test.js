@@ -24,7 +24,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
-const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
+const { agentDocs, foldedDoc, SKILL_DIR } = require('./helpers/docs.js');
 const { sections, logicalLines } = require('./helpers/markdown.js');
 
 const rel = (abs) => path.relative(REPO_ROOT, abs);
@@ -37,8 +37,13 @@ const rel = (abs) => path.relative(REPO_ROOT, abs);
  */
 const foldedLines = (...p) => logicalLines(fs.readFileSync(path.join(...p), 'utf8'));
 
-/** The same document as one string, for the checks that only ask "is this said anywhere?". */
-const folded = (...p) => foldedLines(...p).map((l) => l.text).join('\n');
+/**
+ * The same document as one string, for the checks that only ask "is this said
+ * anywhere?" — the shared reader under the name these checks call it by. One
+ * folding rule, in one place, now that a second document suite reads documents
+ * too.
+ */
+const folded = foldedDoc;
 
 const UNIT = folded(SKILL_DIR, 'UNIT.md');
 const TUTOR = folded(SKILL_DIR, 'TUTOR.md');

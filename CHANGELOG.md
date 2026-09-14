@@ -75,6 +75,56 @@
   browser runs there and the stub page returns the boxes a test wrote into it, and the testing
   documentation records why adding a browser is refused. The reasoning is decision 35; the
   glossary gains the **Page pass** and the **Misread**.
+- **The Teacher draws the diagram, and borrows only what a drawing would fabricate.** Lessons
+  contained almost no images: nothing forbade them, there was simply no guidance — and this was
+  the costliest of the three gaps, because an annotated static diagram beside prose is the most
+  consistently effective format in the whole instructional literature, steadier than animation,
+  simulation or interactivity. So the authoring reference now says to **draw by default**, and
+  gives one test for when to borrow instead: *would a drawing of this be a claim about how reality
+  looks?* If yes, borrow — photographs of real apparatus and instruments, historical documents and
+  artefacts, microscopy and medical imaging, astronomical and remote-sensing imagery, organisms
+  and mineral specimens, works of art under discussion, real instances of a phenomenon. Everything
+  else is something the Teacher can be *right* about, so it is drawn.
+- **The reason for the default is stated, so it is not read as timidity.** Once the Teacher has
+  drawn the diagram it already knows what the diagram must say, because it wrote the prose beside
+  it, so the only open question left is whether it rendered legibly — which is exactly what the
+  page pass answers well. A borrowed image poses the opposite question, whether it depicts what is
+  claimed, and that is the question a look at the page answers badly. Drawing trades an
+  unverifiable risk for a verifiable one.
+- **No image ships in a Lesson that has not been rendered and looked at.** One rule for both
+  paths. A borrowed image is downloaded into the Workspace's new `images/` directory first — both
+  so there is something to look at, and because a local copy is reproduction rather than
+  hotlinking, which makes the credit obligatory rather than polite — and saved in one of the
+  formats the Tutor service serves, since anything else renders from disk and 404s the moment the
+  page is served. **The credit goes into the page beside the image**, with the licence as a real
+  link, rather than into a file alongside it: for the same reason a Rubric lives inside its
+  Assignment, a credit that is part of the deliverable cannot be allowed to get separated from
+  what it credits.
+- **Four bans, each with the reason it is a ban.** Generated imagery in place of an explanatory
+  diagram, because no symbolic representation of the diagram exists, so nothing can check it and
+  the generator cannot discover it was wrong. Generated decorative art and stock photography,
+  because attractive-but-irrelevant material is a measured negative rather than a neutral.
+  Figures embedded from paper repositories, because the licences do not grant redistribution —
+  link the paper instead. And any diagram service that renders server-side, because it sends the
+  Lesson's content to a third party and makes the page network-dependent for something that could
+  have been bytes in the file.
+- **A ceiling on hand-drawn diagrams, with the mechanism that makes it memorable.** Past roughly a
+  dozen labelled boxes, or any graph whose edges route around nodes, a layout engine places things
+  instead — because the failure there is **geometric rather than semantic**: the Teacher knows
+  what the diagram has to say and cannot know how wide a label renders, so it cannot know the
+  label escapes its box. Six mitigations buy the headroom under the ceiling: snap to a coarse
+  grid, draw box sizes from a small fixed set, label in monospace so a character count estimates a
+  width, leave generous padding, cap label length, and mirror the semantic content into the markup
+  so a later Session — or the Tutor — can verify what the diagram means without rendering it.
+- **`imagery.test.js` holds that claim the way `from-disk.test.js` holds the one above it.** The
+  rule and its reason are read against the part of the section that states them, each ban has to
+  sit on one logical line with its own reason, the mechanism under the ceiling has to arrive in one
+  sentence, and the image formats the document offers are checked against the service's own MIME
+  table in both directions rather than restated. The Workspace gains an `images/` directory from
+  the scaffold, and the suite holds that from both ends — the destination read out of the document,
+  the directory list read out of the scaffold. The authoring vocabulary guard gains the three
+  words the document now uses. The reasoning is decision 36; the glossary gains the **Borrowed
+  image**, the **Credit** and the **Complexity ceiling**.
 - **A suite of its own holds the claim.** `from-disk.test.js` is the first check here whose
   subject is whether a document is *right* rather than where its material sits: the ban may not
   come back in anything that instructs, no document may sell serving on a restriction it does not

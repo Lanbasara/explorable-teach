@@ -120,6 +120,25 @@ function agentDocs() {
 }
 
 /**
+ * One document, with its hard wrapping folded back out.
+ *
+ * Prose in this repo is wrapped at a column, so where a line break falls is a
+ * typographic accident — and a claim about what a document *says* is a claim
+ * about a sentence rather than about a line. Folding first also makes one
+ * logical line one line of the returned string, which is what lets a check
+ * require several patterns to arrive *together*.
+ *
+ * This lives here rather than in either suite that reads documents, because two
+ * of them now do and a reader with two copies is a reader that can disagree
+ * with itself — the defect the Markdown module's own head comment records.
+ */
+function foldedDoc(...parts) {
+  return logicalLines(fs.readFileSync(path.join(...parts), 'utf8'))
+    .map((l) => l.text)
+    .join('\n');
+}
+
+/**
  * Every relative pointer in one document, as
  * `{ doc, line, raw, target, root, fragment }` — `root` being the single
  * directory the target must resolve against, and `fragment` the heading it
@@ -170,4 +189,4 @@ function resolvePointer(pointer) {
   return fs.existsSync(abs) ? abs : null;
 }
 
-module.exports = { agentDocs, pointersIn, resolvePointer, DOC_ROOTS, SKILL_DIR };
+module.exports = { agentDocs, pointersIn, resolvePointer, foldedDoc, DOC_ROOTS, SKILL_DIR };

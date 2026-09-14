@@ -74,7 +74,7 @@ link() { # link <src> <dest-relative>   — the plugin's own, pointed at
 echo "Scaffolding teaching workspace at $TARGET"
 echo
 
-for d in lessons assignments submissions learning-records reference assets tutor; do
+for d in lessons assignments submissions learning-records reference images assets tutor; do
   [ -d "$TARGET/$d" ] || { mkdir -p "$TARGET/$d"; echo "  mkdir   $d/"; }
 done
 

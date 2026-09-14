@@ -39,6 +39,8 @@ lessons/              0001-slug.html — the lessons themselves
 assignments/          the ones that earn an assignment, with the rubric inside
 submissions/          what you hand in when it is too big for the page
 reference/            compressed cheat-sheets you will actually revisit
+images/               borrowed images, downloaded so they can be looked at and
+                      credited in the page that shows them
 learning-records/     what you demonstrably know; drives what gets taught next
   questions.jsonl     every question you asked the tutor
 assets/               reusable interactive components — the shared ones are links

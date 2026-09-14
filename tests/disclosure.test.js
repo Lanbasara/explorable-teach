@@ -88,9 +88,10 @@ const RUNBOOK = [
  * spot — which is the point: the alternative is a check that goes on passing
  * while looking for words nobody writes. The last four entries arrived the same
  * way, when the ban on ES modules became a list of what an author types that
- * breaks from disk; `from-disk.test.js` holds what that list has to say. The
- * last one arrived when the Teacher gained a pass to run over the page it had
- * just written.
+ * breaks from disk; `from-disk.test.js` holds what that list has to say. Then
+ * one when the Teacher gained a pass to run over the page it had just written,
+ * and the last three when it gained a policy for imagery: a borrowed image's
+ * licence, and the two mitigations that keep a hand-drawn label inside its box.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -108,6 +109,9 @@ const AUTHORING = [
   /new Worker\(/,
   /stand-in sentence/i,
   /page-checks\.js/,
+  /licen[cs]e/i,
+  /coarse grid/i,
+  /monospace/i,
 ];
 
 /**

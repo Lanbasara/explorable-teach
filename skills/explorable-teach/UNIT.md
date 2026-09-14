@@ -27,6 +27,9 @@ Every Lesson:
 
 - uses **1-3 Components** — pick what fits from [the selection guide](#choosing-a-component),
   don't use everything;
+- **shows** what it can rather than describing all of it — [draw the
+  diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) beside the prose, and
+  reach for that before reaching for an interaction;
 - leads with interaction rather than explanation: hook them with the question, not the answer;
 - carries a citation on every claim, because a bare claim is untrustworthy even when it is true,
   and recommends **one primary source** — the highest-trust thing you found — to go and read;
@@ -182,6 +185,119 @@ language** if you judge it worth it, because a placed file is the Workspace's fr
 placed. None of it is mandatory — a Workspace left as seeded still works. The body of a subagent
 definition is a different matter: it is prompt scaffolding and stays English, so the description
 line is the only part of one there is ever a reason to translate.
+
+## Draw the diagram; borrow only what a drawing would fabricate
+
+An annotated static diagram beside the prose is the most consistently effective format in the
+whole instructional literature — steadier than animation, simulation or interactivity, which is
+where the appetite runs. So a Lesson that explains a structure and shows none has left the
+cheapest thing it could have had on the table. Reach for a picture early, and before reaching for
+an interaction.
+
+**Default to drawing.** Write the diagram yourself — inline `<svg>` in the page, or a canvas a
+Component draws into. The test for when to **borrow** one instead is a single question: *would a
+drawing of this be a claim about how reality looks?* If yes, borrow, because a drawing there is a
+fabrication. If no, draw.
+
+So borrow for: photographs of real apparatus and instruments; historical documents and artefacts;
+microscopy and medical imaging; astronomical and remote-sensing imagery; organisms and mineral
+specimens; works of art under discussion; and real instances of a phenomenon — the eclipse, the
+fracture, the rash. Everything else is something you can be *right* about — a diagram, a
+schematic, a chart, a model, a process, a relationship — so draw it.
+
+**The default is not timidity, and its reason is worth having in front of you.** Once you have
+drawn the diagram you already know what it has to say, because you wrote the prose beside it, so
+the only open question left is whether it rendered legibly — and that is precisely the question
+[the page pass](#look-at-the-page-before-handing-it-over) answers well, because a label escaping
+its box is visible in a screenshot. A borrowed image poses the opposite question — *does this
+depict what the sentence beside it claims?* — and that is the question a look at the page answers
+badly, since an image looks like something whether or not it is the thing. Drawing trades an
+unverifiable risk for a verifiable one, and that trade is the whole of the argument.
+
+### No image ships in a Lesson that has not been rendered and looked at
+
+One rule governs both paths, and it is what makes the choice above safe rather than merely
+reasoned. A drawing is rendered and looked at as part of [the page
+pass](#look-at-the-page-before-handing-it-over). A borrowed image is **downloaded into
+`./images/` first** and looked at there: you cannot look at what you have not fetched, and a local
+copy is reproduction rather than hotlinking, which is what makes the credit obligatory rather than
+polite. That is the Workspace's own `./images/`, which the scaffold makes — written `../images/…`
+from inside a Lesson, as the example below writes it. Save it as `.png`, `.jpg`/`.jpeg` or `.svg`
+— those are the formats the Tutor service serves, and anything else renders from disk and 404s the
+moment the page is served.
+
+Read the licence before you download, and take only what permits reproduction. A licence you
+cannot find is not a licence you have.
+
+**The credit is written into the page, beside the image** — rather than into a file alongside it,
+for the same reason [a Rubric lives inside its Assignment](#assignments): a credit that *is* part
+of the deliverable cannot be allowed to get separated from the thing it credits. It names what the
+image is, who made it, where it came from, and the licence as a real link:
+
+```html
+<figure>
+  <img src="../images/eclipse-1919.jpg"
+       alt="A photographic plate of the 1919 eclipse, two stars marked beside the corona">
+  <figcaption>
+    Plate from the 1919 Eddington expedition — Royal Astronomical Society.
+    Licence: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+  </figcaption>
+</figure>
+```
+
+That `alt` carries the same three-way obligation a drawing's [stand-in
+sentence](#building-a-component-for-this-subject) carries: what the Learner reads when the image
+does not load, the accessible description, and the only thing the Tutor has to go on when they ask
+about something it cannot see. Both it and the credit are read by the Learner, so both are written
+in [their language](#the-language-the-learner-reads) — the example is English because this
+document is. A proper name and a licence's own title stay as their holder writes them.
+
+### Imagery that is banned outright
+
+Four of them, each with the reason it is a ban — because a rule whose reason is missing is one a
+Session routes around the first time it is inconvenient.
+
+- **Generated imagery in place of an explanatory diagram.** No symbolic representation of the
+  diagram exists anywhere, so nothing can check it against what the prose claims, and the
+  generator cannot discover that it got it wrong — it never held the claim to begin with.
+- **Generated decorative art, and stock photography.** Attractive-but-irrelevant material is a
+  measured negative rather than a neutral: it competes for the attention the explanation needs —
+  the seductive-details effect — so the Lesson pays for it in the one currency it is short of.
+- **Figures embedded from paper repositories** — arXiv, a publisher's PDF, a preprint server. The
+  licences do not grant redistribution, and a local copy is redistribution. Link the paper
+  instead; a Lesson already owes the learner one primary source to go and read.
+- **Any diagram service that renders server-side** — a URL you hand a description to and get a
+  rendered chart back from. It sends the Lesson's content to a third party, and it makes the page
+  network-dependent for something that could have been bytes in the file.
+
+### How complex a hand-drawn diagram may get
+
+There is a **ceiling**, and it is low: roughly a dozen labelled boxes, or any graph whose edges
+have to route around a node to get where they are going. Past it, hand-placed coordinates stop
+being reliable and a **layout engine** takes over — a layout library, pinned, from a CDN computes
+the positions and your Component draws what it hands back.
+
+**The mechanism is worth stating, because it is what makes the ceiling memorable: the failure is
+geometric rather than semantic.** You know what the diagram has to say; you wrote the prose. What
+you cannot know is how wide a label renders, because that depends on a font you are not looking
+at — so you cannot know that the label escapes its box, that two boxes now overlap, or that an
+edge runs under a caption. Nothing in the markup is wrong. The geometry is.
+
+Six mitigations, all cheap, each removing one way for a label to be wider than you guessed:
+
+- **snap every coordinate to a coarse grid** — 20 units, say — so nothing is ever nearly-aligned;
+- **draw box sizes from a small fixed set** rather than fitting each box to its own content;
+- **label in a monospace font**, so a character count estimates a width;
+- **leave generous padding** inside every box, because a label is wider than it looks in source;
+- **cap label length** at a few words, and put the sentence in the prose where it belongs;
+- **mirror the semantic content into the markup** — `<title>` and `<desc>` on the `<svg>`, a name
+  on every group — so a later Session, and the Tutor, can verify what the diagram *means* without
+  rendering it.
+
+Then look at it. Three of the page pass's checks are about exactly this class of failure — nothing
+sits off the page, no label is covered or overlapping, the text can be read against what is behind
+it — and each of those three carries a documented misread, so read them off the file before
+trusting a verdict.
 
 ## Choosing a Component
 

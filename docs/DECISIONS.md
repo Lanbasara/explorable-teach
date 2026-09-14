@@ -1277,6 +1277,83 @@ refused — this suite takes no dependency and needs no install step, which is w
 runnable by any agent that has just cloned the repo. The real check is a Teacher opening the real
 page, once per Lesson, which is the whole point of the decision.
 
+## 36. Draw the diagram, and borrow only what a drawing would fabricate
+
+**Decided:** the authoring reference gains a policy for imagery. A Teacher **draws by default** —
+inline SVG, or a canvas a Component draws into — and **borrows** only when a drawing of the thing
+would be a claim about how reality looks: photographs of real apparatus and instruments,
+historical documents and artefacts, microscopy and medical imaging, astronomical and
+remote-sensing imagery, organisms and mineral specimens, works of art under discussion, and real
+instances of a phenomenon. Everything else — a diagram, a schematic, a chart, a model, a process,
+a relationship — is something the Teacher can be *right* about, so it is drawn.
+
+**Why this is the costliest of the three assumptions this work replaces.** Nothing forbade an
+image; there was simply no guidance, so Lessons contained almost none. An annotated static diagram beside prose
+is the most consistently effective format in the whole instructional literature — steadier than
+animation, simulation or interactivity, which is where the appetite runs. A rule that is absent is
+obeyed by nobody.
+
+**The reason for the default is stated, so it is not read as timidity.** When the Teacher has
+drawn the diagram it already knows what the diagram must say, because it wrote the prose beside
+it, so the only open question left is whether it rendered legibly — and that is the question the
+page pass from decision 35 answers well. A borrowed image poses the opposite question, whether it
+depicts what is claimed, and that is the question a look at the page answers badly: an image looks
+like something whether or not it is the thing. Drawing converts an unverifiable risk into a
+verifiable one. That is the argument, and it is why the default runs towards the thing the Teacher
+has to build rather than towards the thing it could find.
+
+**One rule governs both paths: no image ships in a Lesson that has not been rendered and looked
+at.** A borrowed image is downloaded into the Workspace first — both so there is something to
+look at, and because a local copy is reproduction rather than hotlinking, which makes the credit
+obligatory rather than polite. The formats it may be saved in are the ones the service serves,
+which is why the check reads them off `server.js` rather than restating them: a `.webp` renders
+from disk and 404s the moment the page is served.
+
+**The credit goes into the page beside the image, with the licence as a real link** — not into a
+file alongside it, for the reason a Rubric lives inside its Assignment. A credit that *is* part of
+the deliverable may not sit where it can be separated from what it credits.
+
+**Four bans, each recorded with its reason**, because a rule whose reason is missing is one a
+Session routes around the first time it is inconvenient. Generated imagery in place of an
+explanatory diagram: no symbolic representation of the diagram exists, so nothing can check it and
+the generator cannot discover it was wrong. Generated decorative art and stock photography:
+attractive-but-irrelevant material is a measured negative rather than a neutral. Figures embedded
+from paper repositories: the licences do not grant redistribution, so link the paper. Any diagram
+service that renders server-side: it sends the Lesson's content to a third party and makes the
+page network-dependent for something that could have been bytes in the file.
+
+**A ceiling on hand-drawn diagrams, with the mechanism that makes it memorable: the failure is
+geometric rather than semantic.** Past roughly a dozen labelled boxes, or any graph whose edges
+route around nodes, a layout engine places things instead. The Teacher knows what the diagram has
+to say and cannot know how wide a label renders — that depends on a font it is not looking at — so
+it cannot know the label escapes its box, or that two boxes now overlap. Nothing in the markup is
+wrong; the geometry is. Six mitigations buy the headroom under the ceiling: snap to a coarse grid,
+draw box sizes from a small fixed set, label in monospace so a character count estimates a width,
+leave generous padding, cap label length, and mirror the semantic content into the markup so a
+later reader — or the Tutor — can verify what the diagram means without rendering it.
+
+**Rejected:** allowing generated imagery for diagrams under review. It reads as the cautious
+option and is the opposite: the reviewer would be checking an image against prose with no
+symbolic representation in between, which is exactly the unverifiable question the default exists
+to avoid, and it would arrive with the confident look of a finished figure.
+
+**Rejected:** a credits file per Lesson, or one per Workspace. Either is tidier and both fail the
+same way — the obligation outlives the file, so a page that gets moved, copied or handed over
+alone stops carrying its own licence terms.
+
+**Consequence:** the Workspace gains an `images/` directory from the scaffold, since a document
+that names a download destination should not also be asking the Teacher to invent it. Naming a
+destination is a promise about a Workspace, the same shape as an `assets/…` path, so the suite
+holds it from both ends — the destination read out of the document, the directory list read out of
+the scaffold, neither restated.
+
+**Consequence:** `imagery.test.js` holds the claim, the way `from-disk.test.js` holds decision
+34's. The rule and the reason are read against the part of the section that states them, each ban
+has to sit on one logical line with its own reason, the mechanism under the ceiling has to arrive
+in one sentence, and the image formats the document offers are checked against the service's own
+MIME table in both directions. What it cannot hold is whether a Teacher actually looked — that is
+what the page pass is, and what the Learner's Lesson is the evidence of.
+
 ---
 
 ## Where the full record lives

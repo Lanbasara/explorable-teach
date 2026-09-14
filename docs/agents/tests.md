@@ -21,6 +21,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — and no longer ban a technology, nor sell serving on a restriction it does not lift |
+| `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
@@ -626,14 +627,16 @@ one place the pointer has to be.
 the Component selection guide and the navigation rules, and the check reads `SKILL.md` for the
 vocabulary only an authoring reference uses — markup, asset filenames, CDN hosts, `type="module"`,
 `crossorigin`, `new Worker(`, `is-live`, the stand-in sentence a picture carries, a Component's
-`Deps:` declaration, a Lesson's numbering. Same shape as the runbook check below it, and guarded
-the same way: every pattern must be found in `UNIT.md`, or the check is describing no authoring
-material.
+`Deps:` declaration, a Lesson's numbering, a borrowed image's licence, and the coarse grid and
+monospace label a hand-drawn diagram is held to. Same shape as the runbook check below it, and
+guarded the same way: every pattern must be found in `UNIT.md`, or the check is describing no
+authoring material.
 
 That vocabulary tracks the document, not the reverse: it read `Tier N` until the catalog stopped
 being tiered, and the guard failed on the spot rather than going on passing while looking for
-words nobody writes. The four newest entries arrived the same way, when the ban on ES modules
-became a list of what an author types that breaks from disk.
+words nobody writes. Four entries arrived the same way when the ban on ES modules became a list
+of what an author types that breaks from disk, one when the Teacher gained a pass to run over the
+page it had just written, and the last three when it gained a policy for imagery.
 
 **The skill root is the main document and the documents it points at.** Every `.md` beside
 `SKILL.md` must be one of the disclosed documents, which are already required to exist, carry
@@ -752,6 +755,64 @@ having nowhere to look.
 What this suite cannot do is check the browser. Nothing here opens a page from disk, so what it
 defends is that the documents go on agreeing with the measurement and with each other — see
 "`file://` is inferred, not observed" below.
+
+## The imagery check
+
+`imagery.test.js` has the same kind of subject as the from-disk check above — whether a document
+is **right** — and arrives for the opposite reason. There was no wrong rule about imagery to
+correct: there was no rule at all, so Lessons contained almost no images — the costliest of the
+three gaps decisions 34 and 35 started closing, because an annotated static diagram beside prose
+is the most consistently effective format in the instructional literature. A rule that is absent is
+obeyed by nobody, and one that is present and unargued is overridden by the first Session that
+finds it inconvenient. So both the rule and its argument are checked. Decision 36 has the
+reasoning.
+
+**The rule and the borrow test, read against the part of the section that states them.** One
+section of `UNIT.md`, found by its heading, has to carry *default to drawing*, the test in the
+form of the question it actually is — *would a drawing of this be a claim about how reality
+looks?* — and all seven borrow categories by name. The part before the first subsection is what
+is read, rather than the whole section. That is the shape the from-disk check arrived at the hard
+way — measured there, and applied here in advance: the subsections reuse the rule's own vocabulary
+(drawings, diagrams, photography, licences), so a whole-section read is a check that can go on
+passing while the sentence it is about has been deleted.
+
+**The reason, and the sentence it lands on.** Four things have to be said — that the Teacher
+already knows what the diagram must say, that the only question left is whether it rendered
+legibly, that a borrowed image instead poses the question of whether it depicts what is claimed,
+and that a look at the page answers that one badly — and then the conclusion has to arrive in
+**one logical line**: drawing trades an unverifiable risk for a verifiable one. Both words
+somewhere in the section is not the argument; the sentence is.
+
+**Each ban sits on one logical line with its own reason.** Generated imagery for a diagram and its
+missing symbolic representation, generated decoration and stock photography and the measured
+negative they are, embedded figures from paper repositories and the licences that do not grant
+redistribution, and a server-side diagram service and the third party it ships the Lesson's
+content to. A reason that has drifted off its ban is a reason nobody reads while deciding, which
+is why one-line-carries-both is the shape rather than "both appear in the subsection".
+
+**The ceiling, the handover, and the mechanism in one sentence.** A ceiling has to be named, a
+layout engine has to be what takes over past it — a ceiling with nothing beyond it is a ban — and
+the mechanism has to arrive whole: *geometric rather than semantic*, with the width of a label in
+the same breath. All six mitigations are required, each of which removes one way for a label to be
+wider than the author guessed.
+
+**The formats are read off the service, not restated.** `server.js` owns the MIME table, so the
+check parses the image types out of it and requires the document to offer each one and to offer
+nothing else. This is the rule about never restating what another file owns, applied to a document:
+a reference that named `.webp` would send the Teacher to download one, and the page would render
+from disk and 404 the moment it was served.
+
+**The destination is held from both ends.** Naming `./images/` in a document is a promise about a
+Workspace, the same shape as an `assets/…` path — so the check reads the destination out of the
+document and the directory list out of `init-workspace.sh`, and requires the second to contain the
+first. Neither side is restated here, which is the rule that keeps a test from becoming one more
+document caching a fact it does not own.
+
+**And the argument is in the decisions record**, which the check reads folded, the way it reads
+every document here — the record is hard-wrapped, so `rendered and looked\nat` is one sentence
+broken across two lines and nothing that reads raw lines can see it. Both document suites now read
+through one folding reader, in `helpers/docs.js`: two copies of a reading rule is how a reader ends
+up disagreeing with itself, which is the defect the Markdown module's own head comment records.
 
 ## The spine check
 
@@ -923,6 +984,18 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   already bought elsewhere and better — a Teacher opens the real page, on the real service, once
   per Lesson. What the suite must never do is *simulate* enough of a browser to look like it
   covers this; the stub page is deliberately small enough that nobody could mistake it for one.
+- **A format nobody has named yet is offered for free.** The half of the imagery check that
+  forbids offering an image format the service will not serve recognises formats from a fixed list
+  written into the test — there is no registry of them to read instead — so a document offering
+  `.jxl` would pass it. The other direction has no floor: the formats the service *does* serve are
+  read off `server.js`, so one added there and not offered in the document fails on the day it is
+  added.
+- **Whether an image was drawn, borrowed, or looked at is not knowable here.** `imagery.test.js`
+  checks that the rule is stated and argued; it cannot check a Learner's Lesson, which is where
+  the rule either was or was not followed. Nothing here can tell a drawing from a borrowed
+  photograph, say whether a credit names the right source, or know whether anyone opened the page
+  — the last of those is what the page pass is, and it runs in a browser a Teacher is sitting in
+  front of.
 - **The Grader's judgement is not tested, and cannot be.** The stub agent replays a fixed
   transcript, so every grading check here is about what the Grader is *asked* and what happens to
   what it *said* — never about whether the verdict is right. That it judges against the stored
