@@ -23,16 +23,17 @@ the same relationship `vite` has with a front-end project.
 ## Running it, and looking into it
 
 ```sh
-./tutor/tutorctl.sh status     # up? pid / uptime / how long it has been idle
-./tutor/tutorctl.sh start      # in the background (nohup detach; outlives this terminal)
+./tutor/tutorctl.sh status     # up? pid / uptime / idle time / where each lesson is served
+./tutor/tutorctl.sh start      # in the background; outlives this terminal and this session
 ./tutor/tutorctl.sh restart
 ./tutor/tutorctl.sh stop
 ./tutor/tutorctl.sh log 40     # the last 40 lines of the log
 ```
 
 `start` **detaches on purpose**: its lifetime should be decided by your study session rather than
-by a terminal window or an AI conversation. The log is written to `tutor/server.log`. To move it
-off a busy port: `PORT=5000 ./tutor/tutorctl.sh start`
+by a terminal window or an AI conversation. It gives up the terminal *and* the process group, so a
+signal sent to the group the launching shell sits in does not reach it either. The log is written
+to `tutor/server.log`. To move it off a busy port: `PORT=5000 ./tutor/tutorctl.sh start`
 
 You can also run `node tutor/server.js` in the foreground and stop it with Ctrl-C — easier to
 watch while tuning `TUNING.md`. (The service has to know which workspace it is serving:
@@ -43,6 +44,11 @@ outright as `node tutor/server.js /path/to/workspace`.)
 idle timeout → the port is held by a stale process from an earlier session (`status` reports the
 pid — look at what is holding it before killing anything) → `claude` is not on `PATH` in the
 environment that launched it.
+
+**If it dies within minutes of being started from inside an agent session** — serving fine, then
+gone, with no exit line in the log — start it from a standalone terminal instead. It is detached
+from that session's process group, but the signal that killed the reported one was never captured,
+so that detachment is hardening rather than a diagnosis.
 
 ## It does three things
 

@@ -2,8 +2,29 @@
 
 ## Unreleased
 
+### Added
+
+- **`status` says where each Lesson is served.** With the service up, the control script now lists
+  the address of every Lesson, on the port it is actually bound to. The address a teacher hands to
+  a learner is one they copied rather than one they assembled, and it stays right after
+  `PORT=5000 ./tutor/tutorctl.sh start`. Lessons only: where the course as a whole opens is the
+  documents' business.
+
 ### Fixed
 
+- **The tutor service outlives the shell that launched it.** `start` gave up the terminal and not
+  the process group, so "must outlive the launching shell" was half implemented — a signal sent to
+  the group, which is what the end of an agent session sends, still reached it. It now starts in a
+  session of its own, through `setsid` where the platform has it and through the `python3` this
+  script already parses JSON with where it does not — macOS ships no `setsid`, and `set -m` in a
+  subshell is not a substitute, because dash turns job control back off when there is no terminal,
+  which is precisely the case being hardened against. This is **hardening rather than a diagnosis**: the
+  session that reported a service dying two minutes in did not capture the signal that killed it,
+  and no post-start survival check was added, because a check short enough to run would report
+  success and prove nothing. The runbook gains the matching line — if it dies immediately after
+  being started from inside an agent session, start it from a standalone terminal. The suite can
+  now start the service the documented way, through the control script, which until now was the
+  one way of running it that nothing tested.
 - **The Dossier is the Workspace entry point again, under both readings.** Served, every address
   that names it returned the lowest-numbered Lesson instead: the service root, the Dossier's own
   filename, and — because the navigation bar asks for `../index.html` from inside a Lesson — the

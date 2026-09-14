@@ -112,8 +112,8 @@ files.
 When the learner says the Tutor is broken, silent, or slow, probe before theorising:
 
 ```
-./tutor/tutorctl.sh status     # up? which port, pid, uptime, idle time
-./tutor/tutorctl.sh start      # detached via nohup; writes tutor/.tutor.pid
+./tutor/tutorctl.sh status     # up? which port, pid, uptime, idle time, where each Lesson is served
+./tutor/tutorctl.sh start      # detached from the terminal and the process group both
 ./tutor/tutorctl.sh restart
 ./tutor/tutorctl.sh stop
 ./tutor/tutorctl.sh log 40     # the last 40 lines of tutor/server.log
@@ -128,6 +128,13 @@ timeout; the port is held by a stale process from an earlier session; `claude` i
 in the environment that launched it. `status` reports the pid — look at what is holding the port
 before killing anything, and move out of its way with `PORT=5000 ./tutor/tutorctl.sh start` if
 the process turns out to belong to something else.
+
+One failure has a shape rather than a cause: the service comes up, serves for a few minutes, and
+is then gone, with no exit line in `tutor/server.log` — killed rather than shut down, and too soon
+to be the idle timeout. If that happens to a service started from inside an agent session, start it
+again from a standalone terminal. `start` leaves the launching shell's process group as well as its
+terminal, which is the half of "outlives the shell that launched it" that used to be missing; the
+signal that did the killing was never captured, so that is hardening rather than a known fix.
 
 The idle timeout is deliberately long — hours, not minutes. The failure it guards against is a
 forgotten process lingering for days, not one sitting idle over lunch. Never shorten it to the

@@ -27,7 +27,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
-| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
+| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, writes the scaffolding it builds in English while the answer comes back in the Learner's language, and — started the way its documents say to start it — outlives the shell that launched it and says where each Lesson is served |
 | `tests/dossier.test.js` | The Workspace entry point reports the Tutor service in three states — reached, not running, and cannot tell from here — and asks the service nothing from a page it never served |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
@@ -255,8 +255,23 @@ through the link into the plugin — so the split is exercised rather than bypas
 defaults to its working directory when nothing names a Workspace, which is what keeps that
 invocation meaningful.
 
-**The agent is a stub binary first on `PATH`.** `PATH` is set to *only* the directory holding it,
-so the real `claude` cannot be reached even on a machine that has one. The stub records its argv
+**It also starts it the way every document tells the Learner to.** `TutorService.start(t, ws, {
+control: true })` runs `tutor/tutorctl.sh start` — which was, until it did, the one way of running
+the service that nothing here ran. What comes back is the same service; two differences are the
+whole point of the mode. It is nobody's child, so it is identified by the pair nothing else on the
+machine shares — this port, serving this throwaway Workspace — and stopped by the pid it reported
+rather than by a handle. And its launcher is spawned `detached`, leading a process group of its
+own, which is what a shell is: *did the service stay in the launching shell's group?* is then a
+question a test can ask by signalling that group and seeing whether anything was still in it.
+
+The cost of that mode is one guarantee the direct one keeps. `PATH` there holds the stub agent and
+nothing else, so a real `claude` is unreachable even on a machine that has one; a shell script
+needs `dirname`, `curl` and `python3` to run at all, so this mode puts the system directories
+behind the stub — which still wins for `claude`, being still first.
+
+**The agent is a stub binary first on `PATH`.** Started directly, `PATH` is set to *only* the
+directory holding it, so the real `claude` cannot be reached even on a machine that has one; the
+control-script mode above trades the *only* for the *first*, and nothing else. The stub records its argv
 and working directory — which is the only window onto the payload the service built, and therefore
 the only way to see history trimming from outside — and then replays a fixed transcript. `agentSays`
 spells the stream shapes the service documents: a text delta, a thinking delta, a tool use, a

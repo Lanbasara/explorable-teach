@@ -377,6 +377,60 @@ test('the control script refuses to serve the plugin as though it were a Workspa
   assert.ok(!fs.existsSync(path.join(path.dirname(plugin), '.tutor.pid')), 'it wrote a pidfile into the plugin');
 });
 
+test('a service the control script started outlives the shell that launched it', async (t) => {
+  const ws = workspace(t);
+
+  // Started the one way every document tells the Learner to start it. The
+  // launcher is a shell in a process group of its own — which is what the shell
+  // inside an agent session is — and it has exited by the time this returns.
+  const service = await TutorService.start(t, ws, { control: true });
+
+  assert.notEqual(
+    service.processGroup(),
+    service.launcherGroup,
+    'the service is still in the process group of the shell that started it',
+  );
+
+  // The claim that reading is about, made by doing the thing: ending a session
+  // kills the group. The launcher is gone, so the group has a member only if
+  // the service is one — and `ESRCH`, no such process group, is the whole of
+  // the answer. The signal is real, so this cannot come back a false negative.
+  assert.throws(() => service.killLauncherGroup('SIGTERM'), { code: 'ESRCH' });
+
+  // Guard: a service that had died on its own would leave that group empty too,
+  // and every assertion above would pass on a course nobody can reach.
+  const health = await service.get('/api/health');
+  assert.equal(health.status, 200, `the service did not survive its launcher:\n${service.log()}`);
+  assert.equal(health.json().pid, service.pid);
+});
+
+test('status says where each Lesson is served, on the port the service is bound to', async (t) => {
+  const ws = workspace(t);
+  const service = await TutorService.start(t, ws, { control: true });
+
+  const status = service.tutorctl('status');
+  assert.equal(status.status, 0, status.stdout + status.stderr);
+
+  // Read back out of what was printed rather than written down here — and then
+  // asked for, because an address handed to a Learner has to be one the service
+  // answers at. The port is one nobody wrote down, so a status line that went
+  // back to naming the default would be printing an address serving nothing.
+  const printed = [...status.stdout.matchAll(/http:\/\/\S+/g)].map((m) => new URL(m[0]));
+  const lessons = printed.filter((url) => url.pathname.startsWith('/lessons/'));
+
+  assert.deepEqual(
+    lessons.map((url) => `${url.host}${url.pathname}`).sort(),
+    [
+      `127.0.0.1:${service.port}/lessons/0001-fork.html`,
+      `127.0.0.1:${service.port}/lessons/0002-exec.html`,
+    ],
+    status.stdout,
+  );
+
+  const served = await Promise.all(lessons.map((url) => service.get(url.pathname)));
+  assert.deepEqual(served.map((res) => res.body).sort(), [FIRST_LESSON, SECOND_LESSON].sort());
+});
+
 // ---------------------------------------------------------------- asking
 
 test('a malformed question is rejected before any agent is spawned', async (t) => {

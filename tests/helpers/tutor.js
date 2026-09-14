@@ -17,6 +17,11 @@
  * which is what makes the streaming shapes and the payload the agent receives
  * observable from outside at all.
  *
+ * It starts the service in either of the two ways a Workspace's owner can.
+ * Directly is what most of the suite wants. `{ control: true }` starts it
+ * through `tutor/tutorctl.sh` — the one way every document tells the Learner to
+ * start it, and for a long time the one way nothing here ran.
+ *
  * `Workspace.run()` waits for a command to exit, so it cannot host a server.
  * This is that missing method.
  */
@@ -26,7 +31,7 @@ const http = require('node:http');
 const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const { REPO_ROOT } = require('./workspace.js');
 
@@ -34,6 +39,17 @@ const { REPO_ROOT } = require('./workspace.js');
 const AGENT = 'claude';
 
 const READY_TIMEOUT_MS = 15_000;
+
+/** The two files a Workspace's owner runs and reads, by the paths they live at. */
+const CONTROL = 'tutor/tutorctl.sh';
+const SERVER_LOG = 'tutor/server.log';
+
+/**
+ * Where the control script's own tools live. It is a shell script and reaches
+ * for `dirname`, `curl` and `python3` before it reaches for anything of this
+ * plugin's, where the server reaches for nothing at all.
+ */
+const SYSTEM_PATH = ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
 
 /** The plugin's Grader role definition — the one file that decides how a refusal opens. */
 const GRADER_ROLE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/GRADER.md');
@@ -208,11 +224,14 @@ class TutorService {
    *           only thing that can end the request
    *   idleTimeoutMs  how long the service tolerates having no requests
    *   answerTimeoutMs  how long the service waits for an answer
+   *   control  start through `tutor/tutorctl.sh` rather than by spawning the
+   *            server here — the way the runbook says to. What comes back is
+   *            the same service; what differs is that it is nobody's child.
    */
   static async start(
     t,
     ws,
-    { agent = [], exit = 0, stderr = '', hangs = false, idleTimeoutMs, answerTimeoutMs } = {},
+    { agent = [], exit = 0, stderr = '', hangs = false, idleTimeoutMs, answerTimeoutMs, control = false } = {},
   ) {
     if (!ws.exists('tutor/server.js')) {
       throw new Error('TutorService.start: nothing installed at tutor/server.js — scaffold the Workspace first');
@@ -233,7 +252,12 @@ class TutorService {
       ...process.env,
       // First and alone: the real `claude` must not be reachable from here even
       // if the machine running the suite has one installed.
-      PATH: bin,
+      //
+      // Started through the control script, only the first half of that is
+      // available — a `PATH` holding nothing but the stub is a `PATH` the script
+      // cannot find `dirname` on. It gets the system directories and this
+      // interpreter's own, behind the stub, which still wins for `claude`.
+      PATH: control ? [bin, path.dirname(process.execPath), ...SYSTEM_PATH].join(path.delimiter) : bin,
       STUB_RUN: runFile,
       STUB_TRANSCRIPT: transcriptFile,
       STUB_EXIT: String(exit),
@@ -248,11 +272,9 @@ class TutorService {
     let last;
     for (let attempt = 0; attempt < 5; attempt++) {
       const port = await freePort();
-      const service = new TutorService(ws, port, spawn(process.execPath, [ws.path('tutor/server.js')], {
-        cwd: ws.dir,
-        env: { ...env, PORT: String(port) },
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }), runFile);
+      const launchEnv = { ...env, PORT: String(port) };
+      const child = launch(ws, launchEnv, control);
+      const service = new TutorService(ws, port, child, runFile, control, launchEnv);
 
       t.after(() => service.stop());
 
@@ -268,11 +290,16 @@ class TutorService {
     throw last;
   }
 
-  constructor(ws, port, child, runFile) {
+  constructor(ws, port, child, runFile, launchedByScript = false, env = process.env) {
     this.ws = ws;
     this.port = port;
     this.child = child;
     this.runFile = runFile;
+    this.env = env;
+    // Started through the control script, `child` is the launcher rather than
+    // the service: it exits, and what it leaves running has a pid of its own.
+    this.launchedByScript = launchedByScript;
+    this.servicePid = null;
     this.exited = null;
     this.output = '';
 
@@ -285,26 +312,46 @@ class TutorService {
 
   /** Everything the service has written to stdout and stderr, for diagnostics. */
   log() {
-    return this.output;
+    // Started through the control script, what was captured above is the
+    // launcher's own report; the service's output went to the file the runbook
+    // tells its reader to tail.
+    const server = this.launchedByScript && this.ws.exists(SERVER_LOG) ? this.ws.read(SERVER_LOG) : '';
+    return this.output + server;
+  }
+
+  /** The pid the service reports for itself. Null until it has answered. */
+  get pid() {
+    return this.servicePid;
   }
 
   /** Resolve once *this* service answers, or throw with whatever it said instead. */
   async ready() {
+    if (this.launchedByScript) {
+      // The control script returns once the service is healthy, so its own exit
+      // is the readiness signal — and its status is the only place a refusal (a
+      // port already held, a directory that is not a Workspace) is reported.
+      const exit = await waitFor('the control script to return', () => this.exited, {
+        timeout: READY_TIMEOUT_MS,
+      });
+      if (exit.code !== 0) throw new Error(`the control script did not start the service:\n${this.log()}`);
+    }
+
     const deadline = Date.now() + READY_TIMEOUT_MS;
     let foreign = null;
 
     for (;;) {
-      if (this.exited) throw new Error(`the service exited before answering:\n${this.log()}`);
+      if (!this.launchedByScript && this.exited) {
+        throw new Error(`the service exited before answering:\n${this.log()}`);
+      }
       try {
         const res = await this.get('/api/health');
         if (res.status === 200) {
-          // A port was free a moment ago rather than reserved, so something
-          // else can be holding it — another test file's service, most likely.
-          // Answering is not enough; it has to be ours, or every claim below
-          // would be made about someone else's Workspace.
-          const { pid } = res.json();
-          if (pid === this.child.pid) return this;
-          foreign = pid;
+          const health = res.json();
+          if (this.isOurs(health)) {
+            this.servicePid = health.pid;
+            return this;
+          }
+          foreign = health.pid;
         }
       } catch {
         // Not listening yet.
@@ -318,6 +365,87 @@ class TutorService {
       }
       await sleep(25);
     }
+  }
+
+  /**
+   * Is the service answering on this port the one this test started?
+   *
+   * A port was free a moment ago rather than reserved, so something else can be
+   * holding it — another test file's service, most likely. Answering is not
+   * enough; it has to be ours, or every claim made through it would be made
+   * about someone else's Workspace.
+   *
+   * Started directly, the service is this helper's own child and the pid
+   * settles it. Started through the control script it is nobody's child, so the
+   * claim is made from the pair nothing else on the machine shares: this port,
+   * serving this throwaway Workspace.
+   */
+  isOurs(health) {
+    return this.launchedByScript
+      ? health.port === this.port && health.workspace === this.ws.dir
+      : health.pid === this.child.pid;
+  }
+
+  /**
+   * Run the control script against this service, the way its documents tell a
+   * Workspace's owner to. Under the environment the service was started in,
+   * rather than this process's: `PORT` because nothing in the suite runs on the
+   * default one, and the rest because a subcommand that starts something —
+   * `restart` — must reach the stub agent and not the machine's real `claude`.
+   */
+  tutorctl(...args) {
+    if (!this.launchedByScript) {
+      // Refused rather than half-worked: a service started directly has a
+      // `PATH` holding the stub agent and nothing else, which is not a `PATH`
+      // any shell script can find `dirname` on.
+      throw new Error('TutorService.tutorctl: start with { control: true } to run the control script');
+    }
+
+    const run = spawnSync(this.ws.path(CONTROL), args, {
+      cwd: this.ws.dir,
+      encoding: 'utf8',
+      timeout: 30_000,
+      env: this.env,
+    });
+
+    if (run.error) throw run.error;
+    return { status: run.status, stdout: run.stdout, stderr: run.stderr };
+  }
+
+  /**
+   * The process group the service ended up in, read off the machine rather than
+   * worked out from how it was started. It throws rather than answering with an
+   * empty string when `ps` says nothing: an assertion that two groups differ is
+   * exactly the kind that would pass on a reading nobody managed to take.
+   */
+  processGroup() {
+    const ps = spawnSync('ps', ['-o', 'pgid=', '-p', String(this.servicePid)], { encoding: 'utf8' });
+    const pgid = Number((ps.stdout || '').trim());
+
+    if (!Number.isInteger(pgid) || pgid <= 0) {
+      throw new Error(`could not read the process group of pid ${this.servicePid}: ${JSON.stringify(ps.stdout)}`);
+    }
+    return pgid;
+  }
+
+  /**
+   * The process group of the shell that launched the service. The launcher is
+   * spawned `detached`, which makes it the leader of a group of its own, so the
+   * group's id is its pid — and stays the group's id after it exits, for as long
+   * as anything is left in there.
+   */
+  get launcherGroup() {
+    return this.child.pid;
+  }
+
+  /**
+   * Signal everything still in that group — which is what the end of an agent
+   * session does to the shell it ran commands in. With the launcher gone, an
+   * `ESRCH` here means the group is empty, and that is the answer this way of
+   * starting the service exists to be able to ask for.
+   */
+  killLauncherGroup(signal) {
+    process.kill(-this.child.pid, signal);
   }
 
   request(method, urlPath, { body = null, headers = {} } = {}) {
@@ -370,13 +498,72 @@ class TutorService {
   }
 
   stop() {
+    return this.launchedByScript ? this.stopDetached() : this.stopChild();
+  }
+
+  /** Kill this helper's own child — the service, or the launcher that started it. */
+  stopChild() {
     if (this.exited) return Promise.resolve();
     this.child.kill('SIGKILL');
     return new Promise((resolve) => this.child.on('close', resolve));
   }
+
+  /**
+   * A service the control script started is nobody's child, so there is no
+   * handle to kill and nothing to wait on: it is stopped by the pid it reported
+   * and waited for by that same pid. A test that ended without this would leave
+   * a server behind holding a port for the eight hours its idle timeout allows.
+   */
+  async stopDetached() {
+    await this.stopChild();
+    if (this.servicePid == null) return;
+
+    try {
+      process.kill(this.servicePid, 'SIGKILL');
+    } catch {
+      return; // already gone
+    }
+    await waitFor(`the service (pid ${this.servicePid}) to go away`, () => !alive(this.servicePid));
+  }
 }
 
 // ---------------------------------------------------------------- plumbing
+
+/**
+ * The process a test starts, in one of the two ways a service gets started.
+ *
+ * Directly, it *is* the service: `node <ws>/tutor/server.js`, resolved through
+ * the Workspace's own link into the plugin, living as long as the test does.
+ *
+ * Through the control script it is a launcher. `tutorctl.sh start` returns as
+ * soon as the service is healthy and leaves a service behind that belongs to
+ * nobody. It is spawned `detached`, so the launcher leads a process group of its
+ * own — which is what a shell is, and which the suite's own group must not be,
+ * since the question being asked is whether the service stayed in it.
+ */
+function launch(ws, env, control) {
+  const [bin, args] = control
+    ? [ws.path(CONTROL), ['start']]
+    : [process.execPath, [ws.path('tutor/server.js')]];
+
+  return spawn(bin, args, {
+    cwd: ws.dir,
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: control,
+  });
+}
+
+/** Is there still a process under this pid? */
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // Somebody else's process, which is somebody else's to end but is alive.
+    return err.code === 'EPERM';
+  }
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
