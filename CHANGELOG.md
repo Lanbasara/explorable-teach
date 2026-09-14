@@ -4,6 +4,26 @@
 
 ### Changed
 
+- **A Lesson can serve its own local assets.** The Tutor service's media-type table admitted ten
+  extensions, so a Lesson could reach a renderer on a CDN and not the model it renders: geometry,
+  audio, video, typefaces, the modern image formats and a Lesson's own module or dataset were all
+  404s on files that were really there. The table now carries `.glb`, `.gltf`, `.obj`, `.stl`,
+  `.mp3`, `.m4a`, `.ogg`, `.wav`, `.mp4`, `.webm`, `.vtt`, `.woff`, `.ttf`, `.otf`, `.webp`,
+  `.avif`, `.mjs`, `.wasm` and `.csv` beside what it had. It is still an allowlist and
+  still the first gate a request meets — nothing else on the resolution path moved, so the
+  decoding, the containment check against the Workspace root, the symlink check that catches a
+  link the scaffold did not write, the `assets/…` fallback to the plugin and the loopback bind are
+  all as they were, and the Workspace's own `private.txt`, `.tutor.pid` and question log are as
+  unreachable as before. Each of the three refusals is now re-asked with a newly admitted
+  extension in the URL — a path escaping the Workspace in every spelling the suite knows, a link
+  the scaffold did not write, and an extension off the list — because an allowlist that refuses
+  first is an allowlist the checks behind it had never had to answer for a `.glb`.
+- **The authoring reference says what that means for an author.** A Lesson's own local asset is
+  fetched, so the Tutor service is what answers for it: it loads at the served address and nowhere
+  else, and from disk it is simply not there. A Lesson that has to work both ways either inlines
+  the asset or generates the geometry procedurally rather than importing it. The borrowed-image
+  formats widen with the table — `.webp` and `.avif` join `.png`, `.jpg`/`.jpeg` and `.svg`,
+  which is the pair of lists the imagery check holds to each other in both directions.
 - **The authoring reference says what actually breaks a Lesson opened from disk, instead of
   banning a technology.** It required `file://` compatibility by default — UMD or IIFE, never ES
   modules — to buy an offline property nobody had measured, and the measurement says the ban does

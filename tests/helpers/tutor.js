@@ -54,6 +54,9 @@ const SYSTEM_PATH = ['/usr/bin', '/bin', '/usr/sbin', '/sbin'];
 /** The plugin's Grader role definition — the one file that decides how a refusal opens. */
 const GRADER_ROLE = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/GRADER.md');
 
+/** The service itself, for the one fact that is read out of its source. */
+const SERVER = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/tutor/server.js');
+
 /**
  * The line a refusal has to open with, read out of the definition that mandates
  * it rather than written down here.
@@ -81,6 +84,45 @@ function refusalToken(text = fs.readFileSync(GRADER_ROLE, 'utf8')) {
     );
   }
   return quoted[0];
+}
+
+/**
+ * The service's media-type table, as `{ ext, type }` in the order it is written.
+ *
+ * Two suites ask about that table from opposite ends — `tutor-server.test.js`
+ * for an extension the gate admits that nothing ever requests, and
+ * `imagery.test.js` for an image format the service serves that the authoring
+ * reference does not offer — and one reader between them, for the reason
+ * `refusalToken` sits here: two copies of a reading rule is how two suites end
+ * up disagreeing about what they read.
+ *
+ * What a reader like this may *not* be used for is the answer to "what should a
+ * `.glb` come back as?". That is the contract with the browser, and a check
+ * sourcing it here could not tell `model/gltf-binary` from `text/plain` — so
+ * `tutor-server.test.js` writes the content types down and compares only the
+ * extensions against what this hands back.
+ *
+ * It throws rather than returning nothing when the table has moved, because a
+ * reader that quietly finds none is a suite that passes for free. `text` is a
+ * parameter so `tutor-helper.test.js` can hold it to that, the way it holds the
+ * refusal-token reader.
+ */
+function mediaTypes(text = fs.readFileSync(SERVER, 'utf8')) {
+  const table = /const MIME = \{([\s\S]*?)\n\};/.exec(text);
+  if (!table) {
+    throw new Error("the service's media-type table is no longer where this reader looks for it");
+  }
+
+  const found = [...table[1].matchAll(/'(\.\w+)':\s*'([^']+)'/g)].map((m) => ({
+    ext: m[1],
+    type: m[2],
+  }));
+  if (!found.length) {
+    throw new Error(
+      'the media-type table parsed to nothing, so every check reading it would pass for free',
+    );
+  }
+  return found;
 }
 
 /**
@@ -636,6 +678,7 @@ module.exports = {
   STUB_AGENT,
   agentSays,
   refusalToken,
+  mediaTypes,
   waitFor,
   request,
   freePort,

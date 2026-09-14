@@ -20,7 +20,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 |-------|--------------------|
 | `tests/pointers.test.js` | Every pointer in an agent-facing document resolves — to a file that exists, and to a heading that is there |
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
-| `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — and no longer ban a technology, nor sell serving on a restriction it does not lift |
+| `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — including a Lesson's own local assets, with both ways round it — and no longer ban a technology, nor sell serving on a restriction it does not lift |
 | `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
@@ -30,13 +30,13 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, re-running is free, and every Lesson's served address is printed with the precondition that makes it work |
 | `tests/page-checks.test.js` | The pass a Teacher runs over a page it just wrote answers in one shape, declines rather than passing when there is nothing to judge, tolerates a page lacking the thing it examines, and documents every condition under which it misleads |
-| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, writes the scaffolding it builds in English while the answer comes back in the Learner's language, and — started the way its documents say to start it — outlives the shell that launched it and says where each Lesson is served |
+| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier and in every media type a Lesson's own assets arrive in — grades in a role composed from the Grader's own two files, never the Tutor's, writes the scaffolding it builds in English while the answer comes back in the Learner's language, and — started the way its documents say to start it — outlives the shell that launched it and says where each Lesson is served |
 | `tests/dossier.test.js` | The Workspace entry point reports the Tutor service in three states — reached, not running, and cannot tell from here — and asks the service nothing from a page it never served |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
 | `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, the role definitions are English down to the token a Grader refuses with, and nothing the plugin ships — nor the Workspace one scaffold run produces — is written in one Learner's language |
 | `tests/release.test.js` | The version the plugin declares is the one the changelog most recently shipped |
-| `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives, and the reader that finds the Grader's refusal token refuses to guess at it |
+| `tests/tutor-helper.test.js` | The service fixture below replays a stream in pieces, the way a real one arrives, and the readers that find the Grader's refusal token and the service's media types refuse to guess at either |
 | `tests/workspace-helper.test.js` | The fixture Workspace below actually observes what it claims to |
 | `tests/dom-helper.test.js` | The fixture DOM below parses and dispatches what it claims to |
 | `tests/markdown-helper.test.js` | The Markdown reader below sees the document structure a reader sees |
@@ -306,12 +306,33 @@ afterwards, where a verdict has become a numbered Learning Record. That last one
 `waitFor`: the record is written before `done` is sent, which is the ordering that lets the page
 name where it landed.
 
-**One thing in that file is not a service at all.** `refusalToken()` reads the token a refusal has
+**Two things in that file are not a service at all.** `refusalToken()` reads the token a refusal has
 to open with out of `tutor/GRADER.md`, which is the file that decides it — the service watches for
 it, the drawer strips it, and three suites build a refusal out of this one reading rather than out
 of three copies. It lives beside the service fixture because everything in `runtime/tutor/` is
 driven from here, and it is held to refusing a `GRADER.md` that quotes more than one line: picking
 between two would be a fixture deciding a contract it does not own.
+
+`mediaTypes()` is the second, and sits there for the same reason: `tutor-server.test.js` asks
+whether the media-type table admits an extension nothing ever requests, `imagery.test.js` asks
+whether it serves an image format the authoring reference does not offer, and one reader between
+them is what keeps two suites from disagreeing about what they read. It throws rather than
+handing back an empty table, so the observer is guarded once where the reading happens instead of
+in each suite — and `tutor-helper.test.js` holds it to that.
+
+**The media types themselves are written down rather than read off the thing that owns them**,
+which is the one exception in that file to the rule about restating. What a browser is handed
+back *is* the contract — a `.glb` served as `text/plain` is a file a renderer refuses — so a check
+sourcing the content type from `server.js` would assert nothing about it. The reader is used for
+the opposite question only: is there an extension the gate admits that nothing here ever asks for?
+The two lists have to be equal, so neither can drift.
+
+**And each refusal is re-asked with a newly admitted extension in the URL** — every spelling of an
+escape, a link the scaffold did not write, an extension off the list. The allowlist is the *first*
+gate a request meets, so until the table grew, the containment check, the symlink check and the
+`assets/…` fallback had never had anything to say about a `.glb`: a request for one was dropped
+before it reached them. Each 404 is paired with an honestly placed `.glb` that does come back, or
+the whole check is one on a service that refuses everything.
 
 **Each test gets its own service**, because the stub's transcript is fixed when the process
 starts. A port is picked by asking the OS for a free one — which makes it free a moment ago rather
@@ -755,6 +776,20 @@ sentence that says nothing about the network.
 **A picture Component carries a stand-in sentence**, and a text one keeps being taken over by its
 script. And nothing that needs the network or the service may fail silently — the page names
 which of the two is missing.
+
+**A Lesson's own local assets are the same rule met from the friendly side**, and the check
+requires the consequence and both ways round it — inline the asset, or generate the geometry
+procedurally — to arrive on **one logical line**, which is one paragraph, **inside the section
+that owns the rule**. Neither half of that is tidiness. `UNIT.md` names the Tutor service and the
+served address all over, so a document-wide read would pass on two sentences that never met; and
+a consequence stated with no way out reads as *do not use local assets*, which is the ban again
+wearing a different coat, so both ways out are checked rather than assumed.
+
+Holding the placement is what turned up a bound that was missing. `sections` asked for level three
+runs a body to the next level-three heading, so this section ran on through the page pass and the
+imagery rules that follow it — the bleed `imagery.test.js` documents and works around. Measured:
+the paragraph moved out of the section entirely still satisfied the check. The section is now
+bounded at the next heading of any level, which every check reading a part of it inherits.
 
 Every check here reads the documents with their hard wrapping folded back out, through the
 Markdown reader, because every claim it makes is about a sentence rather than a line. The scan

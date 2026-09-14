@@ -129,6 +129,15 @@ Two consequences ride along, and neither follows from the rule above:
   constructs the worker from a blob. Its own documentation is where that is answered; check
   before choosing it, because serving the page does not fix it.
 
+**A Lesson's own local assets are that rule wearing a friendlier face.** A model, an audio clip, a
+video, a dataset, a typeface sitting in the Workspace beside the page is *fetched* — so the Tutor
+service is what answers for it, and it loads at the served address and nowhere else. From disk it
+is simply not there. That is the ordinary case and it is fine, because served is the address you
+hand over. If one particular Lesson has to work both ways, there are two ways round it and no
+third: **inline the asset** into the page, or **generate the geometry procedurally** in the script
+instead of importing it — which is often the better Lesson anyway, since the code that builds the
+shape is something the Learner can be shown.
+
 And one rule about failure, which starts to matter the moment a page reaches for either:
 **nothing that depends on the network or on the Tutor service may fail silently.** A CDN that did
 not answer and a service that is not running are different problems with different fixes, so a
@@ -223,9 +232,9 @@ pass](#look-at-the-page-before-handing-it-over). A borrowed image is **downloade
 `./images/` first** and looked at there: you cannot look at what you have not fetched, and a local
 copy is reproduction rather than hotlinking, which is what makes the credit obligatory rather than
 polite. That is the Workspace's own `./images/`, which the scaffold makes — written `../images/…`
-from inside a Lesson, as the example below writes it. Save it as `.png`, `.jpg`/`.jpeg` or `.svg`
-— those are the formats the Tutor service serves, and anything else renders from disk and 404s the
-moment the page is served.
+from inside a Lesson, as the example below writes it. Save it as `.png`, `.jpg`/`.jpeg`, `.svg`,
+`.webp` or `.avif` — those are the formats the Tutor service serves, and anything else renders
+from disk and 404s the moment the page is served.
 
 Read the licence before you download, and take only what permits reproduction. A licence you
 cannot find is not a licence you have.

@@ -100,13 +100,22 @@ function fromDiskSection() {
     'the authoring reference should say what breaks from disk, in exactly one section of its own',
   );
 
-  const [breaks, rest] = found[0].body.split(/\*\*These do not:?\*\*/);
+  // Bounded at the next heading of *any* level, which `sections` does not do:
+  // asked for level three it runs a body to the next level-three heading, so
+  // this one swallowed the whole of the page pass and the imagery rules that
+  // follow the section it belongs to. Every check below reads a part of this,
+  // and a part that runs past its own section is a check with a claim about
+  // material it was never about — measured: a paragraph moved out of here
+  // entirely still satisfied the placement check.
+  const whole = found[0].body.split(/^#{1,3} /m)[0];
+
+  const [breaks, rest] = whole.split(/\*\*These do not:?\*\*/);
   assert.ok(rest !== undefined, 'the section should turn from what fails to what does not');
 
   const [works, consequences] = rest.split(/Two consequences/);
   assert.ok(consequences !== undefined, 'the section should end on the two consequences');
 
-  return { breaks, works, consequences };
+  return { breaks, works, consequences, whole };
 }
 
 /**
@@ -190,6 +199,42 @@ test('the two consequences that do not follow from the rule are stated', () => {
     absentFrom(CONSEQUENCES, consequences),
     [],
     'neither of these is derivable from "a relative URL fails"; both break a page that looks correct',
+  );
+});
+
+test("and says that a Lesson's own local assets are among the things that need it served", () => {
+  // The consequence the widened media-type table brings with it, and the one
+  // an author meets as a blank rectangle rather than as an error: a model, a
+  // clip or a typeface sitting beside the page is *fetched*, so it is the
+  // service that answers for it. Both ways round it are required with it,
+  // because a consequence stated with no way out reads as a reason not to use
+  // local assets at all — which is the ban again, wearing a different coat.
+  const LOCAL = [
+    {
+      what: "that a Lesson's own local asset is reachable at the served address",
+      re: /\bserv(?:ed|es|ing)\b/,
+    },
+    { what: 'that the Tutor service is what answers for it', re: /Tutor service/ },
+    { what: 'the first way round it: inline the asset', re: /\binlin(?:e|es|ing)\b/i },
+    { what: 'the second: generate the geometry procedurally', re: /procedural/i },
+  ];
+
+  // One logical line, which is one paragraph, inside the section that owns the
+  // rule. Not one document, and not anywhere in it: `UNIT.md` names the Tutor
+  // service and the served address all over, and this belongs where an author
+  // is already reading about what a URL resolves against.
+  const { whole } = fromDiskSection();
+  const together = whole.split('\n').filter((line) => LOCAL.every((e) => e.re.test(line)));
+
+  assert.equal(
+    together.length,
+    1,
+    'an author who reaches for a local model has to meet the consequence and both ways round it ' +
+      `at once, in the section about what breaks from disk — found ${together.length}` +
+      // Which of the four is missing, when the answer is none: absent from the
+      // whole document is a paragraph nobody wrote, absent from here alone is
+      // one written somewhere it will not be read.
+      (together.length ? '' : `; nowhere in UNIT.md: ${absentFrom(LOCAL, UNIT).join(', ') || 'none'}`),
   );
 });
 

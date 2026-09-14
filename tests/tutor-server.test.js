@@ -17,6 +17,13 @@
 // navigation bar asks for is read off a mounted bar rather than written down
 // here, because a restated address is this file deciding a contract the bar
 // owns. The bar still reaches the service over the socket.
+//
+// One adds a fifth, in the other direction. The media types *are* written down
+// here, because what a browser is handed back is the contract and a test that
+// read the answer out of the implementation would assert nothing about it. What
+// `server.js` is read for — through the shared reader in `helpers/tutor.js`, so
+// that the suite reading the same table from the other end reads it the same
+// way — is the reverse question: is there an entry here nothing ever asks for?
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -26,7 +33,7 @@ const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
 const { Page } = require('./helpers/dom.js');
-const { TutorService, agentSays, refusalToken, waitFor } = require('./helpers/tutor.js');
+const { TutorService, agentSays, refusalToken, mediaTypes, waitFor } = require('./helpers/tutor.js');
 const { sections } = require('./helpers/markdown.js');
 const { notEnglish } = require('./helpers/learner-text.js');
 
@@ -38,6 +45,64 @@ const TUNING = '# 学科调校\n\nfork/exec 一律用英文原词。\n';
 
 /** A marker that must never come back over the socket. */
 const WITHHELD = 'WITHHELD-FROM-HTTP';
+
+/**
+ * Every media type the service admits, and what a browser must be handed back
+ * for it.
+ *
+ * Written down rather than read off `server.js`, unlike everything else here
+ * that another file owns. The content type is not this table restating the
+ * service's answer — it is the claim being made *about* that answer, and a
+ * check that sourced it from the same place could not tell `model/gltf-binary`
+ * from `text/plain` on a `.glb`. A renderer handed the second refuses the file.
+ *
+ * The reverse — an entry in the service that nothing here asks for — is what
+ * the table is read from `server.js` for, one test below.
+ */
+const MEDIA = {
+  // The Workspace's own pages, and the code, styling and data on them.
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.json': 'application/json; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
+  '.md': 'text/plain; charset=utf-8',
+
+  // Pictures, drawn and borrowed.
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+
+  // Typefaces.
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+
+  // Sound, moving pictures, and the captions that make them readable.
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.vtt': 'text/vtt',
+
+  // Geometry, for a Lesson that pulls a renderer from a CDN and has a model
+  // for it to render.
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.obj': 'model/obj',
+  '.stl': 'model/stl',
+};
+
+/** Where a Lesson's own local assets sit in the fixture, one per media type. */
+const mediaPath = (ext) => `lessons/media/orbit${ext}`;
 
 const QUESTION_LOG = 'learning-records/questions.jsonl';
 
@@ -271,6 +336,43 @@ test('an asset the Workspace cannot answer falls back to the plugin', async (t) 
   assert.equal((await service.get('/lessons/0404-absent.html')).status, 404);
 });
 
+test("a Lesson's own local assets are served, each as what its loader expects", async (t) => {
+  const ws = workspace(t);
+  for (const ext of Object.keys(MEDIA)) ws.write(mediaPath(ext), `MEDIA ${ext}`);
+
+  const service = await TutorService.start(t, ws);
+
+  for (const [ext, type] of Object.entries(MEDIA)) {
+    const res = await service.get('/' + mediaPath(ext));
+
+    assert.equal(res.status, 200, `a Lesson cannot reach its own ${ext}`);
+    assert.equal(
+      res.headers['content-type'],
+      type,
+      `${ext} came back as ${res.headers['content-type']}, which is not what loads one`,
+    );
+    assert.equal(res.body, `MEDIA ${ext}`, `${ext} served something other than the file asked for`);
+  }
+});
+
+test('no media type is admitted that nothing here asks for', () => {
+  // The one reading in this file that is not a socket, the Workspace or the
+  // stub — and deliberately the *reverse* of the check above. That one says
+  // every type this file names is served, and served as the right thing; the
+  // table can still grow an entry beyond it, and an extension the gate admits
+  // with no request behind it is a widening nobody measured.
+  //
+  // The reader is shared with `imagery.test.js`, which asks the other end of
+  // the same question, and it throws rather than returning nothing when the
+  // table has moved — so the observer is guarded where the reading happens,
+  // once, instead of in each suite that reads.
+  assert.deepEqual(
+    mediaTypes().map((m) => m.ext).sort(),
+    Object.keys(MEDIA).sort(),
+    'the gate and this file disagree about what a Lesson may serve',
+  );
+});
+
 test('the extension allowlist refuses files that are really there', async (t) => {
   const ws = workspace(t);
   const service = await TutorService.start(t, ws);
@@ -357,6 +459,77 @@ test('path traversal is refused, however it is spelled', async (t) => {
   const inside = await service.get('/lessons/../lessons/0001-fork.html');
   assert.equal(inside.status, 200);
   assert.equal(inside.body, FIRST_LESSON);
+});
+
+test('widening what is served did not widen what is reachable', async (t) => {
+  // The table above is longer than it was, and this is the claim that longer is
+  // all it is. Each of the three refusals — a path out of the Workspace, in
+  // every spelling the check above knows; a link the scaffold did not write;
+  // an extension off the list — is re-asked with a newly admitted type in the
+  // URL. Because an allowlist is the *first* gate a request meets: a request
+  // the gate used to drop never reached the containment check, the symlink
+  // check or the fallback, so none of the three had ever had anything to say
+  // about a `.glb`.
+  const ws = workspace(t);
+
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'explorable-teach-outside-'));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+
+  const target = path.join(outside, 'private.glb');
+  fs.writeFileSync(target, WITHHELD, 'utf8');
+
+  // Guard: the file has to be there and readable *as* something the table now
+  // waves through, or every 404 below is a 404 for the wrong reason.
+  assert.equal(fs.readFileSync(target, 'utf8'), WITHHELD);
+  assert.ok(
+    Object.prototype.hasOwnProperty.call(MEDIA, '.glb'),
+    'this check is about a type the service does serve',
+  );
+
+  // A link the scaffold did not write, wearing a served extension.
+  fs.symlinkSync(target, ws.path('lessons/model.glb'));
+
+  const reach = path.relative(ws.dir, target);
+  assert.ok(reach.startsWith('..'), 'the target must sit outside the Workspace');
+
+  const service = await TutorService.start(t, ws);
+
+  // Every spelling the traversal check uses, re-asked at a `.glb`, plus the
+  // link and the one path with a second root behind it. Every spelling,
+  // because which of them the gate used to drop first is not something this
+  // file should have to know.
+  for (const address of [
+    '/lessons/model.glb',
+    '/' + reach,
+    '/lessons/../' + reach,
+    '/assets/../' + reach,
+    '/' + reach.replace(/\.\./g, '%2e%2e'),
+    '/' + reach.replace(/\//g, '%2f'),
+    '/' + reach.replace(/\.\./g, '%252e%252e'),
+    '/' + reach.replace(/\.\./g, '..\\'),
+  ]) {
+    const res = await service.get(address);
+    assert.equal(res.status, 404, `${address} reached a file the Workspace does not hold`);
+    assert.ok(!res.body.includes(WITHHELD), `${address} served it`);
+  }
+
+  // And the allowlist is still an allowlist. These sit inside the Workspace,
+  // beside assets that are now served, and are refused on their extension
+  // alone — the longer table is a longer list, not a weaker gate.
+  for (const rel of ['lessons/media/scene.blend', QUESTION_LOG]) {
+    ws.write(rel, WITHHELD);
+
+    const res = await service.get('/' + rel);
+    assert.equal(res.status, 404, `${rel} is not on the allowlist and must not be served`);
+    assert.ok(!res.body.includes(WITHHELD), `${rel} leaked its contents`);
+  }
+
+  // The other half, or every 404 above is a service that refuses everything:
+  // the same type, in the same Workspace, honestly placed.
+  ws.write(mediaPath('.glb'), 'MEDIA .glb');
+  const served = await service.get('/' + mediaPath('.glb'));
+  assert.equal(served.status, 200);
+  assert.equal(served.headers['content-type'], MEDIA['.glb']);
 });
 
 // ---------------------------------------------------------------- control

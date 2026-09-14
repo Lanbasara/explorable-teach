@@ -26,6 +26,7 @@ const { test } = require('node:test');
 const { REPO_ROOT } = require('./helpers/workspace.js');
 const { foldedDoc, SKILL_DIR } = require('./helpers/docs.js');
 const { sections } = require('./helpers/markdown.js');
+const { mediaTypes } = require('./helpers/tutor.js');
 
 // Every document here is read with its hard wrapping folded back out, through
 // the shared reader, because every claim below is about a sentence rather than
@@ -277,18 +278,16 @@ test('a borrowed image is saved in a format the Tutor service will actually serv
   // Read the formats off the service rather than restating them. A document
   // that names `.webp` sends the Teacher to download one, and the page it lands
   // in answers 404 the moment it is served — which is the class of defect this
-  // whole suite exists for.
-  const server = fs.readFileSync(
-    path.join(SKILL_DIR, 'runtime', 'tutor', 'server.js'),
-    'utf8',
-  );
-  const table = /const MIME = \{([\s\S]*?)\n\};/.exec(server);
-  assert.ok(table, "the service's MIME table is no longer where this check reads it");
+  // whole suite exists for. The reading is shared with `tutor-server.test.js`,
+  // which asks the other end of the same question; it throws rather than
+  // handing back an empty table.
+  const served = mediaTypes()
+    .filter((m) => m.type.startsWith('image/'))
+    .map((m) => m.ext);
 
-  const served = [...table[1].matchAll(/'(\.\w+)':\s*'image\//g)].map((m) => m[1]);
-
-  // Guard the observer: a table this stopped parsing would name no format, and
-  // every assertion below would pass by having nothing to require.
+  // Guard the observer: the reader can find a table and this filter still find
+  // no picture in it, and every assertion below would pass by having nothing to
+  // require.
   assert.ok(served.length >= 3, `expected the image formats the service serves, found ${served.length}`);
 
   const { whole } = imagery();

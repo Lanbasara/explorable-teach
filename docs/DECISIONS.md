@@ -1410,6 +1410,79 @@ section, and the subsection is checked against three classifications it must not
 second half reads the authoring reference, because the spine's sentence and the Component's
 description are one claim and a claim held in two documents is one that can drift.
 
+## 38. The media-type table is an allowlist that got longer, not a gate that got weaker
+
+**Decided:** the Tutor service's media-type table gains the types a Lesson's own content comes in
+— geometry (`.glb`, `.gltf`, `.obj`, `.stl`), audio (`.mp3`, `.m4a`, `.ogg`, `.wav`), video
+(`.mp4`, `.webm`) with `.vtt` captions beside them, typefaces (`.woff`, `.ttf`, `.otf` joining
+`.woff2`), the modern image formats (`.webp`, `.avif`), and the files a Lesson's own code arrives
+in (`.mjs`, `.wasm`, `.csv`). Nothing else about the resolution path changes.
+
+**Why it had to change at all.** Decision 34 told the Teacher a Lesson may reach for a renderer,
+a layout engine or an in-page runtime from a CDN. A Lesson could reach the library and not the
+thing the library is for: the table admitted ten extensions, so the model a renderer renders,
+the clip a phonetics Lesson plays and the typeface a script Lesson needs were all 404s on files
+that were really there. That is the worst shape a defect can have here — the page is correct, the file is
+present, and the Teacher finds out after handing the Lesson over.
+
+**Why the list grew rather than the gate going.** A media-type table is the cheapest gate in the
+service and it is the *first* one a request meets: an extension that is not a key is refused
+before a path is resolved, which is what keeps a Workspace's `private.txt`, its `.tutor.pid` and
+its question log unreachable over the socket without anything else having to know they exist. So
+the table is longer and it is still exhaustive. Everything downstream is untouched — the decode,
+the normalisation, the containment check against the Workspace root, the second check that
+resolves the real path so a link the scaffold did not write cannot escape, the fallback of
+`assets/…` to the plugin's own copy, and the loopback bind.
+
+**Why `.wasm` and `.csv` are in a list of media.** They are not media, and they are the same
+defect: the from-disk table already names *a loader aimed at a relative asset — a `.wasm`, a
+font, a model, a dataset* as a thing that works when the Lesson is served, and a document that
+says so while the service answers 404 is the document lying. `.mjs` is there for the same reason
+one step earlier — a Lesson's own module is the ordinary way to write more than a page of script,
+and over http it is exactly as loadable as a CDN's.
+
+**Rejected:** guessing the type from the file's bytes, or falling back to
+`application/octet-stream` for anything unrecognised. Both turn the allowlist into a passthrough:
+the first because the guess decides, the second because every refusal becomes a download. The
+value of the current design is that *not being on the list* is the answer.
+
+**Rejected:** `.gif`, which the ticket's *modern image formats* does not cover and which the
+imagery check turns into advice. Decision 36 holds the served list and the list the authoring
+reference *offers* to each other in both directions, so admitting a format is telling the Teacher
+to go and save one — and a borrowed photograph saved as a GIF is a worse copy of itself for no
+reason. The coupling is working as designed here: it priced a one-line table entry at the
+sentence it would have made true.
+
+**Rejected:** `.txt` and `.pdf`, both of which look like they belong. `.txt` is what the
+Workspace's own private notes are, and the check that a really-present file is refused is written
+against one; a Lesson with prose to serve has HTML. `.pdf` is a document rather than an asset a
+page loads, and a Lesson that wants one links the source instead — which decision 36 already
+requires of a paper.
+
+**Consequence:** the authoring reference states what the widening implies for an author, in the
+section decision 34 wrote. A Lesson's own local asset is fetched, so it resolves at the served
+address and nowhere else, and a Lesson that has to work both ways either inlines the asset or
+generates the geometry procedurally. Stated with both ways out, because a consequence with no way
+round it reads as *do not use local assets*, which is the ban again in a different coat. The
+image formats the imagery section offers move with the table, since decision 36 holds those two
+to each other in both directions.
+
+**Consequence:** `tutor-server.test.js` writes the table down rather than reading it. Every other
+fact that file needs it takes from the thing that owns it, and this one is the exception on
+purpose: a content type sourced from `server.js` could not tell `model/gltf-binary` from
+`text/plain` on a `.glb`, and the header is the whole contract with the browser. The table *is*
+read from `server.js`, for the opposite question — an entry the gate admits that no request here
+asks for — so the two lists cannot drift apart in either direction. That reading is one function
+in `helpers/tutor.js`, beside the one that reads the Grader's refusal token and for the same
+reason: `imagery.test.js` reads the same table from the other end, and two copies of a reading
+rule is how two suites end up disagreeing about what they read.
+
+Beside them, each of the three refusals is re-asked with a newly admitted extension in the URL —
+every spelling of an escape, a link the scaffold did not write, an extension off the list. The
+allowlist is the first gate, so the containment check, the symlink check and the fallback had
+never had anything to say about a `.glb` before, and each 404 is paired with an honestly placed
+`.glb` that does come back, or the check is one on a service that refuses everything.
+
 ---
 
 ## Where the full record lives

@@ -315,17 +315,63 @@ async function buildInlinedContext() {
 
 // ---------------------------------------------------------------- static
 
+/**
+ * What a Lesson may serve, and what a browser is handed back for it.
+ *
+ * This is an allowlist and stays one: an extension that is not a key here is
+ * refused before any path is resolved, which is why a workspace's own
+ * `private.txt` or `.tutor.pid` cannot be asked for over the socket. Widening
+ * it widens *what is served*, and nothing else — the containment check, the
+ * symlink check and the loopback bind all sit downstream of it and are
+ * unchanged.
+ *
+ * It is long because a Lesson holds its own content. A Lesson that pulls a
+ * renderer from a CDN needs the model it renders; one that teaches a sound
+ * needs the sound. A type missing from here is a 404 on a file that is really
+ * there, which is a defect an author only meets after handing the page over.
+ */
 const MIME = {
+  // The pages themselves, and the code, styling and data on them. `.mjs` and
+  // `.wasm` because a module or an in-page runtime may be the Lesson's own
+  // rather than a CDN's, and over http it may fetch either.
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.wasm': 'application/wasm',
   '.json': 'application/json; charset=utf-8',
+  '.csv': 'text/csv; charset=utf-8',
+  '.md': 'text/plain; charset=utf-8',
+
+  // Pictures, drawn and borrowed.
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+
+  // Typefaces. A subject with its own notation — phonetics, mathematics, a
+  // script the learner is learning to read — travels in the file with it.
   '.woff2': 'font/woff2',
-  '.md': 'text/plain; charset=utf-8',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+
+  // Sound and moving pictures, with the captions that make them readable.
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.vtt': 'text/vtt',
+
+  // Geometry.
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf+json',
+  '.obj': 'model/obj',
+  '.stl': 'model/stl',
 };
 
 /** True when `full` is `root` itself or sits beneath it. */
