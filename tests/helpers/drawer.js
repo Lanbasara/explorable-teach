@@ -32,6 +32,7 @@
 
 const { Workspace } = require('./workspace.js');
 const { Page } = require('./dom.js');
+const { BLOCKED, reachable } = require('./origin.js');
 
 /** An answer with every piece of Markdown a Tutor actually writes. */
 const ANSWER = [
@@ -207,11 +208,20 @@ function clipboard() {
  * from the first. `strings` is put on the window under the name a Workspace's
  * own `assets/strings.js` puts it under, so the lookup reaches it exactly as it
  * would on a real page.
+ *
+ * `protocol` is the other reading of a Workspace: a page the service is serving
+ * is `http:`, a page opened from disk is `file:`, and the drawer behaves
+ * differently on each because a page not served by the service can never reach
+ * it. `probes` is every address the page asked the service's health at, which
+ * is what makes "it asked nothing at all" a claim rather than a hope. Whether
+ * a request is one the browser would let out is `helpers/origin.js`'s answer
+ * rather than this file's, so both fixtures refuse the same set.
  */
 function pageFor(assetsDir, options = {}) {
   const {
     html,
     at = '/lessons/0003-fork-exec.html',
+    protocol = 'http:',
     chunks = chunksFor(ANSWER),
     ends = true,
     store = storage(),
@@ -222,13 +232,14 @@ function pageFor(assetsDir, options = {}) {
   } = options;
 
   const asked = [];
+  const probes = [];
   const time = clock();
   const clocks = timers();
   const pad = clipboard();
 
   const page = Page.load(html, assetsDir, {
     globals: {
-      location: { protocol: 'http:', pathname: at },
+      location: { protocol, pathname: at },
       localStorage: store,
       ...(strings ? { TEACH_STRINGS: strings } : {}),
       setTimeout,
@@ -239,6 +250,8 @@ function pageFor(assetsDir, options = {}) {
       TextDecoder,
       fetch(url, init) {
         if (url === '/api/health') {
+          probes.push(url);
+          if (!reachable(protocol, url)) return Promise.reject(new Error(BLOCKED));
           return health()
             ? Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) })
             : Promise.reject(new Error('service is not running'));
@@ -254,6 +267,7 @@ function pageFor(assetsDir, options = {}) {
   });
 
   page.asked = asked;
+  page.probes = probes;
   page.store = store;
   page.clock = time;
   page.timers = clocks;

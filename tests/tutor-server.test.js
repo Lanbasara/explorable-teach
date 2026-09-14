@@ -127,6 +127,26 @@ test('the health probe is GET only, and no other /api/ path answers', async (t) 
   assert.equal(wrongMethod.status, 405);
 });
 
+test('the API is closed to any page the service did not serve', async (t) => {
+  // The Dossier used to probe this from a page opened off the disk, which is a
+  // request to another origin, and the browser blocked it — so the cover read a
+  // running service as a stopped one. Opening the API up would have made that
+  // probe work. Keeping its surface closed and having the page not ask is the
+  // trade this repo took, so the absence is asserted rather than left as
+  // something a later change could quietly undo.
+  const service = await TutorService.start(t, workspace(t));
+
+  const probed = await service.get('/api/health');
+  assert.equal(probed.status, 200, 'a page the service served still gets its answer');
+
+  const preflight = await service.request('OPTIONS', '/api/health');
+  const allowed = [probed, preflight].flatMap((res) =>
+    Object.keys(res.headers).filter((name) => name.toLowerCase().startsWith('access-control-')));
+
+  assert.deepEqual(allowed, [], 'the API answers only the pages it serves');
+  assert.notEqual(preflight.status, 200, 'and there is no preflight to grant anything on');
+});
+
 test('polling health does not keep an abandoned service alive', async (t) => {
   const ws = workspace(t);
   const service = await TutorService.start(t, ws, { idleTimeoutMs: 1200 });

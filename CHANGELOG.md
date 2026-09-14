@@ -14,6 +14,24 @@
   rediscovered and re-wired; the Dossier already lists every Unit with a link to its Lesson, so
   the affordance survives as one click. Recorded as decision 32, because it changes what a
   memorised address means.
+- **A page that cannot reach the tutor says which of the two it is.** The in-page drawer had two
+  states, and offline's hint told the learner to run the command that starts the service. On a
+  lesson opened from disk that instruction cannot work — the drawer talks to the service that
+  served the page, so a request from `file:` names another origin and the browser refuses to make
+  it. The learner in the originating report ran the command twice and nothing changed. The drawer
+  now has a third state, in the learner's language out of the shipped table, naming the cause and
+  offering no command; it stops polling there too, because nothing it could wait for would
+  change the answer. Its chip is muted rather than warned, since there is nothing here for the
+  learner to go and fix.
+- **The Dossier reports three states, and stops making a request the browser blocks.** Opened from
+  disk it probed `http://127.0.0.1:4173/api/health` across origins, read the block as a refusal
+  from the service, and reported a *running* tutor as stopped — while also being wrong whenever
+  the port had been overridden. It now asks nothing from a page the service did not serve, and
+  says it cannot tell from here; served, it asks a relative address and is right on any port. The
+  hard-coded port is gone with the probe, and no cross-origin header was added to the service's
+  API to make the old probe work: keeping that surface closed is worth more than making a status
+  message's fallback real. The cover's own text stays a seeded English sentence, like every other
+  line written out on that page. Recorded as decision 33.
 
 ## 0.4.0
 

@@ -73,6 +73,7 @@
       'tutor.status.checking': 'checking',
       'tutor.status.online': 'online',
       'tutor.status.offline': 'offline',
+      'tutor.status.ondisk': 'opened from disk',
       'tutor.history': 'History',
       'tutor.history.title': 'Go back to a topic you asked about before',
       'tutor.history.empty': 'Nothing asked yet.',
@@ -87,6 +88,9 @@
       'tutor.offline.hint':
         'The tutor service is not running. Run {command} in the workspace directory, '
         + 'and this will connect itself once it is up.',
+      'tutor.ondisk.hint':
+        'This page was opened from disk, so it cannot reach the tutor service. '
+        + 'Open the course through the tutor service to ask questions in the page.',
       'tutor.you': 'You',
 
       /* the history panel */
@@ -246,6 +250,7 @@
       'tutor.status.checking': '检测中',
       'tutor.status.online': '在线',
       'tutor.status.offline': '离线',
+      'tutor.status.ondisk': '本地打开',
       'tutor.history': '历史',
       'tutor.history.title': '回到之前问过的话题',
       'tutor.history.empty': '还没有问过什么。',
@@ -257,6 +262,7 @@
       'tutor.send': '发送',
       'tutor.send.copy': '📋 复制提问',
       'tutor.offline.hint': '老师服务未启动。在教案目录运行 {command}，启动后这里会自己连上。',
+      'tutor.ondisk.hint': '这一页是直接从磁盘打开的，连不上老师服务。通过老师服务打开这门课，才能在页面里提问。',
       'tutor.you': '你',
 
       'tutor.thread.untitled': '（空话题）',

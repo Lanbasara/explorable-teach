@@ -61,6 +61,9 @@
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-faint); flex: none; }
   .dot.up { background: var(--accent-good); }
   .dot.down { background: var(--fg-faint); }
+  /* Hollow: this page cannot see the service from here, so it marks the absence
+     of an answer rather than an answer. */
+  .dot.unknown { background: transparent; box-shadow: inset 0 0 0 1.5px var(--fg-faint); }
   .tutor-status code {
     background: var(--bg); padding: 2px 8px; border-radius: 5px;
     font-family: var(--mono); font-size: 12.5px; color: var(--accent-warm);
@@ -140,7 +143,12 @@
 
   document.title = course.title ? course.title + ' · Dossier' : 'Dossier';
   document.getElementById('course-title').textContent = course.title || 'Dossier';
-  document.getElementById('course-sub').innerHTML = course.subtitle || '';
+  /* Authored HTML, spliced only when this course has written some — an empty
+     assignment is a splice too, and there is nothing for it to do. It also
+     means a course with no subtitle never splices at all, which is what lets
+     the suite mount this page: its DOM refuses markup on purpose, so the only
+     line here it cannot run is this one. */
+  if (course.subtitle) document.getElementById('course-sub').innerHTML = course.subtitle;
   if (course.thesis) {
     document.getElementById('thesis-box').hidden = false;
     document.getElementById('thesis-label').textContent = course.thesisLabel || 'Thesis';
@@ -195,29 +203,52 @@
     cards(document.getElementById('refs'), refs);
   }
 
-  /* ---- tutor health ---- */
+  /* ---- tutor health ----
+   *
+   * Three states, and the third one is not a fact about the service at all.
+   * The tutor is reachable only from a page the service itself served: a
+   * request from a page opened off the disk names another origin, and the
+   * browser refuses to make it. Asking anyway and reading that refusal as "not
+   * running" is how this page came to tell a learner to start a service that
+   * was already up. So it asks only when it is being served, and what it asks
+   * for is a relative address — the one form that is right whatever port the
+   * service was bound to.
+   *
+   * The three sentences are this workspace's own, seeded in English like every
+   * other line written out on this page, and not looked up anywhere. Rewrite
+   * them in the learner's language along with the headings above.
+   */
   var dot = document.getElementById('tdot'), msg = document.getElementById('tmsg');
-  var httpish = location.protocol === 'http:' || location.protocol === 'https:';
-  var url = (httpish ? '' : 'http://127.0.0.1:4173') + '/api/health';
+  var served = location.protocol === 'http:' || location.protocol === 'https:';
 
-  function down(reason) {
-    dot.className = 'dot down';
+  function state(cls, parts) {
+    dot.className = 'dot ' + cls;
     msg.textContent = '';
-    msg.appendChild(document.createTextNode(reason + ' Run '));
-    var c = el('code', '', './tutor/tutorctl.sh start');
-    msg.appendChild(c);
-    msg.appendChild(document.createTextNode(' in the workspace directory to ask'
-      + ' questions inside the page. The course does not depend on it.'));
+    parts.forEach(function (part) {
+      msg.appendChild(typeof part === 'string' ? document.createTextNode(part) : part);
+    });
   }
 
-  fetch(url, { method: 'GET' })
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-    .then(function (d) {
-      dot.className = 'dot up';
-      msg.textContent = 'Online · up for ' + Math.round((d.uptimeSec || 0) / 60) + ' min'
-        + ' (exits after ' + Math.round((d.idleTimeoutSec || 0) / 3600) + ' h idle)';
-    })
-    .catch(function () { down('Not running.'); });
+  if (!served) {
+    state('unknown', ['This page was opened from disk, so it cannot reach the tutor service —'
+      + ' and cannot tell whether it is running. Open the course through the tutor service'
+      + ' to ask questions inside a lesson.']);
+  } else {
+    fetch('/api/health', { method: 'GET' })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        state('up', ['Online · up for ' + Math.round((d.uptimeSec || 0) / 60) + ' min'
+          + ' (exits after ' + Math.round((d.idleTimeoutSec || 0) / 3600) + ' h idle)']);
+      })
+      .catch(function () {
+        state('down', [
+          'Not running. Run ',
+          el('code', '', './tutor/tutorctl.sh start'),
+          ' in the workspace directory to ask questions inside the page.'
+            + ' The course does not depend on it.'
+        ]);
+      });
+  }
 })();
 </script>
 </body>

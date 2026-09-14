@@ -2,8 +2,10 @@
    In-page tutor widget
    Requires: assets/tutor.css, assets/rich-text.js, assets/lesson-boot.js
    Backend : tutor/server.js   ->  node tutor/server.js
-   Degrades: if the server is unreachable (e.g. opened via file://),
-             the send button becomes "copy a well-formed prompt".
+   Degrades: with no service to reach, the send button becomes "copy a
+             well-formed prompt". There are two ways to have none, and the
+             drawer tells them apart: the service is not running, or this page
+             was not served by it and never could reach it (e.g. file://).
 
    Every string this file puts on screen is a key into the table at the head of
    assets/lesson-boot.js, looked up against the page's own <html lang>. There
@@ -478,18 +480,30 @@
 
   var healthTimer = null;
 
+  // Whether this page could reach the service at all. The drawer talks to the
+  // service that served the page, so a page opened off the disk is not one
+  // request away from it — the request names another origin and the browser
+  // refuses to make it. That is a different thing from a service being down,
+  // and the learner is told which of the two this is: the one instruction that
+  // would help on a served page is the one that cannot help here, and following
+  // it twice is what the report behind this state actually did.
+  function served() {
+    return /^https?:$/.test(location.protocol);
+  }
+
   function probe() {
-    if (!/^https?:$/.test(location.protocol)) return setOffline();
+    if (!served()) return setOnDisk();
     fetch('/api/health', { method: 'GET' })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
       .then(function (j) { if (j && j.ok) setOnline(); else setOffline(); })
       .catch(function () { setOffline(); });
   }
 
-  // Nothing to wait for on file:// — there is no service that could come up,
-  // so the offline state there is final rather than pending.
+  // Nothing to wait for on a page the service did not serve: no service that
+  // could come up would change anything here, so that state is final rather
+  // than pending.
   function watchHealth() {
-    if (healthTimer || !/^https?:$/.test(location.protocol)) return;
+    if (healthTimer || !served()) return;
     healthTimer = setInterval(probe, HEALTH_POLL_MS);
   }
 
@@ -515,21 +529,43 @@
     hint.textContent = '';
   }
 
+  // A served page whose service is down is waiting for one command, and says so.
   function setOffline() {
     online = false;
     watchHealth();
     if (shown === 'offline') return;
     shown = 'offline';
-    status.textContent = say('tutor.status.offline');
-    status.className = 'tutor-status off';
+    degrade('off', 'tutor.status.offline', 'tutor.offline.hint', START_CMD);
+  }
+
+  // A page the service did not serve is waiting for nothing, and says that
+  // instead. It offers no command: the one that starts the service cannot make
+  // this page reach it, and offering it is what sent the learner in the
+  // originating report round the same loop twice.
+  function setOnDisk() {
+    online = false;
+    if (shown === 'ondisk') return;
+    shown = 'ondisk';
+    degrade('unknown', 'tutor.status.ondisk', 'tutor.ondisk.hint', null);
+  }
+
+  // What the two share: the composer falls back to the clipboard, and one
+  // sentence says why. The sentence is one entry in the table rather than two
+  // halves, so that a translator sees the whole of what it says and may put the
+  // command anywhere in it — or, with no command to place, nowhere.
+  //
+  // They do not share a chip. A service that is down is something the learner
+  // can go and start; a page the service never served is not, and reading the
+  // same warning for both is how the two came to be told apart by nothing.
+  function degrade(cls, statusKey, hintKey, command) {
+    status.textContent = say(statusKey);
+    status.className = 'tutor-status ' + cls;
     sendBtn.textContent = say('tutor.send.copy');
     hint.textContent = '';
-    // One sentence in the table rather than two halves, so that a translator
-    // sees the whole of what it says and may put the command anywhere in it.
-    // The command itself is a command, and the same in every language.
-    var around = say('tutor.offline.hint').split('{command}');
+    var around = say(hintKey).split('{command}');
     hint.appendChild(document.createTextNode(around[0]));
-    hint.appendChild(el('code', null, START_CMD));
+    // The command itself is a command, and the same in every language.
+    if (command) hint.appendChild(el('code', null, command));
     hint.appendChild(document.createTextNode(around.length > 1 ? around[1] : ''));
   }
 

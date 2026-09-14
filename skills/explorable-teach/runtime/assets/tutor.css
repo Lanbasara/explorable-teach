@@ -124,6 +124,10 @@
 }
 .tutor-status.live { color: var(--accent-good); border-color: var(--accent-good); }
 .tutor-status.off { color: var(--accent-warm); border-color: var(--accent-warm); }
+/* Not a claim about the service: this page was not served by it and cannot see
+   it from here. Muted and dashed rather than warned, because there is nothing
+   here for the learner to go and fix. */
+.tutor-status.unknown { color: var(--fg-faint); border-style: dashed; }
 
 .tutor-close {
   background: none;

@@ -50,6 +50,7 @@ const {
   FIXTURE_LANG,
 } = require('./helpers/unit.js');
 const { drawerIn, event, mount, pageFor, settle } = require('./helpers/drawer.js');
+const { DOCS, courseIn, dossierIn } = require('./helpers/dossier.js');
 const { refusalToken } = require('./helpers/tutor.js');
 const {
   NAMESPACES,
@@ -338,18 +339,15 @@ test('a page that declares no language ends up with the Workspace\'s', (t) => {
 
 test('the Dossier takes its language from the manifest too', (t) => {
   // The one page in a Workspace the bootstrap does not mount, because it loads
-  // the manifest itself. Asserted on its source rather than by mounting it: the
-  // cover splices authored HTML into the page, which the fixture DOM refuses on
-  // purpose, so there is nothing here to drive.
-  const ws = Workspace.create(t);
-  ws.scaffold();
-  const cover = ws.read('index.html');
+  // the manifest itself — so it is mounted here on its own, and the claim is
+  // what the page ends up in rather than what its source says it will do.
+  const page = dossierIn(t, { manifest: courseIn({ lang: 'pt-BR' }) });
 
-  assert.doesNotMatch(cover, /<html[^>]*\slang=/i, 'the cover must not carry a language of its own');
-  assert.match(
-    cover,
-    /documentElement\.setAttribute\('lang', course\.lang\)/,
-    'so it has to take the one the manifest states',
+  assert.equal(page.queryAll('.doc-card').length, DOCS.length, 'the cover never ran, so nothing here is a claim');
+  assert.equal(
+    page.document.documentElement.getAttribute('lang'),
+    'pt-BR',
+    'a cover carrying a language of its own would have kept it',
   );
 });
 
@@ -721,6 +719,28 @@ test('the same holds for the drawer with no service to reach', async (t) => {
   assert.deepEqual(foreign, [], 'the offline drawer is holding these strings itself');
 });
 
+test('and again on a page the service never served, where no command would help', async (t) => {
+  // The third state, which the offline hint used to swallow: a page opened from
+  // disk is not one command away from the service, and the sentence saying so
+  // is a sentence of its own. Nothing is excused here — there is no command on
+  // this path, so every string in the tree should be a sentinel.
+  const strings = { [PSEUDO]: pseudoTable(TABLES.en) };
+  const page = drawerIn(t, lessonHtml(PSEUDO), { strings, protocol: 'file:' });
+
+  await settle();
+  const shown = drawerText(page);
+
+  assert.ok(
+    shown.some((text) => text.includes(sentinel('tutor.ondisk.hint'))),
+    `the hint naming the cause should be the thing on screen: ${shown.slice(0, 8).join(' | ')}`,
+  );
+  assert.deepEqual(
+    shown.filter((text) => !SENTINEL.test(text)),
+    [],
+    'the drawer on disk is holding these strings itself rather than looking them up',
+  );
+});
+
 test('a failure the service names is read out of the table as well', async (t) => {
   // The service holds no Learner-facing string, so a failure of its own arrives
   // as a code and this is where a code becomes words. Fed as an event rather
@@ -890,6 +910,34 @@ test('every string the Components render comes from the table, in any language',
     const foreign = mine.filter((text) => !SENTINEL.test(withoutTypedText(text)));
     assert.deepEqual(foreign, [], `${fixture.name}: these are held in source rather than looked up`);
   }
+});
+
+test('the Dossier is left out of the pseudolocale on purpose, and says which check holds it', () => {
+  // Every page above is mounted under a table of sentinels, and the Dossier is
+  // not one of them. Its text is a hard-coded English Seed by decision: the
+  // cover is a copied file that does not load the page bootstrap, so it has no
+  // table to look a string up in, and giving it access to one would make it
+  // depend on the page infrastructure it deliberately does not use — a larger
+  // change than a status message is worth. Mounted under a sentinel table it
+  // would render its own English and fail, correctly.
+  //
+  // `CONTEXT.md` says what a Seed is owed instead, and the scan below is where
+  // it is collected: a copied file may ship English, and may not ship somebody
+  // else's language. So this names both halves of the decision in one place,
+  // rather than leaving the absence to be read as an oversight.
+  const cover = pluginFiles().find((rel) => rel.endsWith(path.join('templates', 'index.html')));
+  assert.ok(cover, 'the plugin no longer ships a Dossier, so this has nothing to say');
+
+  assert.deepEqual(
+    pagesIn(PSEUDO).filter((page) => page.file.endsWith('index.html')),
+    [],
+    'the cover is a Seed, and the pseudolocale check would fail it — correctly',
+  );
+  assert.equal(
+    ruleFor(cover),
+    notThisLanguage,
+    'so what holds the cover to English is the scan over the files a Workspace is handed as its own',
+  );
 });
 
 test('a Checkpoint gives the author\'s verdict, and counts in the Learner\'s language', async (t) => {

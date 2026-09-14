@@ -28,6 +28,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
+| `tests/dossier.test.js` | The Workspace entry point reports the Tutor service in three states — reached, not running, and cannot tell from here — and asks the service nothing from a page it never served |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
 | `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, the role definitions are English down to the token a Grader refuses with, and nothing the plugin ships — nor the Workspace one scaffold run produces — is written in one Learner's language |
@@ -124,11 +125,32 @@ globals })` is the one way to widen it for one test. The Tutor's in-page drawer 
 service to probe and a stream to read; no Component needs any of them, so naming them at the call site is
 what keeps a Component that starts reaching for one throwing rather than quietly passing.
 
+`page.inline()` is the other half of running a page: `script(file)` runs a tag the page *loads*,
+which is every Component the plugin ships, and `inline()` runs one the page *carries*. The Dossier
+is the only page that needs it, and needs it for the reason the whole subset exists — a page a
+test only reads is not under test at all. A tag with a `type` is not one of these, so an
+Assignment's Rubric stays the data it is, and a page carrying more than one is refused rather
+than half-run.
+
 `tests/helpers/drawer.js` mounts the Tutor's in-page drawer the way a Lesson mounts it, and owns
 the seams that come with driving it — the stream, the health probe, the clock, the intervals, and
 the Workspace's own table of Learner-facing text. Two suites ask different things of it:
 `tutor-drawer.test.js` asks what the drawer does around an answer, and `language.test.js` asks
-what language it does it in.
+what language it does it in. `protocol` is the seam that says which reading of the Workspace a
+page is being mounted under — `http:` for a page the service served, `file:` for one opened from
+disk — and `page.probes` records every address the page asked the service's health at, so "it
+asked nothing at all" is a claim rather than a hope. The stub refuses a request the browser would
+refuse, and *which* requests those are lives in `tests/helpers/origin.js` rather than in either
+fixture: two stubs standing in for one service have to refuse the same set, or one of them
+answers a request that would never have left the page.
+
+`tests/helpers/dossier.js` mounts the Dossier, which is the one page in a Workspace the bootstrap
+does not load: it reads the course manifest itself and carries its own script inline. It is
+served on a port nobody wrote down, and its stub refuses any request naming an origin — so a
+cover that went back to hard-coding a port would report a running service as stopped, which is
+the defect it exists to hold shut. Its fixture manifest carries no subtitle and no thesis on
+purpose: those two are authored HTML the cover splices, and splicing markup is what the fixture
+DOM refuses.
 
 `tests/helpers/learner-text.js` runs the shipped lookup against a language and answers with what
 a page in it would say, so an assertion can name a *key* rather than a word. It also builds the
@@ -372,6 +394,14 @@ back and read is a sentence about one Unit and nothing else, so no table could h
 the Learner's language because the whole page is. Subtraction draws that line without naming a
 selector, and a Component that replaced an authored sentence with one of its own still shows up,
 because the replacement is text that was not there before.
+
+**The Dossier is left out of the pseudolocale, and the test says so where the absence is.** Its
+text is a hard-coded English Seed by decision — the cover is a copied file that does not load the
+page bootstrap, so it has no table to look a string up in, and giving it one would make it depend
+on the page infrastructure it deliberately does not use. Mounted under a sentinel table it would
+render its own English and fail, correctly. So the exclusion is written down as a check of its
+own, naming the scan below as what holds the cover to English instead. An absence nobody explains
+reads as an oversight, and the next person to notice it fixes the wrong thing.
 
 **The non-ASCII scan ships as well, and fails on a different thing**: one Learner's language
 creeping back into what every other Learner is handed. It reads **every file the plugin owns**,

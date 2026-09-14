@@ -27,6 +27,8 @@
  *
  * `page.script(file, attrs)` writes the attributes a page writes on the tag,
  * for the scripts that read their own — `data-unit` on the nav bar.
+ * `page.inline()` runs a script the page carries rather than loads, which the
+ * Dossier is the one page to need.
  */
 
 const fs = require('node:fs');
@@ -673,6 +675,41 @@ class Page {
     this.document.currentScript = tag;
     try {
       new vm.Script(source, { filename: file }).runInContext(this.context);
+    } finally {
+      this.document.currentScript = null;
+    }
+    return this;
+  }
+
+  /**
+   * Run the page's own inline `<script>`, the way a browser runs one.
+   *
+   * `script(file)` is for the tags a page *loads*, which is every Component the
+   * plugin ships. The Dossier is the one page whose script is written into it,
+   * so without this the cover could only ever be read as text — and a page a
+   * test only reads is not under test at all.
+   *
+   * A tag carrying a `type` is not one of these: an Assignment stores its
+   * Rubric in `<script type="application/x-rubric">`, and a browser runs none
+   * of it.
+   *
+   * Exactly one, or this throws. A page that grew a second would quietly change
+   * what running "the page's script" means, and a fixture that ran the first of
+   * two would go on passing while half the page never ran.
+   */
+  inline() {
+    const tags = this.document
+      .querySelectorAll('script')
+      .filter((tag) => !tag.hasAttribute('src') && !tag.hasAttribute('type'));
+
+    if (tags.length !== 1) {
+      throw new Error(`expected the page to carry one inline script, found ${tags.length}`);
+    }
+
+    const [tag] = tags;
+    this.document.currentScript = tag;
+    try {
+      new vm.Script(tag.textContent, { filename: 'the page\'s own script' }).runInContext(this.context);
     } finally {
       this.document.currentScript = null;
     }

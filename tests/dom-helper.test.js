@@ -147,6 +147,31 @@ test('a script runs against the page and can change it', (t) => {
   assert.equal(page.text('[data-toy]'), 'clicked');
 });
 
+test('a page runs the script it carries, and leaves the tag that is not one alone', (t) => {
+  // `script(file)` is for the tags a page *loads*. The Dossier carries its own
+  // inline, so without this the cover could only be read as text — and a page a
+  // test only reads is not under test at all. An Assignment stores its Rubric
+  // in a `<script type>`, which a browser runs none of, so neither does this.
+  const page = Page.load(
+    `<!DOCTYPE html>
+<html><body>
+<div id="out">before</div>
+<script type="application/x-rubric">throw new Error('a Rubric is data, and was executed');</script>
+<script>document.getElementById('out').textContent = 'ran';</script>
+</body></html>`,
+    assetsWith(t, 'unused.js', ''),
+  );
+
+  page.inline();
+  assert.equal(page.text('#out'), 'ran');
+
+  // Exactly one, or it refuses: a page that grew a second would quietly change
+  // what "the page's script" means, and running the first of two would leave
+  // half the page unrun with everything still passing.
+  page.document.body.appendChild(page.document.createElement('script'));
+  assert.throws(() => page.inline(), /one inline script, found 2/, 'a second one is a different page');
+});
+
 test('a script sees document.currentScript, as a Component relies on', (t) => {
   const dir = assetsWith(t, 'boot.js', `
     window.seenSrc = document.currentScript.getAttribute('src');

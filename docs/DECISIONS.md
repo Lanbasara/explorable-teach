@@ -1095,6 +1095,58 @@ wrong is the half a restated address would stop watching.
 
 ---
 
+## 33. A page that cannot reach the Tutor says which of the two it is
+
+**Decided:** both clients gain a third state. The in-page drawer, on a page the service did not
+serve, says so in the Learner's language out of the shipped table — and offers no command,
+because none would help. The Dossier gains the matching state and stops probing at all from such
+a page; served, it probes a relative address. The service's API gains no cross-origin headers.
+
+**Why two states were one too few.** The drawer had *online* and *offline*, and offline's hint
+told the Learner to run the command that starts the service. On a Lesson opened from disk that
+instruction cannot work, because the drawer talks to the service that served the page: a request
+from `file:` names another origin and the browser refuses to make it. The Learner in the
+originating report ran the command, twice, and nothing changed — the page had told them the one
+thing that could not help. So "not reachable" splits into "not running" and "not reachable from
+here", and only the first is waiting for a command.
+
+**Why the Dossier stopped probing rather than started succeeding.** It probed
+`http://127.0.0.1:4173/api/health` from a cover opened off the disk. The browser blocked it, the
+cover read the block as a refusal from the service, and it reported a *running* service as
+stopped — a collapse of "I cannot tell from here" into a false fact. Two ways out: open the API
+to other origins, or stop asking a question this page cannot ask. Keeping the service's surface
+closed is worth more than making a status message's fallback real, and the status message is
+truer for saying it cannot tell. The hard-coded port went with the probe: served, a relative
+address is right on every port, which the absolute one never was.
+
+**Why the Dossier's text stays a hard-coded English Seed while the drawer's goes in the table.**
+The drawer is linked from the plugin and shared by every Workspace, so a literal in it is one
+Learner's language written into all of them — its text goes in the shipped table like every other
+label it renders. The cover is copied: it is the Workspace's own from the moment it is placed, it
+does not load the page bootstrap that carries the tables, and giving it access to them would make
+the entry point depend on page infrastructure it deliberately does not use. That is a larger
+architectural change than a status message warrants. `CONTEXT.md` already names this exception —
+**Seed** — and the Teacher may rewrite the sentence in the Learner's language along with the
+headings beside it.
+
+**Consequence:** the suite grew a seam rather than a reading. The Dossier is mounted and driven in
+the fixture DOM, served on a port nobody wrote down and with every request it makes recorded, so
+"it asked nothing" and "it asked for an address that works on any port" are claims. It is
+deliberately absent from the pseudolocale page set, and a check of its own says why, because an
+unexplained absence there reads as an oversight. The API's lack of cross-origin headers is
+asserted rather than left as something a later change could quietly undo.
+
+**One line of the cover moved to let that seam exist**, and it is named here rather than left to
+be found. The cover assigned its subtitle unconditionally — an empty splice when no subtitle was
+written — and now assigns one only when there is one. Behaviour is identical for every Workspace,
+because the template ships with the subtitle empty. What it buys is that the fixture DOM, which
+refuses markup splicing so that no shipped Component can render text as markup, has nothing to
+refuse on a course that has not written a subtitle. Bending shipped code to suit a harness is
+worth saying out loud; this is the smallest form of it, and the splice that remains is the
+Teacher's own authored HTML, which stays exactly as it was.
+
+---
+
 ## Where the full record lives
 
 - **Post-packaging:** `git log` in this repo — commit messages carry the reasoning.

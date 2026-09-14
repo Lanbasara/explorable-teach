@@ -18,8 +18,11 @@
 // history.
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { test } = require('node:test');
 
+const { REPO_ROOT } = require('./helpers/workspace.js');
 const { LESSON_HTML, UNIT, PAGES, FIXTURE_LANG } = require('./helpers/unit.js');
 const { say } = require('./helpers/learner-text.js');
 const { refusalToken } = require('./helpers/tutor.js');
@@ -35,6 +38,8 @@ const {
 } = require('./helpers/drawer.js');
 
 const ASSIGNMENT_HTML = PAGES.find((page) => page.key === 'assignment').html;
+const ASSETS = path.join(REPO_ROOT, 'skills/explorable-teach/runtime/assets');
+const read = (abs) => fs.readFileSync(abs, 'utf8');
 
 /**
  * What the drawer says, in the language the fixture pages declare.
@@ -484,6 +489,39 @@ test('asking again while the service is down costs the Learner nothing', async (
   await settle();
   assert.match(page.text('.tutor-msg.tutor .tutor-msg-body'), /pid_t pid = fork\(\);/, 'the answer is still there');
   assert.equal(page.store.getItem('tutor-threads::0003-fork-exec.html'), before, 'and so is the thread it came from');
+});
+
+test('a Lesson opened from disk says so, rather than sending the Learner after a command', async (t) => {
+  // The state the originating report was stuck in. The Learner was told to run
+  // the start command, ran it, and nothing changed — because a page the service
+  // did not serve can never reach it, whatever is running. So this is a third
+  // state rather than the offline one again: it names the cause, and it offers
+  // nothing to type.
+  const page = lesson(t, { protocol: 'file:' });
+  await settle();
+
+  assert.notEqual(
+    drawerSays('tutor.status.ondisk'),
+    drawerSays('tutor.status.offline'),
+    'a third state that read as the second one would be no third state',
+  );
+  assert.equal(page.text('.tutor-status'), drawerSays('tutor.status.ondisk'));
+  assert.equal(page.text('.tutor-hint'), drawerSays('tutor.ondisk.hint'), 'and it says which of the two this is');
+  assert.equal(page.query('.tutor-hint code'), null, 'with no command, because no command reaches this page');
+
+  // Distinct to read and distinct to glance at. A service that is down is
+  // something the Learner can go and start, and this is not, so the chip stops
+  // short of the warning the offline one carries.
+  assert.equal(page.query('.tutor-status').className, 'tutor-status unknown');
+  assert.match(
+    read(path.join(ASSETS, 'tutor.css')),
+    /\.tutor-status\.unknown\s*\{/,
+    'a chip in a class nothing styles would look like whatever it last was',
+  );
+
+  assert.equal(page.text('.tutor-send'), drawerSays('tutor.send.copy'), 'the composer still degrades to the clipboard');
+  assert.deepEqual(page.probes, [], 'a request the browser would block is a request not worth making');
+  assert.equal(page.timers.live.size, 0, 'and nothing is left polling for a service that cannot arrive');
 });
 
 test('the widget finds a service started after the Lesson was opened, without a reload', async (t) => {
