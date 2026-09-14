@@ -137,6 +137,32 @@ function logicalLines(markdown) {
 }
 
 /**
+ * A document's *sentences*, read off its logical lines.
+ *
+ * Sentences wherever a claim is about one sentence rather than one paragraph. A
+ * paragraph folds into a single logical line here, so a check that requires two
+ * patterns to arrive *together* is, read line by line, only requiring them in
+ * the same paragraph — and it fails on a paragraph that says each half
+ * innocently in a different breath.
+ *
+ * A semicolon or a colon does not end a sentence, which is deliberate: a clause
+ * hung off either one is the same claim continuing, and an instruction written
+ * after a semicolon is still that sentence's instruction.
+ *
+ * Where it misreads, and why that is safe: an ordered list item arrives with its
+ * marker split off, so `2. Read the Mission.` is two entries — `2.` and the
+ * sentence. The orphan carries no words, so no pattern about what a document
+ * *says* can match it; what it does mean is that a count of these is not a count
+ * of prose sentences, so read a count as a floor rather than as a measurement.
+ */
+function sentencesOf(markdown) {
+  return logicalLines(markdown)
+    .flatMap(({ text }) => text.split(/(?<=[.?!])\s+/))
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+}
+
+/**
  * Every logical line of a document that mentions `term`, as `{ line, text }`.
  * Used by checks that a document carries a subject only in the places it should
  * — a claim that has to be made mention by mention, because "does this word
@@ -154,5 +180,6 @@ module.exports = {
   anchorFor,
   anchorsIn,
   logicalLines,
+  sentencesOf,
   linesMentioning,
 };

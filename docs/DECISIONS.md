@@ -1354,6 +1354,62 @@ in one sentence, and the image formats the document offers are checked against t
 MIME table in both directions. What it cannot hold is whether a Teacher actually looked — that is
 what the page pass is, and what the Learner's Lesson is the evidence of.
 
+## 37. Discovery is a technique with a test, not the shape every Lesson is aimed at
+
+**Decided:** the instruction to aim every Lesson at the shape where the learner manipulates the
+subject before it is explained is removed from the spine, and one judgement sentence takes its
+place: **if the Teacher cannot write down the wrong answer the learner is likely to give, the
+question collects a guess rather than a confrontation, and should not be asked.** The technique
+itself is kept, and sharpened where it holds.
+
+**Why the universal default had to go, and not the technique.** Cognitive conflict is real and it
+is strong, and the evidence for the *default* is not the evidence for the technique. The same
+activity wins or loses on whether it is scaffolded — an unscaffolded version of it loses to plain
+instruction — so a rule that points every Lesson at the shape points some of them at the losing
+version. A Teacher reading that rule against material the shape does not suit has two options,
+both bad: force it, or quietly ignore the spine. Removing the instruction gives it a third.
+
+**Why a judgement rather than a rule.** The sentence is applied to one question at a time, and it
+is deliberately not a classification — not by subject area, not by the learner's age, not by kind
+of skill. Any of those would be a category the Teacher could read the answer off without looking
+at the question, which is the failure the default already was, wearing a taxonomy. What the
+sentence tests is whether the author can produce the wrong answer as a *string*: a wrong answer
+that can be written down is a position somebody holds, and a question with nothing written behind
+it collects clicks.
+
+**Why it is stated as an inability rather than an ability.** The failure it catches is not an
+author who thinks intuition cannot be wrong here — it is one who believes it can, sincerely,
+and cannot say what the wrong belief *is*. That author passes a test phrased as "ask where
+intuition can be wrong", which is how the shipped predict-reveal Component came to be offered
+for *anything where intuition can be wrong*. So the Component's description now names the same
+test the spine states, in all three places the authoring reference offers it — the move it comes
+from, the row a teaching act is chosen on, and the row in the shipped table — and its superlative
+goes with them: "the strongest of them" in a table of Components is an instruction to reach for it.
+
+**The requirement on the other side is untouched: an interaction is followed by naming what was
+found.** The two rules catch the same defect from opposite ends. A question with no wrong answer
+behind it is an interaction that was never worth asking; an interaction whose explanation never
+arrives is one that was asked and then abandoned. Neither is discovery.
+
+**Rejected:** keeping the default and listing the material it does not suit. That is the
+classification above, and it fails in both directions — the list is wrong about some subject
+nobody thought of, and a Teacher who finds its own material on the permitted side stops asking
+the question that actually matters.
+
+**Rejected:** leaving the spine as it was and putting the caution in the authoring reference.
+The spine is what a Session reads while deciding what to teach; the reference is read while
+writing the page. A caution that arrives after the shape has been chosen arrives too late to
+change it.
+
+**Consequence:** `skill-spine.test.js` holds both halves. The conjunction of a universal
+quantifier over Lessons and the vocabulary of the shape is forbidden **sentence by sentence**
+across the whole spine — a paragraph folds into one logical line here, so a line-level check would
+fail on a paragraph that says each half innocently in a different breath. The judgement has to
+arrive whole on one logical line, inside the subsection that states it rather than anywhere in the
+section, and the subsection is checked against three classifications it must not have become. The
+second half reads the authoring reference, because the spine's sentence and the Component's
+description are one claim and a claim held in two documents is one that can drift.
+
 ---
 
 ## Where the full record lives

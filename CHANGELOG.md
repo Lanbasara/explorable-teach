@@ -132,6 +132,39 @@
   vocabulary guard tracks the document as it always has, and now reads the words it actually
   uses. The reasoning is decision 34; the glossary gains the stand-in sentence, and the Tutor
   service entry gains what serving buys.
+- **The spine no longer aims every Lesson at discovery; it asks one thing of each question
+  instead.** It used to say that an Explorable lets the learner manipulate the subject before it is
+  explained and to aim every Lesson at that shape. The technique is sound and stays; the universal
+  default is what the evidence does not carry — the same activity wins or loses on whether it is
+  scaffolded, and the unscaffolded version loses to plain instruction, so a rule pointing every
+  Lesson at the shape points some of them at the losing version. One judgement sentence replaces
+  it: **if you cannot write down the wrong answer the learner is likely to give, the question
+  collects a guess rather than a confrontation, and should not be asked.** It is applied to one
+  question at a time and is deliberately not a classification — not by subject area, not by the
+  learner's age, not by kind of skill, each of which would be a category the Teacher could read the
+  answer off without looking at the question. The requirement on the other side is untouched: an
+  interaction is still followed by naming what was found, and the two rules catch the same defect
+  from opposite ends.
+- **The Component that asks for a prediction is offered on that same test.** It was described as
+  being for *anything where intuition can be wrong*, which is what an author believes about every
+  passage it has just written, and as **the strongest of them**, which in a table of Components
+  reads as an instruction to reach for it. Both go: all three places the authoring reference offers
+  it — the move it comes from, the row a teaching act is chosen on, and the row in the shipped
+  table — now name the wrong answer the Teacher has to be able to write down. The list of what
+  every Lesson does drops "leads with interaction rather than explanation" for the question rather
+  than the answer, and an interaction where the judgement admits one.
+- **`skill-spine.test.js` gains both halves as two more claims.** A universal quantifier over
+  Lessons and the vocabulary of that shape may not meet in one sentence anywhere in the spine —
+  sentence by sentence, because a paragraph folds into one logical line here and a line-level
+  conjunction would fail on a paragraph saying each half innocently in a different breath. The
+  judgement has to arrive whole on one logical line inside the subsection that states it, and that
+  subsection is held against the three classifications it must not have become, each pattern
+  carrying the control sentence that proves it can see its own subject. The second half reads
+  `UNIT.md`, because the spine's sentence and the Component's description are one claim and a claim
+  held in two documents is one that can drift. The sentence reader both checks need moves into the
+  shared Markdown module beside the line reader, with the one place it misreads recorded beside it
+  — an ordered marker splits off as an entry of its own — because two copies of a reading rule is
+  how a reader ends up disagreeing with itself. The reasoning is decision 37.
 
 ## 0.5.0
 

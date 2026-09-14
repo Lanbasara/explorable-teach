@@ -22,7 +22,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/decoupling.test.js` | The skill carries its own pedagogy — nothing under it points at the upstream project |
 | `tests/from-disk.test.js` | The documents say what actually breaks a Lesson opened from disk — and no longer ban a technology, nor sell serving on a restriction it does not lift |
 | `tests/imagery.test.js` | The authoring reference still says to draw by default and why, what the borrow test is, that no image ships unlooked-at, where the credit goes, the four bans with their reasons and the ceiling with its mechanism — and offers only image formats the service actually serves |
-| `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, and ends a Session on a checkable outcome |
+| `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
 | `tests/components.test.js` | Each shipped Component mounts, responds, and leaves the page readable without it — including the hand-in on an Assignment page, which refuses what it cannot grade |
@@ -191,8 +191,8 @@ Component that put it there.
 
 ## The Markdown reader
 
-`tests/helpers/markdown.js` answers three questions about a document's shape: what are its
-sections, what anchors does it offer, and where is each subject named. Two suites assert on the
+`tests/helpers/markdown.js` answers four questions about a document's shape: what are its
+sections, what anchors does it offer, where is each subject named, and what are its sentences. Two suites assert on the
 shape of `SKILL.md`, because here shape *is* behaviour — what an agent reads first is what it
 attends to, and material sitting inline is material it reads whether or not this Session needed
 it.
@@ -202,13 +202,14 @@ sections(SKILL)[0].title;                 // 'Boot sequence' — the opening mat
 step(boot.body, 1);                       // one numbered step, to the next number
 anchorsIn(SKILL);                         // every heading, as the anchor it is reachable at
 linesMentioning(SKILL, 'tutor');          // every mention, with the line it starts on
+sentencesOf(SKILL);                       // every sentence, wrapping folded back out
 ```
 
 Everything here walks the document through one `eachLine`, so there is **one** rule for what
 fenced code is. Three copies of that rule had drifted into three different spellings before
 review caught it, which is how a parser ends up disagreeing with itself about what a heading is.
 
-Three subtleties, all load-bearing, all pinned by `markdown-helper.test.js`:
+Four subtleties, all load-bearing, all pinned by `markdown-helper.test.js`:
 
 **A heading inside a fenced block is not a heading.** The skill's documents fence a Lesson
 template and a Markdown skeleton, and a reader fooled by either reports sections nobody sees. A fence
@@ -219,6 +220,15 @@ indented inside a list item is still a fence.
 matching, and reports the line it started on. A check reading raw lines reads the accident: one
 sentence becomes two claims, a hard-wrapped `idle timeout` stops being findable, and re-wrapping
 a paragraph breaks a check that has nothing to do with wrapping.
+
+**A sentence is a smaller thing than a logical line, and sometimes that is what the claim is
+about.** Two patterns required to arrive *together* are, read line by line, only required to
+arrive in the same paragraph — and the spine check has a claim that has to be finer than that, so
+`sentencesOf` splits the folded lines again. A semicolon or a colon does not end a sentence, since
+a clause hung off either is the same claim continuing. Where it misreads is recorded beside it: an
+ordered marker is punctuation followed by a space, so `2.` splits off as an entry of its own. That
+orphan carries no words, which is what makes it harmless — but it means a count of these is a
+floor to guard an observer with, not a measurement of prose.
 
 **Slugging replaces each space, never a run of them.** Dropping the `—` in
 `Shipped Components — already…` leaves *two* spaces, and GitHub hyphenates both, so the real
@@ -817,8 +827,9 @@ up disagreeing with itself, which is the defect the Markdown module's own head c
 ## The spine check
 
 `skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
-what an agent reads first is what it attends to. Seven claims, each of which was false before
-the rebuild.
+what an agent reads first is what it attends to. Nine claims. Seven were false before the
+rebuild; the last two arrived together, when an instruction that was sound as a technique stopped
+being a default.
 
 **The Boot sequence is the opening section**, and its first step scaffolds a bare Workspace by
 *invoking* `scripts/init-workspace.sh`. A Session that has to wade through reference material to
@@ -859,6 +870,33 @@ must name the artifacts it binds; the ladder must place each of Exercise, Checkp
 Assignment on all three axes — when it fires, who judges it, what it measures — with no blanks,
 because an instrument missing an axis is one the Teacher will choose by feel. The terms come
 from `CONTEXT.md`, so the glossary and the skill cannot drift apart.
+
+**Discovery is a technique the Teacher judges, not a shape every Lesson is aimed at.** The first
+of the two, and the one claim here that was true rather than absent: the spine used to instruct the
+Teacher to aim every Lesson at the shape where the learner manipulates the subject first, which is
+a technique with good evidence behind it and no evidence behind the default. Decision 37 has the
+reasoning.
+Three things are checked. A universal quantifier over Lessons and the vocabulary of that shape may
+not meet in **one sentence** anywhere in the spine — sentences rather than logical lines, because a
+paragraph folds into a single logical line here and a line-level conjunction would fail on a
+paragraph saying each half innocently in a different breath. The judgement that replaced it has to
+arrive **whole on one logical line** — whose wrong answer, that the Teacher has to be able to write
+it down, what the question collects when it cannot, and that it should then not be asked — inside
+the subsection that states it rather than anywhere in the section, for the reason the imagery check
+reads the part before the first subsection. And that subsection is held against the three
+classifications the judgement must not have become: by the learner's age, by subject area, by kind
+of skill. Each pattern carries the control sentence that proves it can see its own subject, since a
+classification nobody wrote is not evidence of anything.
+
+**The Component that asks for a prediction is offered on the same judgement.** This one reads
+`UNIT.md`, which is otherwise the disclosure check's business, and it reads it because the spine's
+sentence and the Component's description are one claim: a claim held in two documents is one that
+can drift, and this pair had already drifted apart — the Component was offered for *anything where
+intuition can be wrong*, which an author believes about every passage it has just written. All
+three places the reference offers it have to name the test instead, and none may offer it for
+anything at all. The markup lines naming the same files are not offers, and the selectors match
+none of them — each has to find exactly one line, so a reworded table cannot make this check pass
+by matching nothing.
 
 ## The decoupling check
 

@@ -30,7 +30,8 @@ Every Lesson:
 - **shows** what it can rather than describing all of it — [draw the
   diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) beside the prose, and
   reach for that before reaching for an interaction;
-- leads with interaction rather than explanation: hook them with the question, not the answer;
+- leads with the question rather than the answer, and with an interaction where [the
+  judgement](./SKILL.md#interaction-before-explanation) admits one;
 - carries a citation on every claim, because a bare claim is untrustworthy even when it is true,
   and recommends **one primary source** — the highest-trust thing you found — to go and read;
 - links by HTML anchor to the reference documents and the neighbouring Units it builds on;
@@ -310,7 +311,10 @@ Five moves, inspired by Bret Victor, Nicky Case, and Bartosz Ciechanowski:
 1. **Interaction before explanation.** Let the learner *discover* through interaction, then name
    what they found.
 2. **Predict, then reveal.** Ask for a prediction before showing how something works. Cognitive
-   conflict — a wrong prediction meeting the real answer — is the strongest learning signal.
+   conflict — a wrong prediction meeting the real answer — is the strongest learning signal there
+   is, and it arrives only when there was a real prediction to be wrong: ask when you can write
+   down the wrong answer the learner is likely to give, and not when you cannot. See
+   [interaction before explanation](./SKILL.md#interaction-before-explanation).
 3. **Show the process, not the result.** Animate *how* something happens, step by step.
 4. **Sandbox at the end.** Leave a space for free exploration.
 5. **Progressive disclosure.** One concept at a time; each interaction adds one layer.
@@ -329,7 +333,7 @@ yourself in is a Component this Unit does not need.
 
 | What you are trying to do | Reach for | Where it comes from |
 |---------------------------|-----------|---------------------|
-| Confront an intuition before explaining it — anything where the first guess is usually wrong | Predict-reveal | Shipped |
+| Confront an intuition before explaining it — where you can write down the wrong answer the learner is likely to give | Predict-reveal | Shipped |
 | Check that an idea landed, the moment it lands | Exercise | Shipped |
 | Walk one process through its stages — `fork`/`exec`, a TCP handshake, a request's life | Step animation | Shipped |
 | Teach an order that *is* the knowledge — pipeline stages, protocol steps, a proof's line | Drag ordering | Shipped |
@@ -363,7 +367,7 @@ the scaffold reads that as a deliberate override and leaves it alone from then o
 | Component | Files | Use it for |
 |-----------|-------|------------|
 | **Exercise** | `assets/exercise.js` + `assets/exercise.css` | Checking a concept the moment it is taught |
-| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | **The strongest of them.** Anything where intuition can be wrong |
+| **Predict-Reveal** | `assets/predict-reveal.js` + `assets/predict-reveal.css` | Confronting a wrong answer you can write down before it is explained |
 | **Step Animation** | `assets/step-animation.js` + `assets/step-animation.css` | Multi-stage processes |
 | **Drag Ordering** | `assets/drag-order.js` + `assets/drag-order.css` | Sequences where the order is the knowledge |
 | **Checkpoint** | `assets/checkpoint.js` + `assets/checkpoint.css` | Gating a Unit at its end — see [Checkpoints](#checkpoints) |

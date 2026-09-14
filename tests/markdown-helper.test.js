@@ -17,6 +17,7 @@ const {
   anchorFor,
   anchorsIn,
   logicalLines,
+  sentencesOf,
   linesMentioning,
 } = require('./helpers/markdown.js');
 
@@ -101,6 +102,34 @@ test('a wrapped paragraph or bullet folds back into one logical line', () => {
   );
   assert.ok(folded.includes('- a second bullet'), 'the next item starts a line of its own');
   assert.ok(folded.includes('## Not a heading'), 'fenced content is kept, never folded away');
+});
+
+test('a paragraph comes back as its sentences, wrapping and all', () => {
+  // Two patterns that have to arrive *together* are a claim about one sentence.
+  // Read off logical lines they would only be a claim about one paragraph,
+  // which is a weaker thing than the check saying it.
+  const sentences = sentencesOf(DOC);
+
+  assert.ok(
+    sentences.includes('Back to prose about the Tutor, which runs on past the column this paragraph wraps at.'),
+    'a sentence wrapped across two lines comes back whole',
+  );
+  assert.ok(
+    sentences.includes('Read the Mission.'),
+    'two sentences in one folded item come back apart',
+  );
+  assert.deepEqual(
+    sentences.filter((x) => /Scaffold/.test(x) && /Run the script/.test(x)),
+    [],
+    'a paragraph is not one sentence, which is the whole reason this exists',
+  );
+  // The one place it misreads, pinned rather than left to be discovered: an
+  // ordered marker is punctuation followed by a space, so it splits off. The
+  // orphan carries no words, which is what makes it harmless — recorded here so
+  // that nobody reads a count of these as a count of prose sentences.
+  assert.ok(sentences.includes('2.'), 'an ordered list marker splits off, and is expected to');
+
+  assert.deepEqual(sentencesOf(''), [], 'a document with nothing in it has no sentences');
 });
 
 test('mentions come back with the line number that locates them', () => {

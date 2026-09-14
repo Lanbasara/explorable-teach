@@ -133,11 +133,16 @@ silently steers every later Session from a document nobody re-read.
 ### Interaction before explanation
 
 Don't explain and then test. An Explorable lets the learner manipulate the subject before it is
-explained and names what they found afterwards, and a wrong prediction meeting the real answer
-is the strongest learning signal there is; aim every Lesson at that shape. Interactivity is for
-what prose cannot teach, never for how the page looks — before adding any of it, answer *what can
-the learner not understand without this?* How it plays out on the page is [Authoring a
-Unit](./UNIT.md).
+explained and names what they found afterwards, and a wrong prediction meeting the real answer is
+the strongest learning signal there is — where it holds. What decides whether it holds is the wrong
+answer itself: **if you cannot write down the wrong answer the learner is likely to give, the
+question collects a guess rather than a confrontation, and should not be asked.** That is a
+judgement about one question rather than a property of the material, and the failure it catches is
+the author who believes intuition could be wrong here and cannot say what the wrong belief is. The
+naming afterwards is not optional either: an interaction whose explanation never arrives fails from
+the other side. Interactivity is for what prose cannot teach, never for how the page looks — before
+adding any of it, answer *what can the learner not understand without this?* How it plays out on
+the page is [Authoring a Unit](./UNIT.md).
 
 ### What the learner has told you
 

@@ -15,7 +15,7 @@ const { test } = require('node:test');
 
 const { REPO_ROOT } = require('./helpers/workspace.js');
 const { agentDocs, SKILL_DIR } = require('./helpers/docs.js');
-const { sections, step, logicalLines } = require('./helpers/markdown.js');
+const { sections, step, logicalLines, sentencesOf } = require('./helpers/markdown.js');
 
 const SKILL_MD = path.join(SKILL_DIR, 'SKILL.md');
 const SKILL = fs.readFileSync(SKILL_MD, 'utf8');
@@ -48,6 +48,59 @@ const HANDOFF_FLOOR = [
   { what: 'the progress marker in the Curriculum', re: /CURRICULUM\.md/ },
   { what: 'what the learner said about how to teach them', re: /NOTES\.md/ },
   { what: 'the Unit reachable from the Dossier', re: /index\.html|Dossier/ },
+];
+
+/**
+ * The judgement that replaced the instruction to aim every Lesson at
+ * discovery, as the four things one sentence has to say: whose wrong answer,
+ * that the Teacher has to be able to write it down, what the question collects
+ * when it cannot, and what follows. Three of the four are a description; the
+ * fourth is what makes it actionable.
+ */
+const JUDGEMENT = [
+  { what: 'the wrong answer the learner would actually give', re: /wrong answer\b/i },
+  { what: 'that the Teacher has to be able to write it down', re: /\bcannot write down\b/i },
+  { what: 'what the question collects instead', re: /\bguess\b/i },
+  { what: 'that such a question is not asked', re: /\bshould not be asked\b|\bdo not ask\b/i },
+];
+
+/**
+ * The three ways this judgement would stop being one. It is applied to one
+ * question at a time, so a Teacher that can read a category off it — this
+ * subject, this age, this kind of skill — has stopped looking at the question.
+ * Each carries the control sentence that proves the pattern can see its own
+ * subject, since a classification nobody wrote is not evidence of anything.
+ */
+const CLASSIFIES = [
+  {
+    by: "the learner's age",
+    re: /\bages?\b|\byears old\b|\bgrade\b|\bchild(?:ren)?\b|\bteenager|\badults?\b/i,
+    control: 'Younger learners hold fewer wrong beliefs, so ask below that age with care',
+  },
+  {
+    by: 'subject area',
+    re: /\bmaths?\b|\bmathematic|\bphysics\b|\bhistor|\bphilosoph|\bsciences?\b|\bhumanities\b|\bSTEM\b/i,
+    control: 'The sciences earn this shape; history and the humanities rarely do',
+  },
+  {
+    by: 'kind of skill',
+    re: /\bmotor skill|\bprocedural\b|\bdeclarative\b|\bsoft skill|\bkinds? of skill\b/i,
+    control: 'Procedural material suits it; declarative material does not',
+  },
+];
+
+/**
+ * The Component that asks for a prediction, as the three places the authoring
+ * reference offers it — the move it comes from, the row a teaching act is
+ * chosen on, and the row in the shipped table. Each is a place the Teacher
+ * decides to reach for it, so each has to carry the judgement rather than an
+ * invitation. The markup lines naming the same files are not offers and are
+ * matched by none of these.
+ */
+const OFFERS_A_PREDICTION = [
+  { where: 'the move it comes from', re: /\*\*Predict, then reveal\.\*\*/ },
+  { where: 'the teaching act it answers', re: /^\|.*\|\s*Predict-reveal\s*\|/i },
+  { where: 'the row in the shipped table', re: /^\|\s*\*\*Predict-Reveal\*\*/ },
 ];
 
 /** The terms `CONTEXT.md` defines under one of its `###` groupings. */
@@ -256,10 +309,7 @@ test('the ladder says when a Unit warrants the instruments it does not always ea
   // Sentences rather than lines. A paragraph holds both instruments and every
   // condition word in the section, so a line-level check passes on a document
   // that says only "some Units earn a Checkpoint" — measured, not assumed.
-  const sentences = logicalLines(prose)
-    .flatMap(({ text }) => text.split(/(?<=[.?!])\s+/))
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
+  const sentences = sentencesOf(prose);
 
   for (const instrument of ['Checkpoint', 'Assignment']) {
     const stated = sentences.filter(
@@ -341,4 +391,115 @@ test('a Session ends on a verifiable outcome, backed by a floor of actions', () 
     [],
     'the next Boot sequence reads this, so a Session that did not write it leaves a question to ask',
   );
+});
+
+test('discovery is a technique the Teacher judges, not a shape every Lesson is aimed at', () => {
+  const judging = sections(SKILL).find((s) => /^judging\b/i.test(s.title));
+  assert.ok(judging, 'the skill should carry the judgement criteria in a section of its own');
+
+  // The instruction that was removed: a universal quantifier over Lessons,
+  // pointed at the shape where the learner manipulates the subject first. The
+  // conjunction is the check, because each half alone is legitimate — a Unit
+  // may be built that way, and other rules here do bind every Unit.
+  const UNIVERSAL = /\b(?:every|each|all|any)\s+(?:Lesson|Unit)s?\b/i;
+  const THE_SHAPE = /Explorable|discover|manipulate|th(?:at|is) shape/i;
+  const aimsEveryLessonAtIt = (sentence) => UNIVERSAL.test(sentence) && THE_SHAPE.test(sentence);
+
+  assert.ok(
+    aimsEveryLessonAtIt(
+      'An Explorable lets the learner manipulate the subject before it is explained, and a wrong ' +
+        'prediction meeting the real answer is the strongest learning signal there is; aim every ' +
+        'Lesson at that shape.',
+    ),
+    'this check cannot see the instruction it replaced',
+  );
+  assert.ok(
+    !aimsEveryLessonAtIt('Every Unit should leave the learner challenged just enough'),
+    'this check reads an unrelated rule binding every Unit as the universal default',
+  );
+  assert.ok(
+    !aimsEveryLessonAtIt('A wrong prediction meeting the real answer is the strongest signal there is'),
+    'this check reads the technique itself as an instruction to reach for it',
+  );
+
+  // Sentences rather than logical lines: a paragraph folds into one line here,
+  // so a line-level conjunction would fail on a paragraph that names the shape
+  // in one sentence and every Lesson in another, innocently.
+  const sentences = sentencesOf(SKILL);
+
+  // Guard the observer: an empty list has no universal default in it, so a
+  // reader that stopped recognising a sentence would pass this for free.
+  assert.ok(sentences.length >= 50, `expected the spine's sentences, found ${sentences.length}`);
+
+  assert.deepEqual(
+    sentences.filter(aimsEveryLessonAtIt),
+    [],
+    'the technique is sound where it holds; the universal default is not',
+  );
+
+  // The subsection, not the whole section. `Judging what to teach next` also
+  // holds knowledge-versus-skills and the zone of proximal development, and
+  // both of those speak about every Unit — a whole-section read is a check
+  // that can go on passing while the sentence it is about has been deleted.
+  const shape = sections(judging.body, 3).find((s) => /interaction before explanation/i.test(s.title));
+  assert.ok(shape, 'the skill should still carry interaction before explanation as a judgement it makes');
+
+  assert.deepEqual(
+    JUDGEMENT.filter((j) => !j.re.test(shape.body)).map((j) => j.what),
+    [],
+    'without this the Teacher has no test for whether a question has a wrong answer to confront',
+  );
+
+  // And it has to arrive whole, in one sentence. Sentences rather than logical
+  // lines for the reason above — a paragraph folds into one of those, so a
+  // line-level read would accept the four parts as four remarks made in the
+  // same paragraph, which is not the one thing a Teacher applies to the
+  // question in front of it.
+  const whole = sentencesOf(shape.body).filter((sentence) =>
+    JUDGEMENT.every((j) => j.re.test(sentence)),
+  );
+  assert.ok(whole.length >= 1, 'the judgement is one sentence, not four things said in one place');
+
+  // And it stays a judgement about one question rather than becoming a
+  // taxonomy: a Teacher reading "discovery suits the sciences" or "not below
+  // this age" is back to deciding by category.
+  for (const { by, re, control } of CLASSIFIES) {
+    assert.match(control, re, `this check cannot see a classification by ${by}`);
+    assert.ok(!re.test(shape.body), `the judgement is applied one question at a time, not by ${by}`);
+  }
+});
+
+test('the Component that asks for a prediction is offered on the same judgement', () => {
+  const authoring = fs.readFileSync(path.join(SKILL_DIR, 'UNIT.md'), 'utf8');
+
+  // An open invitation is what the judgement replaced: the Component was for
+  // "anything where intuition can be wrong", which an author believes about
+  // every passage it has just written.
+  const INVITATION = /\banything where\b/i;
+  const WRITABLE = /\bwrit(?:e|ten|ing) down\b/i;
+
+  assert.match('**The strongest of them.** Anything where intuition can be wrong', INVITATION,
+    'this check cannot see the description it replaced');
+  assert.doesNotMatch('Where you can write down the wrong answer the learner will give', INVITATION,
+    'this check reads the description that replaced it as an invitation too');
+
+  const lines = logicalLines(authoring);
+
+  for (const { where, re } of OFFERS_A_PREDICTION) {
+    const found = lines.filter(({ text }) => re.test(text));
+    assert.equal(found.length, 1, `expected ${where}, found ${found.length} lines`);
+
+    const [{ line, text }] = found;
+    assert.ok(!INVITATION.test(text), `${where} (UNIT.md:${line}) still offers it for anything at all`);
+    assert.match(
+      text,
+      WRITABLE,
+      `${where} (UNIT.md:${line}) does not say what makes the question worth asking`,
+    );
+    assert.match(
+      text,
+      /wrong|misread|mistak/i,
+      `${where} (UNIT.md:${line}) does not name a wrong answer as what is being confronted`,
+    );
+  }
 });
