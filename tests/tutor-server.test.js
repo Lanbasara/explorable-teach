@@ -12,6 +12,11 @@
 // function in `server.js` is called directly, and no line of it was changed to
 // make any of this possible — the seams used here are the ones the service
 // already exposes to the browser and to its own environment.
+//
+// One test adds a fourth thing, and for the same reason: the address the
+// navigation bar asks for is read off a mounted bar rather than written down
+// here, because a restated address is this file deciding a contract the bar
+// owns. The bar still reaches the service over the socket.
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -20,6 +25,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 
 const { Workspace, REPO_ROOT } = require('./helpers/workspace.js');
+const { Page } = require('./helpers/dom.js');
 const { TutorService, agentSays, refusalToken, waitFor } = require('./helpers/tutor.js');
 const { sections } = require('./helpers/markdown.js');
 const { notEnglish } = require('./helpers/learner-text.js');
@@ -38,15 +44,14 @@ const QUESTION_LOG = 'learning-records/questions.jsonl';
 /**
  * A Workspace as the learner's is: scaffolded, two Lessons written, the two
  * files the service inlines into every payload, and two files it must refuse to
- * serve. The Lessons are written out of order so that "the first Lesson" means
- * lowest-numbered rather than first-written.
+ * serve.
  */
 function workspace(t) {
   const ws = Workspace.create(t);
   ws.scaffold();
 
-  ws.write('lessons/0002-exec.html', SECOND_LESSON);
   ws.write('lessons/0001-fork.html', FIRST_LESSON);
+  ws.write('lessons/0002-exec.html', SECOND_LESSON);
   ws.write('NOTES.md', NOTES);
   ws.write('MISSION.md', MISSION);
 
@@ -143,27 +148,64 @@ test('polling health does not keep an abandoned service alive', async (t) => {
 
 // ---------------------------------------------------------------- static
 
-test('a root request resolves to the first Lesson', async (t) => {
+/**
+ * The address the navigation bar's Dossier button asks for, followed from a
+ * Lesson this service is serving.
+ *
+ * Mounted rather than written down. The originating report was that pressing
+ * that button landed on a Lesson, and the bar turned out to be asking for the
+ * right thing all along — so a check that restated the address here would be
+ * asserting against the half that was never wrong, and would still pass on a
+ * bar that had stopped pointing at the Dossier at all.
+ *
+ * Giving `ws` a course manifest naming that Lesson is part of mounting a bar
+ * rather than a step beside it: the bar derives every link it renders from the
+ * manifest, and renders nothing at all without one.
+ */
+function dossierButtonAddress(ws, lessonPath) {
+  const unit = { id: '0001', num: 'L01', lesson: lessonPath.replace(/^\//, '') };
+  ws.write(
+    'assets/units.js',
+    `window.TEACH_COURSE = { title: '\u8fdb\u7a0b' };\n` +
+      `window.TEACH_UNITS = [{ id: '${unit.id}', num: '${unit.num}', status: 'teaching', ` +
+      `title: 'fork', lesson: '${unit.lesson}' }];\n`,
+  );
+
+  const page = Page.load(FIRST_LESSON, ws.path('assets'), {
+    globals: {
+      location: { protocol: 'http:', pathname: lessonPath, href: `http://localhost${lessonPath}` },
+    },
+  });
+  page.script('lesson-boot.js'); // the table every label on the bar is looked up in
+  page.script('units.js');
+  page.script('nav.js', { 'data-unit': unit.id });
+
+  const home = page.query('.tnav-home');
+  assert.ok(home, 'the bar did not mount, so there is no button here to follow');
+
+  return new URL(home.getAttribute('href'), `http://localhost${lessonPath}`).pathname;
+}
+
+test('every address that names the Dossier returns the Dossier', async (t) => {
   const ws = workspace(t);
+  const dossier = ws.read('index.html');
+
+  assert.notEqual(dossier, FIRST_LESSON, 'the fixture must be able to tell the Dossier from a Lesson');
+
+  const button = dossierButtonAddress(ws, '/lessons/0001-fork.html');
   const service = await TutorService.start(t, ws);
 
-  const res = await service.get('/');
+  // The service root; the Dossier's own filename; the double-slash form, which
+  // is the only one that reached the Dossier in the originating report, because
+  // it was the one form that was not the exact string being compared against;
+  // and the button, which asks for whichever of these the bar builds.
+  for (const address of ['/', '/index.html', '//', button]) {
+    const res = await service.get(address);
 
-  assert.equal(res.status, 200);
-  assert.match(res.headers['content-type'], /^text\/html/);
-  assert.equal(res.body, FIRST_LESSON, 'the lowest-numbered Lesson is where "/" should land');
-  assert.notEqual(FIRST_LESSON, SECOND_LESSON, 'the two fixture Lessons must be distinguishable');
-});
-
-test('a root request falls back to the Dossier when no Lesson is written yet', async (t) => {
-  const ws = Workspace.create(t);
-  ws.scaffold();
-  const service = await TutorService.start(t, ws);
-
-  const res = await service.get('/');
-
-  assert.equal(res.status, 200);
-  assert.equal(res.body, ws.read('index.html'), 'with no Lessons, "/" is the Dossier');
+    assert.equal(res.status, 200, `${address} did not return a page`);
+    assert.match(res.headers['content-type'], /^text\/html/, `${address} did not return a page`);
+    assert.equal(res.body, dossier, `${address} names the Dossier and should have returned it`);
+  }
 });
 
 test('a Lesson and its assets are served with the type the browser needs', async (t) => {
@@ -172,7 +214,8 @@ test('a Lesson and its assets are served with the type the browser needs', async
 
   const lesson = await service.get('/lessons/0002-exec.html');
   assert.equal(lesson.status, 200);
-  assert.equal(lesson.body, SECOND_LESSON);
+  assert.notEqual(FIRST_LESSON, SECOND_LESSON, 'the two fixture Lessons must be distinguishable');
+  assert.equal(lesson.body, SECOND_LESSON, 'the Lesson asked for, not whichever one is first');
   assert.match(lesson.headers['content-type'], /^text\/html/);
 
   const styles = await service.get('/assets/style.css');

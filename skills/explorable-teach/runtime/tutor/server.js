@@ -328,19 +328,6 @@ const MIME = {
   '.md': 'text/plain; charset=utf-8',
 };
 
-/** Lowest-numbered lesson, so "/" lands somewhere useful in any workspace. */
-function firstLessonPath() {
-  try {
-    const names = fs
-      .readdirSync(path.join(WORKSPACE_ROOT, 'lessons'))
-      .filter((n) => n.toLowerCase().endsWith('.html'))
-      .sort();
-    return names.length ? `/lessons/${names[0]}` : null;
-  } catch {
-    return null;
-  }
-}
-
 /** True when `full` is `root` itself or sits beneath it. */
 function within(root, full) {
   return full === root || full.startsWith(root + path.sep);
@@ -374,6 +361,9 @@ const SERVE_ROOTS = [WORKSPACE_ROOT, RUNTIME_ASSETS];
  * the plugin's copy. The path is normalized once and then bounded against each
  * root separately, so a request that escapes the workspace yields no candidate
  * at all rather than being tried against the plugin instead.
+ *
+ * A directory is its `index.html` and nothing else. The root of the service is
+ * therefore the Dossier, which is what the Dossier is for — see decision 32.
  */
 function resolveStatic(urlPath) {
   let decoded;
@@ -383,7 +373,6 @@ function resolveStatic(urlPath) {
     return [];
   }
   if (decoded.endsWith('/')) decoded += 'index.html';
-  if (decoded === '/index.html') decoded = firstLessonPath() || decoded;
 
   const normalized = path.normalize(decoded).replace(/^(\.\.[/\\])+/, '');
 

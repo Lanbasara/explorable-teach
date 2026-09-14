@@ -1060,6 +1060,39 @@ one known token and passes everything else through untouched. Three checks now l
 the token in `GRADER.md` alone: the derived contract in `language.test.js`, the drawer's, and the
 service's.
 
+## 32. The entry point is the Dossier, under every address that names it
+
+**Decided:** the Tutor service resolves a directory to its `index.html` and stops there. The
+service root, the Dossier's own filename and every form that normalises to the same file all
+return the Dossier. The shortcut that rewrote `/index.html` to the lowest-numbered Lesson is
+deleted, and so is the helper that found it — there is no replacement route.
+
+**Why the shortcut had to go rather than move.** `CONTEXT.md` defines the Dossier as *the
+Workspace entry point*, and `UNIT.md` promises the Learner never needs to browse the Lessons
+directory. The shortcut made that definition true on disk and false over http: the same course,
+opened two ways, had two different front doors. It also took the navigation bar down with it.
+The bar asks for `../index.html` from inside a Lesson, which is exactly right — and the service
+answered with the Lesson the Learner was trying to leave, so the one control that exists to get
+back to the Dossier was the one that could not. The report that found this said the *only*
+address that worked was `//`, which is the tell: nothing was resolving the Dossier, one form
+simply never matched the string being compared against.
+
+**Why one click is the right price.** The shortcut bought a Learner landing on material rather than
+on the Dossier. The Dossier already lists every Unit with a link to its Lesson, so what it actually
+saved was a single click, and it charged the entry point its meaning to do it. A memorised address
+should mean one thing.
+
+**Why the fallback branch is not kept.** The helper returned the Dossier when no Lesson was
+written yet, so an empty Workspace already behaved the way every Workspace now does. With the
+rewrite gone that branch is unreachable, and an unreachable branch left in place is an invitation
+to a future reader to rediscover it and wire it back up. Its test goes with it for the same
+reason: it covered a fallback that no longer exists, so adapting it would have been writing a new
+test under an old name.
+
+**Consequence:** one test now covers the rule, over four addresses, and it derives the fourth by
+mounting the navigation bar rather than restating what the bar asks for — the half that was never
+wrong is the half a restated address would stop watching.
+
 ---
 
 ## Where the full record lives

@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The Dossier is the Workspace entry point again, under both readings.** Served, every address
+  that names it returned the lowest-numbered Lesson instead: the service root, the Dossier's own
+  filename, and — because the navigation bar asks for `../index.html` from inside a Lesson — the
+  one control whose job is getting back to the Dossier. Only the double-slash form worked,
+  and only because it was the one form that was not the exact string being compared against. A
+  directory now resolves to its `index.html` and stops there. The shortcut is deleted rather than
+  relocated, along with the helper that found the first Lesson, so nothing is left behind to be
+  rediscovered and re-wired; the Dossier already lists every Unit with a link to its Lesson, so
+  the affordance survives as one click. Recorded as decision 32, because it changes what a
+  memorised address means.
+
 ## 0.4.0
 
 ### Added

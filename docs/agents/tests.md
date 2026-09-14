@@ -27,7 +27,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, and re-running is free |
-| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
+| `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, and writes the scaffolding it builds in English while the answer comes back in the Learner's language |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
 | `tests/tutor-drawer.test.js` | The in-page drawer renders a streamed answer and a pinned one through that renderer, reports the wait, carries a Submission to the Grader and its verdict back, and recovers from a service that is stopped or failing |
 | `tests/language.test.js` | A Workspace states its language once and every page picks it up, the lookup falls back the way it says it does, nothing a Learner reads — in the drawer, in the bar, in any Component — is hardcoded in any language, every way the Tutor service can fail has words on the page to be read as, the role definitions are English down to the token a Grader refuses with, and nothing the plugin ships — nor the Workspace one scaffold run produces — is written in one Learner's language |
@@ -217,8 +217,16 @@ service.agentFlag('-p');                 // the payload the agent was actually h
 `server.js` carries the security-sensitive code in this plugin, and `TUTOR.md` says a Workspace
 links at it rather than any Session writing it *because* re-deriving it from prose risks silently
 dropping a guard. Nothing noticed if one had been. So the service is held at arm's length: it runs
-as its own process on a port of its own, and a test touches only a socket, the Workspace on disk,
-and the stub agent. No function in it is called directly.
+as its own process on a port of its own, and a test touches a socket, the Workspace on disk, and
+the stub agent. No function in it is called directly.
+
+One test reaches past those three, and only to avoid writing down something it does not own. The
+Dossier is reachable from a Lesson because the navigation bar links to it, and the bar's address
+is what the service used to rewrite — so the check mounts the bar in the fixture DOM and follows
+the `href` it actually builds, rather than restating that address here. The bar belongs to
+`nav.test.js`, which holds that every artifact of a Unit is reachable from every other; what this
+suite adds is that the *service* answers what the bar asks for, and that claim still crosses the
+socket.
 
 The fixture starts it the way a Workspace does — `node <ws>/tutor/server.js`, which resolves
 through the link into the plugin — so the split is exercised rather than bypassed. The server
