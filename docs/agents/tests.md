@@ -28,6 +28,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/nav.test.js` | Every artifact of a Unit is reachable from every other, and one that was never written says so where it would have been |
 | `tests/init-workspace.test.js` | The scaffold never overwrites what a Workspace owns, re-points what the plugin owns, is safe to re-run either way, and leaves a Submission inside version control rather than outside it |
 | `tests/wire-lessons.test.js` | The bootstrap tag lands exactly once, re-running is free, and every Lesson's served address is printed with the precondition that makes it work |
+| `tests/page-checks.test.js` | The pass a Teacher runs over a page it just wrote answers in one shape, declines rather than passing when there is nothing to judge, tolerates a page lacking the thing it examines, and documents every condition under which it misleads |
 | `tests/tutor-server.test.js` | The service serves, refuses and streams what it says it does — asked over HTTP, including at every address that names the Dossier — grades in a role composed from the Grader's own two files, never the Tutor's, writes the scaffolding it builds in English while the answer comes back in the Learner's language, and — started the way its documents say to start it — outlives the shell that launched it and says where each Lesson is served |
 | `tests/dossier.test.js` | The Workspace entry point reports the Tutor service in three states — reached, not running, and cannot tell from here — and asks the service nothing from a page it never served |
 | `tests/rich-text.test.js` | A Tutor answer renders as the rich text it was written as, and the markup in it stays text |
@@ -349,6 +350,56 @@ on the page: a stop is only a stop if the stream was let go, because letting it 
 the connection the service is watching. One of them lands the stop before the response has
 arrived at all — the window a learner is most likely to press it in, and the one where there is
 no reader yet to cancel.
+
+## The page pass
+
+`scripts/page-checks.js` is the Teacher's own tool: seven checks it runs in a browser over a
+Lesson it has just written, so that a page which is blank, broken or missing a dependency is
+caught by the Teacher rather than by the Learner. It is built the way `rich-text.js` is built, and
+for the same reason — the page, the window and the session's own console and network records are
+arguments rather than globals — so `page-checks.test.js` runs the whole of it in a `vm` context
+holding nothing at all, against a stub page that returns the boxes and the colours a test wrote
+into it.
+
+Four claims, and the last one is the deliverable rather than a footnote.
+
+**One shape, and three values.** Every check answers `{ check, ok, summary, findings, examined,
+notes }`, and `ok` is `true`, `false` or `null` — `null` meaning *there was nothing here to
+judge*. A page with no canvas has not passed the canvas check, a check handed no console record
+has not passed the console check, and a pass in which every check declined has judged nothing, so
+the pass itself is three-valued too. Reporting an absence as a pass is the one answer a Teacher
+would act on wrongly.
+
+**Nothing throws on a page that lacks its subject.** Three shapes of absence are driven: a page
+with nothing on it, no page at all, and a page whose every answer is a throw — which is what a
+browser does on a canvas holding a cross-origin image.
+
+**The observer is guarded per check**, because a check that answered `null` to everything would
+satisfy both claims above for free. So every one of them is also driven against a page holding
+its subject and has to reach a verdict there: an error in the console, a 404, a blank canvas
+beside a drawn one, a canvas that is still while the page asks for frames, a panel parked past
+the right edge, a label under a card, grey text on white.
+
+**Every check documents where it misleads, and the suite reads that off the file's own list.**
+For each check the file ships, the head comment has to carry the condition under which it reports
+confidently and wrongly, the direction it misleads in, and the field in its own output that
+reveals it — so a check added without its misread fails on the day it is added. Three of them are
+matched by name rather than derived, because the pass was built around those three, and so are the
+two environment hazards. Those five patterns are the one place in this repo that restates
+anything from that head comment, and they are patterns rather than prose for that reason: a
+document holding the list in sentences would be a second copy to keep in step, and the file owns
+it.
+
+Two of the misreads are driven rather than only asserted about, because a documented misread
+nobody reproduces is a sentence: the overlay that ignores pointer events makes `labelsVisible`
+report `ok: true` in this suite, with `coveredBy` and `ignoringPointerEvents` naming the overlay,
+and the contrast check reports a ratio against a background it says in `assumed` and
+`backgroundFrom` that it never read.
+
+One more claim sits with the others because it is where the file lives rather than what it does:
+a scaffolded Workspace holds nothing that resolves to it. The checks do not vary by subject and
+are not page content, so they are named from the plugin root and installed nowhere — the same
+shape as the wiring script.
 
 ## The language checks
 
@@ -859,6 +910,19 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   Component puts on the page has a rule *somewhere on screen* — print-only rules do not count,
   and `is-live` is exempt because it is the mount marker rather than a visual state — but never
   that it looks right. Judging a lesson's appearance still means opening it.
+- **Real layout is not covered, and the page pass does not change that.**
+  `page-checks.test.js` holds the contract of `scripts/page-checks.js` — the shape of every
+  answer, the tolerance of an absent subject, the documented misreads — against a stub page that
+  *returns* the boxes and colours a test wrote into it. Nothing here lays anything out, computes
+  a style or rasterises a pixel, so whether a real page is laid out the way those checks read it
+  is exactly what running the pass in a browser is for. **Adding a browser here is refused**, and
+  not on grounds of effort: this suite takes no third-party dependencies and needs no install
+  step, which is what makes it runnable by any agent that has just cloned the repo, and a
+  headless browser is a large binary, a version to pin, a platform matrix and a second way for
+  the suite to fail that has nothing to do with the plugin. The thing a browser would buy is
+  already bought elsewhere and better — a Teacher opens the real page, on the real service, once
+  per Lesson. What the suite must never do is *simulate* enough of a browser to look like it
+  covers this; the stub page is deliberately small enough that nobody could mistake it for one.
 - **The Grader's judgement is not tested, and cannot be.** The stub agent replays a fixed
   transcript, so every grading check here is about what the Grader is *asked* and what happens to
   what it *said* — never about whether the verdict is right. That it judges against the stored

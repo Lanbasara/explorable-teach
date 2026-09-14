@@ -35,7 +35,8 @@ Every Lesson:
 - keeps working when nothing else is — the constraint [the Unit](./SKILL.md#the-unit) states —
   while still telling the learner they can ask about anything that did not land.
 
-Hand the Lesson to the learner once you have written it, and mind which of the two you hand
+Hand the Lesson to the learner once you have written it — after [looking at
+it](#look-at-the-page-before-handing-it-over) — and mind which of the two you hand
 over. With the Tutor service running, it is the served address
 `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` prints for that page; with the service stopped,
 the file itself — on which the in-page drawer is offline by design, because it can only reach
@@ -129,6 +130,34 @@ And one rule about failure, which starts to matter the moment a page reaches for
 not answer and a service that is not running are different problems with different fixes, so a
 page that needs one of them says which of the two is missing, in the place the thing would have
 been.
+
+## Look at the page before handing it over
+
+A Lesson is handed over having been opened, and the **page pass** is what opening it means. Start
+the service, open the served address in a browser, and run the pass that ships as
+`${CLAUDE_PLUGIN_ROOT}/scripts/page-checks.js`: evaluate
+the file in the page, then `await PageChecks.run({ messages, requests })`, handing it the console
+and network records the browser session collected. Seven checks — nothing complained, nothing
+failed to load, the canvas has something in it, the animation is moving, nothing sits off the
+page, no label is covered or overlapping, and the text can be read against what is behind it.
+Take the screenshot **last**, and judge *appearance* from it rather than correctness.
+
+**It is deliberately light, and it is not a gate.** It catches a Lesson that is *broken*. It does
+not catch a Lesson that is *wrong*, and it should not grow into something that tries to: a learner
+who hits something subtler has the Tutor sitting in the page to ask, which is what the Tutor is
+for. The checks do not vary by subject, which is why they are a file in the plugin rather than a
+list you retype — and why they are named from the plugin root and never installed into a
+Workspace, the same way the wiring script is.
+
+**Read `ok`, then every `findings` entry, then the field each check names as the one that reveals
+it misreading — and read those from the file rather than from here.** Several of these checks
+report confidently and wrongly under a condition that is known in advance, and a check trusted
+while wrong is worse than no check: it sends you off to fix a defect that is not there, or signs
+off a page that is broken. The head comment carries, for every check, the condition, the direction
+it misleads in, and the field in its own output that gives it away — three of them named, because
+they are the cases the pass was built around, and two hazards that belong to the browser rather
+than to the page. That is one list with one place to fix it, so read it there before you trust a
+verdict; a copy of it in this document would be the same list drifting.
 
 ## The language the learner reads
 

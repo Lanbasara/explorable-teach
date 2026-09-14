@@ -1211,6 +1211,72 @@ authoring reference has to carry both halves of the list. It cannot check the br
 underneath — nothing here opens a page from disk — so what it defends is that the documents go on
 agreeing with the measurement, and with each other.
 
+## 35. The Teacher looks at the page, and the checks say where they lie
+
+**Decided:** after writing a Lesson, the Teacher opens the served page in a browser and runs a
+short set of checks — nothing complained, nothing failed to load, the canvas has something in it,
+the animation is moving, nothing sits off the page, no label is covered or overlapping, the text
+can be read against what is behind it — and takes a screenshot last, to judge appearance rather
+than correctness. They ship as `scripts/page-checks.js`, named from the plugin root and installed
+into no Workspace, because they do not vary by subject and they are the Teacher's tool rather than
+page content. That is the shape the wiring script already has.
+
+**Why now.** Decision 34 lifted the ban on reaching for a library, which was the thing that kept a
+Lesson nearly impossible to break: a page with no dependencies rarely fails, and a Teacher could
+hand one over having never opened it. A page that loads a renderer from a CDN and draws into a
+canvas fails in ways prose cannot anticipate, and the Learner is the wrong person to find out.
+
+**Deliberately light, and not a gate.** It catches a Lesson that is *broken*. It does not catch a
+Lesson that is *wrong*, and it must not grow into something that tries to — every check added
+costs every Lesson, and the subtler thing a check would have caught is what the Tutor sitting in
+the page is for. The bound is what a browser session can do cheaply.
+
+**The misreads are the deliverable, not a footnote.** Several of these checks report confidently and
+wrongly under a condition that is known in advance, and a check trusted while wrong is worse than
+no check: it sends the Teacher to fix a defect that does not exist, or signs off a page that is
+broken. So the file's head comment carries, per check, the condition, the direction it misleads
+in, and the field in its own output that reveals it — following the convention that a Component
+documents itself in its head comment. Three are named because the pass was built around them.
+A WebGL context created without `preserveDrawingBuffer` — which is the default — is read back
+*cleared* once the frame has been composited, so a clear colour with any opacity to it reads
+exactly like content and the canvas check passes falsely, while the two identical reads make the
+animation check fail falsely: one cause, two directions. An overlay with `pointer-events: none` is
+walked straight through by a hit test, so the occlusion check gets back the label underneath,
+which is the answer a clear page gives, while the text is genuinely invisible. And a background
+nothing in the page declares — a canvas painted underneath, an image, a gradient — leaves the
+contrast check assuming white, which misleads in *both* directions and is worst on exactly the
+dark-themed and canvas-backed pages decision 34 licensed.
+
+**Two hazards are the browser's rather than the page's**, and are recorded with the checks because
+they are read off the same results: `--disable-gpu`, pasted into headless invocations as a matter
+of habit, disables the graphics stack so there is no rendering context at all — indistinguishable
+from a Lesson that draws nothing — and a browser carrying the operator's own extensions shows
+injected requests and mutated markup that are not the Lesson's.
+
+**Every answer is three-valued**, and that is what keeps the pass honest. `ok` is `true`, `false`
+or `null`, where `null` means *there was nothing here to judge*: a page with no canvas has not
+passed the canvas check, and a check handed no console record has not passed the console check.
+An absence reported as a pass is the one answer a Teacher would act on wrongly, so the pass as a
+whole is three-valued too — every check declining is not a clean page.
+
+**Rejected:** making it a gate, with a threshold a Lesson has to clear. Three of the seven checks
+misread under conditions this file documents, so a threshold would block correct Lessons and
+would teach the Teacher to route around the pass rather than read it. Rejected too: writing the
+checks into the authoring reference as prose. They do not vary by subject, so prose would be the
+same list retyped every Session, drifting a little each time — and a check whose misreads matter
+this much has to be one artifact with one place to fix it.
+
+**Consequence:** the file is built the way `rich-text.js` is built, and for the same reason. The
+page, the window and the session's own console and network records are arguments rather than
+globals, so `page-checks.test.js` runs the whole of it in a context holding nothing at all. What
+that suite holds is the contract — one shape, three values, no throw on a page lacking the
+subject, and a documented misread for every check the file ships, read off the file's own list so
+that a check added without one fails on the day it is added. What it cannot hold is layout: no
+browser runs here, the stub page returns the boxes a test wrote into it, and adding a browser is
+refused — this suite takes no dependency and needs no install step, which is what makes it
+runnable by any agent that has just cloned the repo. The real check is a Teacher opening the real
+page, once per Lesson, which is the whole point of the decision.
+
 ---
 
 ## Where the full record lives

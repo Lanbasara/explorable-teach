@@ -79,10 +79,11 @@ One Unit at a time, once the Boot sequence has told you where the learner is:
 4. Decide what verifies it — see [the assessment ladder](#the-assessment-ladder). Most Units
    earn Exercises and nothing beyond them.
 5. Run `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh`, update `index.html` and
-   `assets/units.js`, and hand the Lesson over. A Lesson can be opened two ways and they are
-   not equivalent: with the service running, hand over the served address the script prints;
-   otherwise the file itself, on which the in-page drawer is offline by design rather than
-   broken. See [TUTOR.md](./TUTOR.md).
+   `assets/units.js`, then [look at the page](./UNIT.md#look-at-the-page-before-handing-it-over)
+   before handing the Lesson over — a Lesson is handed over having been opened. A Lesson can be
+   opened two ways and they are not equivalent: with the service running, hand over the served
+   address the script prints; otherwise the file itself, on which the in-page drawer is offline
+   by design rather than broken. See [TUTOR.md](./TUTOR.md).
 6. Close the Unit after they engage with it — see [Ending a Session](#ending-a-session).
 
 ## Judging what to teach next

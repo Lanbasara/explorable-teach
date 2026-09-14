@@ -108,6 +108,22 @@ it cannot see. A Component made of text needs none, because it can write its con
 markup and let the script take it over; a drawing cannot.
 _Avoid_: alt text, caption, fallback, placeholder
 
+**Page pass**:
+The short set of checks the Teacher runs in a browser over a Lesson it has just written, before
+handing it over. It catches a Lesson that is *broken* — blank, erroring, missing a dependency —
+rather than one that is wrong, and it is deliberately not a gate: a Learner who hits something
+subtler has the Tutor in the page to ask. The checks do not vary by subject, so they ship as a
+file in the plugin rather than as prose retyped each Session.
+_Avoid_: QA, smoke test, validation
+
+**Misread**:
+The condition under which one of those checks reports confidently and wrongly, recorded beside
+the check together with the direction it misleads in and the field in its own output that reveals
+it. A check trusted while wrong is worse than no check — it sends the Teacher to fix a defect
+that is not there, or signs off a page that is broken — so a misread is documented rather than
+left to be discovered by whoever it misled.
+_Avoid_: false positive, caveat, known issue
+
 **Zone of proximal development**:
 The band of difficulty where the learner is challenged but not stalled. Determines which Unit
 comes next.

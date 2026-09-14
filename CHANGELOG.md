@@ -41,6 +41,40 @@
   they ask about something it cannot see. Alongside it: nothing that depends on the network or on
   the service may fail silently, so a page that needs one of them says which of the two is
   missing rather than leaving a blank rectangle.
+- **The Teacher can look at the page it just wrote.** After writing a Lesson it opens the served
+  address in a browser and runs a short pass — nothing complained, nothing failed to load, the
+  canvas has something in it, the animation is moving, nothing sits off the page, no label is
+  covered or overlapping, the text can be read against what is behind it — with the screenshot
+  taken last, to judge appearance rather than correctness. The checks ship as
+  `scripts/page-checks.js`, named from the plugin root and installed into no Workspace, because
+  they do not vary by subject and they are the Teacher's tool rather than page content. It is
+  deliberately light and it is **not a gate**: it catches a Lesson that is broken, not one that is
+  wrong, and a learner who hits something subtler has the Tutor sitting in the page to ask. It
+  arrives now because lifting the ban above is what made a Lesson breakable in ways prose cannot
+  anticipate.
+- **Each check says where it lies, which way, and what gives it away.** Every result is the same
+  shape and `ok` is three-valued — `null` meaning there was nothing here to judge, because an
+  absence reported as a pass is the one answer a Teacher would act on wrongly. Beside that, the
+  file's head comment carries for every check the condition under which it reports confidently and
+  wrongly, the direction, and the field in its own output that reveals it: a check trusted while
+  wrong is worse than no check. Three are named. A WebGL context without `preserveDrawingBuffer`
+  is read back cleared, so a flat clear colour makes the canvas check pass falsely and the two
+  identical reads make the animation check fail falsely, from one cause. An overlay with
+  `pointer-events: none` is walked straight through by the hit test, so the occlusion check passes
+  while the text underneath is invisible. And a background nothing in the page declares leaves the
+  contrast check assuming white, which misleads in both directions and is worst on exactly the
+  dark-themed and canvas-backed pages the change above licenses. Two hazards belong to the browser
+  rather than the page and are recorded with them: `--disable-gpu` leaves no rendering context at
+  all, and a browser carrying the operator's extensions shows requests and markup that are not the
+  Lesson's.
+- **`page-checks.test.js` holds the contract, and says what it cannot hold.** One shape, three
+  values, no check throwing on a page that lacks its subject, and a documented misread for every
+  check the file ships — read off the file's own list, so a check added without one fails on the
+  day it is added. Each check is also driven against a page holding its subject, because a check
+  answering `null` to everything would satisfy the rest for free. Layout is not covered: no
+  browser runs there and the stub page returns the boxes a test wrote into it, and the testing
+  documentation records why adding a browser is refused. The reasoning is decision 35; the
+  glossary gains the **Page pass** and the **Misread**.
 - **A suite of its own holds the claim.** `from-disk.test.js` is the first check here whose
   subject is whether a document is *right* rather than where its material sits: the ban may not
   come back in anything that instructs, no document may sell serving on a restriction it does not

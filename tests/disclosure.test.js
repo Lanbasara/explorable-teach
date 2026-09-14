@@ -88,7 +88,9 @@ const RUNBOOK = [
  * spot — which is the point: the alternative is a check that goes on passing
  * while looking for words nobody writes. The last four entries arrived the same
  * way, when the ban on ES modules became a list of what an author types that
- * breaks from disk; `from-disk.test.js` holds what that list has to say.
+ * breaks from disk; `from-disk.test.js` holds what that list has to say. The
+ * last one arrived when the Teacher gained a pass to run over the page it had
+ * just written.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -105,6 +107,7 @@ const AUTHORING = [
   /crossorigin/,
   /new Worker\(/,
   /stand-in sentence/i,
+  /page-checks\.js/,
 ];
 
 /**
