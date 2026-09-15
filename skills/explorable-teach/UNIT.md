@@ -670,13 +670,92 @@ routed around the first time it is inconvenient.
   they can already hold; a simulation of it teaches the simulation. Say it in the prose, draw it
   if it has a shape, and spend the page on something that does not fit in their head.
 
+### What one Session can build
+
+A description that survived the gates and the match still has to be built inside the Session you
+are standing in, and how large it is gets judged **before** the building starts rather than
+discovered when the Session has run out.
+
+**The ceiling, stated plainly.** One Session, one Lesson file, a pinned library from a CDN
+permitted, realistically reaches **one screen's worth of interactive scene, or one interaction
+with a single mechanic in it**. Larger than that — a multi-scene toy, a simulator with a control
+panel, a small game — is not a thing one Session produces.
+
+**The evidence for it, because a ceiling is not believable on its own.** The widely shared
+artifacts that suggest otherwise are, on inspection, full builds: dozens of commits, hand-written
+test scripts, megabytes of authored assets, and a large share of them are not web pages at all.
+Bartosz Ciechanowski, whose pieces are the ones this form is usually held up by, publishes one to
+three of them a year. Read without that, the ceiling reads as timidity and is ignored by a Teacher
+who believes this one is the exception — which is every Teacher, at the moment it is deciding. The
+cost of ignoring it is specific: the Session goes on the interaction, and the Unit it was supposed
+to deliver is handed over with its teaching never written.
+
+**Judge before building.** Price the description against the Session at the point the match says
+**Build**, and before a line of it exists. When it fits, build it. When it does not, the decision
+is made in the open, and there are two of them:
+
+- **Take the cheapest honest version of the form.** Every derivation carries [the cheapest version
+  that still teaches](#the-derivations), and this is the moment it is for: a static strip of frames
+  rather than a slider, a stepper over a precomputed run rather than a simulation, four items and a
+  pair of move buttons rather than a drag surface. The teaching survives and the Session delivers
+  its Unit.
+- **Convert the Session into one that builds the tool.** Say so to the learner, and write it into
+  `CURRICULUM.md`: what this Session spent itself on, and the Unit it was going to deliver, now
+  named there as the next one. It still ends on [the usual floor](./SKILL.md#ending-a-session),
+  which is written in terms of what the Unit produced: with no Unit there is no Learning Record to
+  write out of one, and the Curriculum entry is what the next Session reads instead.
+
+**Either way the choice is written into `CURRICULUM.md`**, which is what the next Session's Boot
+sequence reads. Recorded there it is a plan; left unwritten it is an overrun somebody discovers,
+and the next Session re-derives the same judgement from nothing.
+
+**None of this weakens one Unit per Session.** A converted Session delivers the tool *instead of*
+the Unit, never as well as it, and what the rule buys by bending is that the bend is visible in the
+Workspace rather than silent.
+
+**The subagent hand-off, for reusable plumbing only.** When the piece that will not fit is
+**reusable plumbing** — something later Units in this Workspace will use again — it may be
+handed to a subagent against a **written specification**, which is how a large Component is built
+without eating the Unit. The specification carries four things, and a hand-off missing one of them
+comes back as something you rewrite by hand:
+
+1. **The teaching act it performs**, which is also the name it gets — after the act, never after
+   the library underneath it.
+2. **Its inputs and outputs**: the markup a Lesson author writes, what appears on the page, and
+   what it says when the thing it depends on is not there.
+3. **Its pinned dependency**, where it needs one — `@1.2.3` from an https CDN, never `@latest`,
+   because a Component written today has to still run next year. If the library spawns a worker,
+   say that it has to build it from a blob: [what breaks when a page is opened from
+   disk](#what-breaks-when-a-page-is-opened-from-disk) is not something a subagent will think of.
+4. **The constraints every Component here already carries** — [what every Component has to
+   hold](#what-every-component-has-to-hold), the head comment that documents it, and degrading to
+   something the learner can still read. A subagent has read none of this document, so anything
+   left out of the specification is simply absent from what comes back.
+
+**Subject-specific content is never delegated, because that is the teaching.** The question and the
+wrong belief it confronts, the stages of the process, the rules a run obeys, the drawing and the
+sentence beside it — those are the Unit, and you are the only one holding what the Learning
+Records and `NOTES.md` say about this learner. Each derivation marks its output [plumbing or
+content](#the-derivations), and that mark is what decides which side of this line a piece of work
+falls on.
+
+**You verify what comes back, yourself.** Run [the page
+pass](#look-at-the-page-before-handing-it-over) over a Lesson that uses it, read its head comment
+against what you specified, and where it computes anything real, check it against [a known-good
+result](#simulate-only-what-can-be-checked-against-a-known-good-result). Verification stays with
+you deliberately: a subagent judging its own result checks it against its own reading of the
+specification, which is the one thing that cannot be independent of the work, so the standard
+drifts along with it. And the record of how each of those checks misleads is yours — it is in the
+head comment of the checks file, which the subagent was never sent to read.
+
 ### Building a Component for this subject
 
 A description the Workspace has nothing for is something **you build**, for this subject, into
-this Workspace's `assets/`. Nothing else is sitting there waiting: a music Unit earns the Web
-Audio API and interactive notation, an algorithms Unit earns a step-by-step visualiser, a shell
-Unit earns a simulated terminal — and each of those exists because a Session wrote it, not
-because the plugin shipped it.
+this Workspace's `assets/` — inside the bound [one Session can build](#what-one-session-can-build)
+sets, which is what decides whether you build it here or hand it over. Nothing else is sitting
+there waiting: a music Unit earns the Web Audio API and interactive notation, an algorithms Unit
+earns a step-by-step visualiser, a shell Unit earns a simulated terminal — and each of those
+exists because a Session wrote it, not because the plugin shipped it.
 
 **Name it after the teaching act it performs, never after the library underneath it.** A name the
 Lesson author can write markup against is one that survives replacing the library; a name that

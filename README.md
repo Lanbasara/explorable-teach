@@ -148,6 +148,18 @@ a drag.
 Anything else is built on demand, for the subject that needs it — and no document lists what a
 course has, because the course's own `assets/` is that list and it cannot be out of date.
 
+And there is a ceiling on that building, stated because every rule above it widens what a session
+may reach for and none of them says how much fits. One session realistically produces **one
+screen's worth of interactive scene, or one interaction with a single mechanic in it** — the
+artifacts that suggest otherwise are, on inspection, full builds with dozens of commits and
+megabytes of authored assets behind them, and a large share of them are not web pages at all. So
+the size of a thing is judged *before* it is started: what will not fit either takes the cheapest
+version that still teaches, or the session converts into one that builds the tool and says so in
+`CURRICULUM.md`, with the unit it displaced named as the next one. A piece of **reusable plumbing**
+may go to a subagent against a written specification; the subject-specific content never does,
+because that is the teaching — and the verifying stays with the teacher, since something judging its
+own work checks it against its own reading of the brief.
+
 ## The tutor
 
 Static lessons cannot answer questions. So each lesson can summon a tutor — but not the

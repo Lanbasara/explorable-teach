@@ -26,11 +26,12 @@ const {
   carriedTogether,
   oneSection,
   orderedEntries,
+  partTitles,
   namedBullets,
   ROOM_FOR_A_REASON,
   SKILL_DIR,
 } = require('./helpers/docs.js');
-const { anchorsIn, headings } = require('./helpers/markdown.js');
+const { anchorsIn } = require('./helpers/markdown.js');
 
 /**
  * The authoring reference, folded, the way every document check here reads one:
@@ -254,9 +255,7 @@ test('a Teacher choosing to build a run cannot miss the rule', () => {
   // to output, so it follows them — and it is read before the description is
   // priced against what the Workspace has, because a run with no known-good
   // result is not a description to go shopping with.
-  const parts = headings(whole)
-    .filter((h) => h.level === 3)
-    .map((h) => h.text);
+  const parts = partTitles(whole);
 
   assert.ok(parts.length >= 5, `expected the section's parts, found ${parts.length}`);
 

@@ -25,6 +25,7 @@ question: **do the plugin's documents and scripts still describe reality?**
 | `tests/motion.test.js` | Motion is sorted into three kinds, each with its verdict; interface feedback is permitted by name and carries its constraints; the reduced-motion preference is required rather than suggested — in the reference, and in every stylesheet the plugin ships |
 | `tests/deriving.test.js` | The authoring reference derives an interaction from the passage instead of selecting one off a list — gates first, derivations that each carry their trigger question and their cheapest honest version, a match against the Workspace's own assets with three named outcomes, and the anti-patterns beside them |
 | `tests/simulation.test.js` | A run that depicts something real is checked against a known-good result while it is authored — the four kinds that qualify are named, an engine is not one of them, a subject admitting none of them is paced rather than simulated, and the rule sits where a Teacher about to build one walks past it |
+| `tests/budget.test.js` | The reference says what one Session can realistically build and shows the evidence for it, judges a description's size before the building starts, writes either outcome into the Curriculum, and hands only reusable plumbing to a subagent — against a written specification, with the verifying left to the Teacher |
 | `tests/skill-spine.test.js` | The skill opens on the Boot sequence, carries its spine and nothing else, ends a Session on a checkable outcome, and judges discovery one question at a time rather than aiming every Lesson at it |
 | `tests/disclosure.test.js` | Material only some Sessions reach sits behind a pointer, not inline — and the serving precondition sits beside the instruction it makes sense of |
 | `tests/assets.test.js` | Every `assets/…` path a document or template names is installed by the scaffold, on the side of the split it belongs to |
@@ -213,12 +214,14 @@ document says*: `foldedDoc` reads one with its wrapping folded back out, `absent
 entries of a list of claims the document is missing, `carriedTogether` answers whether one
 logical line carries all of them — which is the difference between a claim and two remarks made
 in the same breath — `oneSection` finds the one section that owns a subject, `orderedEntries`
-reads the numbered entries of a part, and `namedBullets` reads the bold-led ones, with
-`ROOM_FOR_A_REASON` the length floor two checks hold such a list to. They all live there for one
-reason: several suites now read documents, and a reading rule kept in several copies is one that
-can disagree with itself. The last three arrived that way rather than by design — the derivation
-and simulation checks had a copy each of the entry reader, and one of the copies described itself
-as being the other.
+reads the numbered entries of a part, `namedBullets` reads the bold-led ones — with
+`ROOM_FOR_A_REASON` the length floor three checks hold such a list to — and `partTitles` reads a
+section's parts in the order they appear, for the checks whose claim is about *placement*. They
+all live there for one reason: several suites now read documents, and a reading rule kept in
+several copies is one that can disagree with itself. The last four arrived that way rather than by
+design — the derivation and simulation checks had a copy each of the entry reader, one of the
+copies described itself as being the other, and the ordering reader was on its third copy before
+it moved.
 
 Everything here walks the document through one `eachLine`, so there is **one** rule for what
 fenced code is. Three copies of that rule had drifted into three different spellings before
@@ -1070,6 +1073,83 @@ What none of this can hold is whether a check was actually run, or whether the k
 an entry names is the right one for the subject. That is review's job and the Teacher's, and it is
 recorded under "What is deliberately not tested".
 
+## The budget check
+
+`budget.test.js` holds the bound every rule before it needed and none of them stated. Decision 42
+has the reasoning.
+
+Decisions 38 through 41 each *widened* what a Session may reach for — a pinned library, a diagram,
+a canvas, a run — and none of them said how much of that fits in one Session. What is left is the
+failure this genre is known for: the Session goes on the interaction and the Unit is handed over
+with its teaching never written. So the checks are about a number a Teacher can hold a description against
+while the choice is still free, and about what may leave the Session at all.
+
+**The ceiling and its evidence are two claims, and both are checked.** The ceiling is asserted as an
+**artifact** — one screen's worth of interactive scene, or one interaction with a single mechanic —
+rather than as a quantity the Session could measure itself against, because a token or line budget
+moves with the subject and the library while the artifact is what a Teacher can picture in advance.
+The evidence is checked as its own logical line, naming what the artifacts that appear to refute the
+ceiling are on inspection: full builds, the commits behind them, the authored assets in them, that a
+large share are not web pages at all, and the rate the genre's best practitioner publishes at. A
+ceiling stated bare is read as timidity and applied to somebody else, so a check that held only the
+number would pass on a rule nobody follows. The cost of ignoring it is held too — a Unit whose
+teaching never got written — because a bound with no consequence attached is advice.
+
+**The judgement carries the moment it happens at**, on one logical line: before a line of the thing
+exists, at the point the match has said **Build**, and in the open. "Keep it small" with no *when* on
+it is a thing a Session agrees with and then overruns.
+
+**Both outcomes are named, and so is the file the choice lands in.** One outcome alone is either a
+rule that loses the tool the course actually needs or a Curriculum that stops advancing, so the
+cheapest honest version and the converted Session are each held, and each as an item of its own
+rather than as two halves of a sentence about being pragmatic. `CURRICULUM.md`, *the next Session*
+and *overrun* arrive together, because a recording requirement with no reader named reads as filing.
+
+**One Unit per Session is checked from both sides.** The spine still has to say it — the rule being
+bent has to be there to bend — and the bend has to say *instead of* and *never as well as*, since a
+Session delivering a tool **and** a Unit is the overrun this exists to stop. The Session-end floor
+is held to asking for *the Learning Record this Unit produced*, which is what keeps a converted
+Session a reading of the floor rather than an exemption from it — an exemption written in one
+document while the other says something unconditional is a pair that drifts.
+
+**And the file the choice lands in has to have room for it.** `CURRICULUM.md` is an ordered list of
+Units, and a Tool Session is not a Unit — so the first run, which is where that file's shape is
+set, has to say that not every entry is one and what such an entry carries. Decision 41 made the
+same argument for the `TECH-STACK.md` column: a requirement to record something into a document
+with no place for it becomes a note at the bottom and then nothing. The first run's step 7 is
+checked to link the bound as well, because that step builds the first Components before any Unit
+exists and before the teaching loop has run once — a bound reachable only from the loop is one that
+Session never meets. And the link is checked to be a link: the ceiling and its evidence are
+asserted **absent** from the first-run document, minus the one pattern the pointer itself is
+written with.
+
+**The hand-off is held as eligibility and mechanism in one breath** — reusable plumbing, a subagent,
+a written specification — because said apart the eligibility reads as a preamble. The four things
+the specification carries are read off the ordered entries with the reader guarded, and the fourth
+is the one a hurried hand-off drops, so the pointer at the constraints every Component already
+carries is checked to resolve: a subagent has read none of this document, so what is not in the brief
+is absent from what comes back. On the other side, *never delegated* and *that is the teaching*
+arrive together, and the plumbing-or-content mark is checked to be the one the derivations already
+carry rather than a new judgement invented here.
+
+**Verification is checked with both of its reasons.** Stated as a preference it is the first thing a
+Session delegates to save itself a step. The first reason is that a subagent judging its own result
+checks it against its own reading of the specification — the one thing about the work that cannot be
+independent of it. The second is the one only this repo can state: decision 35 put the record of how
+each page check *misleads* in the head comment of the checks file, and a subagent was never sent to
+read it. The instruments are checked as pointers at passes that already exist, because a verification
+step invented for delegated work is one nobody has calibrated.
+
+**Placement is asserted, not only presence.** The rule sits after the match — it prices a
+description, so the description comes first — and before the procedure for building a Component,
+which is the last moment the choice is still free. The procedure links back, because a Teacher can
+arrive there directly from `TECH-STACK.md` or from the first run's step 7. And the teaching loop's
+step 2 links in from the spine, since that is where a Session decides to spend itself, one step
+before it opens the authoring reference at all.
+
+What none of this can hold is whether a Session actually priced anything before it started, or
+whether the result of a delegated build was really verified. That is recorded with the other gaps.
+
 ## The spine check
 
 `skill-spine.test.js` holds the shape of `SKILL.md` itself, because shape is behaviour here:
@@ -1292,6 +1372,13 @@ Known gaps, so that nobody reads a green suite as a stronger claim than it is:
   `.jxl` would pass it. The other direction has no floor: the formats the service *does* serve are
   read off `server.js`, so one added there and not offered in the document fails on the day it is
   added.
+- **Nothing here can see a judgement that was never made.** `budget.test.js` holds that the bound
+  on what one Session can build is written down, that both outcomes for a description that does not
+  fit are offered, and that the hand-off says what it has to say. Whether a Session priced a
+  description before it started building, whether the entry it wrote into `CURRICULUM.md` is honest,
+  and whether a delegated Component was really run through the page pass are all invisible from
+  here — they happen in a Workspace that does not exist when this suite runs. The same shape as the
+  known-good result the simulation check cannot confirm was ever computed.
 - **Neither taste constraint on motion can be measured here.** *Short* is checked as "a number in
   milliseconds appears beside the word", and *interruptible* as the word itself — nothing here
   runs a transition, clicks through one, or reads a duration out of a Lesson's stylesheet. What is

@@ -286,6 +286,15 @@ belongs to the plugin and is shared by every Workspace; the Tuning is appended a
 sharpens the definition rather than replacing it.
 _Avoid_: custom prompt, override, local role
 
+**Delegated build**:
+A piece of reusable plumbing handed to a subagent against a written specification, because
+building it in the Session would have eaten the Unit. The specification names the teaching act,
+the inputs and outputs, the pinned dependency and the constraints every Component already
+carries. Only plumbing is eligible — subject-specific content is the teaching, so it is never
+delegated — and the Teacher verifies what comes back itself, since a subagent judging its own
+result checks it against its own reading of the specification.
+_Avoid_: outsourcing, farming out, spawning an agent
+
 **Grader**:
 A read-only agent that judges one Assignment submission against its Rubric. Carries no memory of
 the session that set the Assignment, and reads the Rubric off the Assignment page rather than
@@ -298,6 +307,22 @@ _Avoid_: marker, reviewer
 One conversation with the Teacher, scoped to deliver one Unit and then end. It may end once the
 next Session could resume from the workspace alone, without asking the learner anything. Ending
 is what prevents quality decay; the workspace is what survives.
+
+**Session budget**:
+What one Session can realistically build: one screen's worth of interactive scene, or one
+interaction with a single mechanic in it. It is judged before the building starts rather than
+discovered as an overrun, and what will not fit takes either the **Cheapest version that still
+teaches** or a **Tool Session**. Larger artifacts exist, and on inspection they are full builds
+with dozens of commits behind them rather than anything one Session produced.
+_Avoid_: scope, capacity, estimate
+
+**Tool Session**:
+A Session converted, before it starts building, into one that delivers a piece of plumbing
+instead of a Unit — named as that in the Curriculum, along with the Unit it displaced, which
+becomes the next one. It is how *one Unit per Session* bends without breaking: the tool is
+delivered *instead of* the Unit rather than as well as it, and the bend is visible in the
+Workspace rather than silent.
+_Avoid_: spillover, carry-over, tooling sprint
 
 **Boot sequence**:
 The fixed set of workspace reads a Session performs before proposing anything.

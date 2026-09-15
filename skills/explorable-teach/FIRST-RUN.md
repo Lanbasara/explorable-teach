@@ -102,13 +102,23 @@ only place that shows.
 An ordered list of Units in `CURRICULUM.md`, each carrying a progress marker, ordered by
 dependency between *ideas* rather than by any book's table of contents.
 
+**Not every entry is a Unit.** A Session that turns out to owe a piece of plumbing too large to
+build beside the teaching is [converted into one that builds
+it](./UNIT.md#what-one-session-can-build), and that conversion is written into this same list as
+an entry of its own, saying what it delivered and which Unit it displaced. It goes here rather
+than anywhere tidier because this is the file the next Boot sequence reads: a decision recorded
+somewhere else is one nobody reads, and the shape of the file has to have room for it before the
+Session that needs it arrives.
+
 Which way this subject leans changes the shape of every Unit after it, so settle that first —
 see [Knowledge, skills, wisdom](./SKILL.md#knowledge-skills-wisdom).
 
 ## 7. Build what the first Units need
 
 Whatever Components they call for beyond the ones the scaffold already installed. Do not build
-the whole stack up front: a Component nobody has needed yet is a guess.
+the whole stack up front: a Component nobody has needed yet is a guess — and price each one
+against [what one Session can build](./UNIT.md#what-one-session-can-build) before starting it,
+because this Session has a Curriculum to write as well.
 
 ## 8. Tune the Tutor for this subject
 

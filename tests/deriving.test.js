@@ -28,11 +28,11 @@ const {
   carriedTogether,
   oneSection,
   orderedEntries,
+  partTitles,
   namedBullets,
   ROOM_FOR_A_REASON,
   SKILL_DIR,
 } = require('./helpers/docs.js');
-const { headings } = require('./helpers/markdown.js');
 
 /**
  * The authoring reference with its hard wrapping folded back out, so one
@@ -203,9 +203,7 @@ test('the two gates are stated first, and both are meant to stop a passage', () 
   // derivation is read, so a document that states them after the derivations
   // has the Teacher deciding what to build and then asking whether to build
   // anything — which is the decision it would defend rather than make.
-  const parts = headings(whole)
-    .filter((h) => h.level === 3)
-    .map((h) => h.text);
+  const parts = partTitles(whole);
 
   assert.ok(parts.length >= 4, `expected the section's parts, found ${parts.length}`);
   assert.match(parts[0], /gates/i, 'the gates run before anything is derived');

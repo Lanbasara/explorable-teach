@@ -38,7 +38,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { REPO_ROOT } = require('./workspace.js');
-const { logicalLines, sections } = require('./markdown.js');
+const { headings, logicalLines, sections } = require('./markdown.js');
 
 /** Directories this repo owns, so a path starting with one is ours to check. */
 const OWNED_ROOTS = ['scripts', 'templates', 'commands', 'docs', 'skills', 'tests'];
@@ -191,6 +191,24 @@ function oneSection(markdown, level, re, what) {
 }
 
 /**
+ * The titles of a document's parts at `level`, **in the order they appear**.
+ *
+ * For the checks whose claim is about *placement* rather than presence, which
+ * three of them now are: a rule read after the thing it bounds is a rule read
+ * as an audit, and one read before the decision it constrains is one read
+ * before there is anything to constrain.
+ *
+ * It lives here for the reason `oneSection` and `orderedEntries` do — a reading
+ * rule kept in copies is one the copies can disagree about. This one had three:
+ * the derivation check, the simulation check and the budget check each decided
+ * for themselves which headings counted as the parts of a section.
+ */
+const partTitles = (text, level = 3) =>
+  headings(text)
+    .filter((h) => h.level === level)
+    .map((h) => h.text);
+
+/**
  * The **ordered entries** of a part of a document, as `{ n, text }` — an ordered
  * list item opens a block, so each entry runs from its own marker to the next
  * one.
@@ -298,6 +316,7 @@ module.exports = {
   carriedTogether,
   oneSection,
   orderedEntries,
+  partTitles,
   namedBullets,
   ROOM_FOR_A_REASON,
   DOC_ROOTS,

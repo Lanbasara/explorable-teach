@@ -1716,6 +1716,82 @@ template with no place for it is a requirement that quietly becomes a note at th
 
 ---
 
+## 42. The budget for one Session, and the one thing a subagent may be handed
+
+**Decided:** the authoring reference states what one Session can realistically build — **one
+screen's worth of interactive scene, or one interaction with a single mechanic in it** — and the
+Teacher prices a description against that **before** it starts building rather than on running out
+of time. What will not fit takes one of two recorded outcomes: the **cheapest honest version** of
+the form, or a **Tool Session**, which delivers the piece of plumbing instead of the Unit and names
+the displaced Unit as the next one. Either choice is written into `CURRICULUM.md`. Where the piece
+is **reusable plumbing**, it may be handed to a subagent against a **written specification** —
+teaching act, inputs and outputs, pinned dependency, and the constraints every Component here
+already carries. **Subject-specific content is never delegated**, and the Teacher **verifies the
+result itself**.
+
+**Why a ceiling at all, when nothing enforces it.** Decisions 38 through 41 lifted the ban on
+libraries, replaced the catalog with derivations, and licensed diagrams, canvases and runs. Every
+one of them widens what a Session may reach for, and none of them says how much of it fits in a
+Session. The failure that leaves is specific and it is the one this genre is known for: the Session
+goes on the interaction, and the Unit is handed over with its teaching never written. A Teacher does
+not need a rule forbidding that — it needs a number it can compare a description against while it
+still has the choice.
+
+**Why the evidence ships with the number.** A ceiling stated bare is read as timidity, and the
+artifacts that appear to refute it are exactly the ones a Teacher has in mind while deciding. So
+the reference says what those artifacts are on inspection — full builds, dozens of commits,
+hand-written test scripts, megabytes of authored assets, and a large share of them not web pages at
+all — and that the practitioner the genre is most often named after publishes one to three pieces a
+year. Without that, the rule is one every Teacher reads as applying to somebody else.
+
+**Why two outcomes rather than one.** "Build something smaller" alone is a rule that loses the tool
+the course actually needs: some plumbing is worth a Session and the next six Units want it. "Spend
+the Session on the tool" alone is how a Curriculum stops advancing. Both are legitimate, so both
+are written, and what makes either safe is that the choice is **recorded where the next Session
+reads it**. An unrecorded overrun is discovered; a recorded conversion is a plan. This is also what
+keeps *one Unit per Session* intact rather than weakened — a converted Session delivers the tool
+**instead of** the Unit, never as well as it, and the bend is visible in the Workspace.
+
+**Why only plumbing may be delegated.** The plumbing-or-content mark each derivation already
+carries is the line, so this decision adds no new judgement — it spends one that exists. Content is
+the teaching: the question and the wrong belief it confronts, the stages, the rules a run obeys,
+the drawing and the sentence beside it. The Session is also the only thing holding the Learning
+Records, `NOTES.md` and the Mission, and a subagent handed a subject-specific brief would be
+writing the Unit without any of it.
+
+**Why verification stays with the Teacher.** A subagent judging its own result checks it against
+its own reading of the specification, which is the one thing about the work that cannot be
+independent of it — the standard then drifts with the build rather than holding it. And decision 35
+put the record of how each page check *misleads* in the head comment of the checks file, read by
+the Teacher and by nobody the Teacher hands work to. A verdict from a subagent that never read it
+is a verdict taken from checks whose known failure modes were not in the room.
+
+**Rejected:** a token budget, a line count, or any number the Session could measure itself against
+directly. Those are measurable and wrong — they vary with the subject, the library and the day —
+and the thing being bounded is the *artifact*, which is what the Teacher can actually picture before
+it starts. **Rejected too:** letting the subagent run the page pass and report back. That is the
+cheapest arrangement and it removes the only independent reading of the result there is.
+
+**Consequence:** the rule lives in `UNIT.md` between the match and the procedure for building a
+Component, which is where **Build** has just been chosen and before a line of it exists; the
+procedure links back to it, and the teaching loop's step 2 sends a Session to it before it reaches
+for a tool. The first run gains two things for the same reason decision 41 gave `TECH-STACK.md` a
+column: its step 6 says that not every entry of `CURRICULUM.md` is a Unit, since a Tool Session
+written into a list of Units has nowhere to be and becomes a note at the bottom, and its step 7 —
+which builds the first Components before any Unit exists — links the bound, because a bound
+reachable only from the teaching loop is one the first Session never meets. The Session-end floor
+keeps asking for *the Learning Record this Unit produced*, which is what makes a converted Session
+a reading of the floor rather than an exemption from it. `budget.test.js` holds it — the ceiling with its evidence on one logical line, the
+judgement with both outcomes and the file the choice is recorded in, the four things a
+specification carries, the plumbing-only eligibility with content named as never delegated, and
+verification with its two reasons. The authoring vocabulary guard in `disclosure.test.js` gains
+*single mechanic*, *subagent* and *specification*; the glossary gains the **Session budget**, the
+**Tool Session** and the **Delegated build**. Reading a section's parts in the order they appear
+moves into `helpers/docs.js` beside the other document readers — the derivation check and the
+simulation check had a copy each, and this would have been the third.
+
+---
+
 ## Where the full record lives
 
 - **Post-packaging:** `git log` in this repo — commit messages carry the reasoning.

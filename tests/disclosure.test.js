@@ -103,7 +103,10 @@ const RUNBOOK = [
  * checked against something correct before it could ship — the result it is
  * checked against, the first of the four kinds that qualify, and the only
  * interaction a subject with no such result is allowed; `simulation.test.js`
- * holds what that material has to say.
+ * holds what that material has to say. And three when the reference gained a
+ * bound on what one Session can build and a way to hand a large piece of
+ * plumbing over: the unit the ceiling is stated in, what a large piece is
+ * handed to, and what it is handed against; `budget.test.js` holds those.
  */
 const AUTHORING = [
   /<!DOCTYPE/i,
@@ -133,6 +136,9 @@ const AUTHORING = [
   /known-good/i,
   /conserved quantit/i,
   /\bpacing\b/i,
+  /single mechanic/i,
+  /\bsubagent\b/i,
+  /\bspecification\b/i,
 ];
 
 /**

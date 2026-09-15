@@ -4,6 +4,50 @@
 
 ### Changed
 
+- **The reference says what one Session can realistically build, and shows the evidence for it.**
+  One Session, one Lesson file, a pinned library from a CDN permitted, reaches **one screen's worth
+  of interactive scene, or one interaction with a single mechanic in it** — and nothing above that.
+  The number arrives with its evidence rather than on its own, because the artifacts that appear to
+  refute it are exactly the ones a Teacher has in mind while deciding: on inspection they are full
+  builds with dozens of commits, hand-written test scripts and megabytes of authored assets behind
+  them, a large share of them are not web pages at all, and the practitioner this genre is most
+  often named after publishes one to three pieces a year. Stated bare, a ceiling reads as timidity
+  and gets applied to somebody else. What it prevents is specific: the Session goes on the
+  interaction, and the Unit is handed over with its teaching never written.
+- **A description is priced before the building starts, and either outcome is written into
+  `CURRICULUM.md`.** The judgement happens at the point the match says **Build** and before a line
+  of the thing exists — an overrun is otherwise discovered rather than decided. What will not fit
+  takes one of two outcomes, both legitimate: the **cheapest honest version** of the form, which
+  every derivation already carries, or the Session **converts into one that builds the tool**,
+  naming the Unit it displaced as the next one. Either way the choice lands in `CURRICULUM.md`,
+  which is what the next Session's Boot sequence reads. This does not weaken *one Unit per Session*:
+  a converted Session delivers the tool **instead of** the Unit, never as well as it, so the bend is
+  visible in the Workspace rather than silent. `CURRICULUM.md` gains room for that entry — the
+  first run now says that not every entry of it is a Unit — for the reason the `TECH-STACK.md`
+  column exists: a requirement to record something into a document with no place for it becomes a
+  note at the bottom and then nothing.
+- **Reusable plumbing may be handed to a subagent against a written specification; the teaching
+  never is.** The specification carries four things — the teaching act it performs, its inputs and
+  outputs, its pinned dependency, and the constraints every Component here already carries — because
+  a subagent has read none of this document, and what is left out of the brief is simply absent from
+  what comes back. Only **plumbing** is eligible, on the plumbing-or-content mark each derivation
+  already carries; subject-specific content is the Unit, and the Session is the only thing holding
+  what the Learning Records and `NOTES.md` say about this learner. **Verification stays with the
+  Teacher**, and for two reasons rather than as a preference: a subagent judging its own result
+  checks it against its own reading of the specification, which is the one thing about the work that
+  cannot be independent of it — and the record of how each page check *misleads* lives in the head
+  comment of the checks file, which the subagent was never sent to read.
+- **`budget.test.js` holds the rule, and asserts where it sits.** It is read after the match, since
+  it prices a description and the description comes first, and before the procedure for building a
+  Component, which is the last moment the choice is still free; the procedure links back, and the
+  teaching loop's step 2 links in from the spine, where a Session decides to spend itself. The
+  checks hold the ceiling and its evidence as two claims, the judgement with the moment it happens
+  at, both outcomes with the file they are recorded in, the specification's four parts, and
+  verification with both of its reasons. The authoring vocabulary guard gains *single mechanic*,
+  *subagent* and *specification*; the glossary gains the **Session budget**, the **Tool Session**
+  and the **Delegated build**; the reasoning is decision 42. Reading a section's parts in the order
+  they appear moves into `helpers/docs.js` beside the other document readers — the derivation and
+  simulation checks had a copy each, and this would have been the third.
 - **A Lesson that depicts something real is checked against a known-good result before it ships,
   and a subject that admits no such check is not simulated.** This is the one defect nothing else
   in this plugin can catch: a page that renders cleanly, passes the page pass and every document

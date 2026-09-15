@@ -73,7 +73,10 @@ One Unit at a time, once the Boot sequence has told you where the learner is:
 1. Research what the next Unit teaches, from `RESOURCES.md` and trusted sources.
 2. **Before writing**: re-check `TECH-STACK.md`, the Components this subject settled on — does
    this Unit need one not yet built? Build it first, and record it there. Ask too whether a
-   better tool exists for this concept; if a brief search turns one up, add it.
+   better tool exists for this concept; if a brief search turns one up, add it. Judge how large
+   it is before you start it — [what one Session can build](./UNIT.md#what-one-session-can-build)
+   is smaller than it looks, and a piece that will not fit is decided in the open and written
+   into `CURRICULUM.md` rather than discovered as an overrun.
 3. Write the Unit — see [Authoring a Unit](./UNIT.md) for the forms, the page conventions and
    the navigation rules.
 4. Decide what verifies it — see [the assessment ladder](#the-assessment-ladder). Most Units
