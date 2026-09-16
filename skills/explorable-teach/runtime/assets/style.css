@@ -57,7 +57,10 @@
     --fg-dim:    #4d5460;
     --fg-faint:  #656c79;  /* 5.11:1 on --bg, 5.28 on --bg-card */
     --accent:      #2f5fd0;
-    --accent-warm: #a86813;
+    /* Measured against --bg-soft, which is where this one lands hardest:
+       `:not(pre) > code` colours inline code with it and gives it a --bg-soft
+       background, at .88em. The previous #a86813 was 4.03:1 there. */
+    --accent-warm: #9d6111;  /* 4.52:1 on --bg-soft, 4.89 on --bg */
     --accent-good: #2b7a3f;
     --accent-bad:  #bf3b3b;
     --border:    #e0e3ea;

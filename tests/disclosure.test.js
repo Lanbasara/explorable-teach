@@ -124,7 +124,12 @@ const AUTHORING = [
   /new Worker\(/,
   /stand-in sentence/i,
   /page-checks\.js/,
-  /licen[cs]e/i,
+  // `/licen[cs]e/i` sat here until the licensing obligation left the authoring
+  // path. What remains of the word is one sentence saying that publication is
+  // where the obligation lives and this document does not cover it — which is
+  // not authoring vocabulary, and a sentinel matching one incidental sentence
+  // is a check that fails the next time that sentence is reworded, for a reason
+  // unrelated to the leak it exists to catch.
   /coarse grid/i,
   /monospace/i,
   /\bderivations?\b/i,

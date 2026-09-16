@@ -134,7 +134,11 @@ const BANS = [
   {
     what: 'figures lifted out of paper repositories',
     re: /paper repositor|arxiv/i,
-    because: /redistribut/i,
+    // Not redistribution any more. The reason licensing gave was never the one
+    // that mattered for teaching: a paper figure establishes its axes, units
+    // and conditions in the surrounding text, so the crop cannot be proofed
+    // against the claim the Lesson would be making for it.
+    because: /cannot be proofed|surrounding text|axes/i,
   },
   {
     what: 'a diagram service that renders server-side',
@@ -157,10 +161,9 @@ const MITIGATIONS = [
   { what: 'mirror the semantic content into the markup', re: /mirror/i },
 ];
 
-test('the authoring reference states the draw-by-default rule and the borrow test', () => {
+test('the decision point states a finding and a question, and no default', () => {
   const { rule } = imagery();
 
-  assert.match(rule, /default to draw/i, 'the default has to be stated as the default');
   assert.match(
     rule,
     /claim about how reality looks/i,
@@ -171,6 +174,58 @@ test('the authoring reference states the draw-by-default rule and the borrow tes
     absentFrom(CATEGORIES, rule),
     [],
     'an unnamed category is one the Teacher decides by appetite, which is the failure here',
+  );
+
+  // This assertion is the inverse of the one it replaced, and the reversal is
+  // the finding behind it. `Default to drawing` was stated here for two
+  // releases, and across six courses four Lessons shipped with no picture at
+  // all: an encouragement at a decision point is still an answer supplied
+  // before the question, and this one sat in front of 128 lines of ceiling,
+  // mitigation and ban that priced the decision it was encouraging. The
+  // literature finding stays — it is not in the material and not reliably in
+  // recall — but it is stated as a finding, and what a passage earns is the
+  // passage's to say.
+  const DEFAULTS = /\bdefault(?:s|ing)? to\b|\bby default\b|\balways (?:draw|borrow)\b|\bprefer (?:drawing|to draw)\b/i;
+
+  assert.ok(DEFAULTS.test('Default to drawing. Write the diagram yourself.'), 'this check cannot see the default it removed');
+  assert.ok(!DEFAULTS.test('One question decides who makes it.'), 'this check reads the question as a default');
+
+  assert.deepEqual(
+    rule.split('\n').filter((line) => DEFAULTS.test(line)),
+    [],
+    'the decision is the Teacher\'s; a default here answers it before the passage is read',
+  );
+});
+
+test('the borrowed image is proofed against a written claim, part by part', () => {
+  const proofing = part(/proof/i, 'proofing-a-borrowed-image');
+
+  // The order is the whole procedure. A claim written after the image arrives
+  // is a caption for whatever arrived, and captions check nothing — so the
+  // document has to say which comes first, not merely that both exist.
+  assert.ok(
+    carriedTogether(proofing, [{ re: /claim/i }, { re: /first|before/i }, { re: /prose|sentence/i }]),
+    'without writing the claim first, proofing is describing whatever turned up',
+  );
+
+  // The failure is a right-kind-of-thing that is the wrong one, and it is
+  // named concretely because "check the image is correct" is advice an agent
+  // satisfies by looking at the image again.
+  assert.ok(
+    carriedTogether(proofing, [{ re: /wrong|United Kingdom|China/i }, { re: /\bkind\b/i }]),
+    'the failure is not the wrong kind of image, it is the right kind and the wrong one',
+  );
+
+  assert.match(
+    proofing,
+    /part by part|noun/i,
+    'checking the whole image against the whole claim is the check that passes on a near miss',
+  );
+
+  assert.match(
+    proofing,
+    /weaken the claim|drop the image/i,
+    'an image doing most of what the sentence says needs a stated outcome, or it ships',
   );
 });
 
@@ -257,24 +312,40 @@ test('no image ships in a Lesson that has not been rendered and looked at', () =
   );
 });
 
-test('the credit is written into the page beside the image, with the licence as a link', () => {
+test('the source line is written into the page beside the image', () => {
   const looked = part(/looked at/i, 'rendered-and-looked-at');
 
   assert.ok(
     carriedTogether(looked, [
-      { re: /credit/i },
+      { re: /source line/i },
       { re: /beside/i },
       { re: /rather than|not into|never into/i },
     ]),
-    'a credit in a file alongside the page is a credit that gets separated from what it credits',
+    'the note saying what this image was believed to show cannot get separated from the image',
   );
 
-  // The licence is a link a Learner can follow, which means the document has to
-  // show one. A sentence saying "link the licence" is advice; the markup is the
-  // thing an author copies.
+  // What the line is *for*, because a line written as a courtesy is the first
+  // thing dropped and the only thing a later Session has to re-check against.
   assert.ok(
-    carriedTogether(looked, [{ re: /licen[cs]e/i }, { re: /<a href="https:/ }]),
-    'the licence has to be a real link in the page, so the credit example has to carry one',
+    carriedTogether(looked, [{ re: /re-check|recheck/i }, { re: /later Session|Session/i }]),
+    'the source line serves a later re-check; stated as a courtesy it is decoration',
+  );
+
+  // Licensing is deliberately not an obligation here: a Workspace is one
+  // learner's private directory, and the reference said "read the licence
+  // before you download" across twelve mentions that priced borrowing without
+  // protecting the one thing that actually goes wrong — an image that is not of
+  // what the prose says. Publication is the case that does acquire the
+  // obligation, so the document says whose it is rather than going quiet.
+  const { whole } = imagery();
+  assert.ok(
+    carriedTogether(whole, [{ re: /publish/i }, { re: /licen[cs]/i }]),
+    'dropping the licensing rule has to say where the obligation went, not merely delete it',
+  );
+  assert.deepEqual(
+    whole.split('\n').filter((line) => /read the licen|permits reproduction|licence you\s+cannot find/i.test(line)),
+    [],
+    'the licensing obligation is gone from the authoring path; only publication carries it',
   );
 });
 

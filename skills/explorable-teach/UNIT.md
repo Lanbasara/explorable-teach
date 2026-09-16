@@ -91,6 +91,9 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson NN: Title</title>
   <link rel="stylesheet" href="../assets/style.css">
+  <!-- This course's own look, always immediately after style.css. Empty until a
+       themer writes it, and linked from the start so filling it in is one edit. -->
+  <link rel="stylesheet" href="../assets/theme.css">
   <!-- Only the component CSS this lesson uses, e.g.: -->
   <link rel="stylesheet" href="../assets/predict-reveal.css">
 </head>
@@ -113,7 +116,10 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
 see [the language the learner reads](#the-language-the-learner-reads) below for where it is stated.
 
 `style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
-Lesson has to be styled whether or not a script ever runs.
+Lesson has to be styled whether or not a script ever runs. `theme.css` follows it for the same
+reason and in that order, because it wins by being later — it is [this course's own
+look](#this-courses-own-look), and
+`${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` adds it to any page that left it out.
 
 ### What breaks when a page is opened from disk
 
@@ -231,18 +237,48 @@ placed. None of it is mandatory — a Workspace left as seeded still works. The 
 definition is a different matter: it is prompt scaffolding and stays English, so the description
 line is the only part of one there is ever a reason to translate.
 
+### This course's own look
+
+`assets/theme.css` is this course's palette and typography, linked from every page immediately
+after `style.css` so that what it declares wins. It arrives **empty**, and empty is a working
+state: a course that never touches it renders in the plugin's default look.
+
+**It is not yours to write, and this is the one piece of a Workspace that is delegated by
+default.** A `themer` subagent does it, once, near the end of [the first
+run](./FIRST-RUN.md) — because choosing a palette is hours of arithmetic and taste with no
+teaching in it, and a Teacher doing that in the middle of planning a Curriculum reaches for the
+default and moves on. That is measurable: across six courses, not one changed a single token.
+
+What you owe it is nothing. What you must not do is write a colour into a Lesson, or edit
+`assets/style.css` — that file is a link to the plugin, shared byte-for-byte with every other
+course, so editing it in place changes every other learner's. If a Lesson seems to need a colour
+of its own, it needs a token that is missing from the theme, and that is the themer's to add.
+
+**One thing here is arithmetic rather than taste, and it has a checker:**
+
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.js .
+```
+
+Every text token against every surface it can land on, in both colour schemes, against the 4.5:1
+floor. `--bg-card` and `--bg-soft` are usually the binding surfaces rather than `--bg`, because
+they are the ones nearest the text — a callout label sits on one, inline code on the other — and
+a token measured against `--bg` alone looks about 0.7 better than it is. Two failing values
+shipped in this plugin's own stylesheet that way, and a third was found by this checker on its
+first run.
+
 ## Draw the diagram; borrow only what a drawing would fabricate
 
 An annotated static diagram beside the prose is the most consistently effective format in the
 whole instructional literature — steadier than animation, simulation or interactivity, which is
-where the appetite runs. So a Lesson that explains a structure and shows none has left the
-cheapest thing it could have had on the table. Reach for a picture early, and before reaching for
-an interaction.
+where the appetite runs. That is a finding rather than an instruction: it is not in the material
+in front of you and it is not reliably in your own recall, which is the only reason it is written
+down here. What a passage earns is still the passage's to say.
 
-**Default to drawing.** Write the diagram yourself — elements and styles, an inline `<svg>`, or a
-canvas a Component draws into when neither of those can. The test for when to **borrow** one
-instead is a single question: *would a drawing of this be a claim about how reality looks?* If
-yes, borrow, because a drawing there is a fabrication. If no, draw.
+Where a picture is what a passage earns, one question decides who makes it: *would a drawing of
+this be a claim about how reality looks?* If yes, **borrow** — a drawing there is a fabrication.
+If no, **draw it yourself**: elements and styles, an inline `<svg>`, or a canvas a Component draws
+into when neither of those can.
 
 So borrow for: photographs of real apparatus and instruments; historical documents and artefacts;
 microscopy and medical imaging; astronomical and remote-sensing imagery; organisms and mineral
@@ -250,14 +286,48 @@ specimens; works of art under discussion; and real instances of a phenomenon —
 fracture, the rash. Everything else is something you can be *right* about — a diagram, a
 schematic, a chart, a model, a process, a relationship — so draw it.
 
-**The default is not timidity, and its reason is worth having in front of you.** Once you have
-drawn the diagram you already know what it has to say, because you wrote the prose beside it, so
-the only open question left is whether it rendered legibly — and that is precisely the question
-[the page pass](#look-at-the-page-before-handing-it-over) answers well, because a label escaping
-its box is visible in a screenshot. A borrowed image poses the opposite question — *does this
-depict what the sentence beside it claims?* — and that is the question a look at the page answers
-badly, since an image looks like something whether or not it is the thing. Drawing trades an
-unverifiable risk for a verifiable one, and that trade is the whole of the argument.
+**The two paths cost different things to check, and that is what the question above is really
+sorting.** Once you have drawn the diagram you already know what it has to say, because you wrote
+the prose beside it, so the only open question left is whether it rendered legibly — and that is
+precisely the question [the page pass](#look-at-the-page-before-handing-it-over) answers well,
+because a label escaping its box is visible in a screenshot. A borrowed image poses the opposite
+question — *does this depict what the sentence beside it claims?* — and that is the question a
+look at the page answers badly, since an image looks like something whether or not it is the
+thing. Drawing trades an unverifiable risk for a verifiable one. Borrowing does not remove that
+risk, it moves it onto you: see [proofing a borrowed image](#proofing-a-borrowed-image).
+
+**Everything from here to [motion](#motion-in-three-kinds) is addressed to somebody who is already
+making a picture**, and none of it is an argument about whether to. It is the manual: what markup
+can draw, where a hand-placed diagram starts failing, and what to do about a borrowed one. Read it
+when you are drawing. Read it *before* deciding and it prices the decision — which is how a
+document with this much craft in it ends up with Lessons that have no pictures in them.
+
+### Proofing a borrowed image
+
+**A borrowed image is a claim, and you are the only thing standing between it and the learner.**
+The failure is not that the wrong *kind* of thing arrives. It is that the right kind of thing
+arrives and is wrong: a map of the United Kingdom answers a search for a map of China, and both
+of them are unmistakably maps. A look at the page cannot catch that, the page pass cannot catch
+that, and the learner cannot catch it either — they came here not knowing.
+
+So before an image ships, do this in the order it is written, because the order is what makes it
+work:
+
+1. **Write the claim first**, in one sentence, from the prose beside it rather than from the
+   image: *this shows the six strings in order, the thickest labelled 6th.* Written afterwards it
+   is a caption for whatever arrived, which checks nothing.
+2. **Check the image against that sentence, part by part.** Not "is this a fretboard" — count the
+   strings, read the labels, follow the order. Every noun in your sentence is a thing to look for
+   and a thing that can be absent.
+3. **Name where it came from and what it is of**, in the page beside it. A later Session, and the
+   Tutor, have only that line to re-check the claim against — and you will not be here.
+4. **Where you cannot confirm a part of the claim, weaken the claim or drop the image.** An image
+   doing 80% of what the sentence says is not 80% right; the missing fifth is what the learner
+   will carry away, and they cannot tell which fifth it was.
+
+**What makes this specifically hard for you rather than merely tedious: you are not looking at
+the image, you are looking at a description of it.** Whatever arrived, something will describe it
+as what you asked for. Point 2 is the whole of the defence, and it only works read part by part.
 
 ### Build it from elements before you reach for a canvas
 
@@ -307,38 +377,42 @@ which is why the default names it beside markup rather than beside the canvas.
 One rule governs both paths, and it is what makes the choice above safe rather than merely
 reasoned. A drawing is rendered and looked at as part of [the page
 pass](#look-at-the-page-before-handing-it-over). A borrowed image is **downloaded into
-`./images/` first** and looked at there: you cannot look at what you have not fetched, and a local
-copy is reproduction rather than hotlinking, which is what makes the credit obligatory rather than
-polite. That is the Workspace's own `./images/`, which the scaffold makes — written `../images/…`
+`./images/` first** and [proofed](#proofing-a-borrowed-image) there, for two reasons that are both
+about the same thing: you cannot look at what you have not fetched, and a hotlinked image can be
+swapped by its host afterwards — so the thing you proofed would not be the thing the learner
+opens. That is the Workspace's own `./images/`, which the scaffold makes — written `../images/…`
 from inside a Lesson, as the example below writes it. Save it as `.png`, `.jpg`/`.jpeg`, `.svg`,
 `.webp` or `.avif` — those are the formats the Tutor service serves, and anything else renders
 from disk and 404s the moment the page is served.
 
-Read the licence before you download, and take only what permits reproduction. A licence you
-cannot find is not a licence you have.
-
-**The credit is written into the page, beside the image** — rather than into a file alongside it,
-for the same reason [a Rubric lives inside its Assignment](#assignments): a credit that *is* part
-of the deliverable cannot be allowed to get separated from the thing it credits. It names what the
-image is, who made it, where it came from, and the licence as a real link:
+**The source line is written into the page, beside the image** — rather than into a file alongside
+it, for the same reason [a Rubric lives inside its Assignment](#assignments): the one note that
+says what this image was believed to show cannot be allowed to get separated from the image. It
+names what the image is of and where it came from, which is what a later Session needs to re-check
+the claim, and it is the third step of [proofing](#proofing-a-borrowed-image) rather than a
+courtesy:
 
 ```html
 <figure>
   <img src="../images/eclipse-1919.jpg"
        alt="A photographic plate of the 1919 eclipse, two stars marked beside the corona">
   <figcaption>
-    Plate from the 1919 Eddington expedition — Royal Astronomical Society.
-    Licence: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+    A photographic plate of the 1919 eclipse — Eddington expedition, via the Royal
+    Astronomical Society.
   </figcaption>
 </figure>
 ```
 
+A Workspace is one learner's private directory, so this document asks nothing about licensing. A
+course that is going to be **published** acquires an obligation that is not covered here, and the
+person publishing it is the one who has to meet it.
+
 That `alt` carries the same three-way obligation a drawing's [stand-in
 sentence](#building-a-component-for-this-subject) carries: what the Learner reads when the image
 does not load, the accessible description, and the only thing the Tutor has to go on when they ask
-about something it cannot see. Both it and the credit are read by the Learner, so both are written
-in [their language](#the-language-the-learner-reads) — the example is English because this
-document is. A proper name and a licence's own title stay as their holder writes them.
+about something it cannot see. Both it and the source line are read by the Learner, so both are
+written in [their language](#the-language-the-learner-reads) — the example is English because this
+document is. A proper name stays as its holder writes it.
 
 ### Imagery that is banned outright
 
@@ -351,9 +425,11 @@ Session routes around the first time it is inconvenient.
 - **Generated decorative art, and stock photography.** Attractive-but-irrelevant material is a
   measured negative rather than a neutral: it competes for the attention the explanation needs —
   the seductive-details effect — so the Lesson pays for it in the one currency it is short of.
-- **Figures embedded from paper repositories** — arXiv, a publisher's PDF, a preprint server. The
-  licences do not grant redistribution, and a local copy is redistribution. Link the paper
-  instead; a Lesson already owes the learner one primary source to go and read.
+- **Figures lifted out of paper repositories** — arXiv, a publisher's PDF, a preprint server. A
+  paper figure is the one borrowed image that cannot be proofed from the artifact: its axes,
+  units and conditions are established in the surrounding text, so the figure alone does not
+  carry what you would be claiming for it. Link the paper instead; a Lesson already owes the
+  learner one primary source to go and read, and the paper is a better one than a crop of it.
 - **Any diagram service that renders server-side** — a URL you hand a description to and get a
   rendered chart back from. It sends the Lesson's content to a third party, and it makes the page
   network-dependent for something that could have been bytes in the file.

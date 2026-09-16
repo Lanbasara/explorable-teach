@@ -123,3 +123,28 @@ because this Session has a Curriculum to write as well.
 ## 8. Tune the Tutor for this subject
 
 `tutor/TUNING.md` is the one Tutor file this skill authors. See [TUTOR.md](./TUTOR.md).
+
+## 9. Hand this course's look to the themer
+
+**Delegate it, and do not do it yourself.** Dispatch the `themer` subagent — the scaffold placed
+it at `.claude/agents/themer.md` — and give it one line: the subject, and who the learner is. It
+reads `MISSION.md` and `NOTES.md` itself, and it writes exactly one file, `assets/theme.css`,
+which every page already links.
+
+This is the only part of a Workspace delegated by default, and the reason is a measurement rather
+than a preference. Choosing a palette is hours of arithmetic and taste with no teaching in it, so
+a Session holding a Curriculum to write reaches for the default and moves on: across six courses
+built with this plugin, **not one changed a single design token**. A course about the guitar and a
+course about database indexes should not look like the same document — the learner sees the look
+before they read a word — and the way to get that is to take the job off the Teacher rather than
+to remind it.
+
+When the themer reports back, read its **contrast result** and nothing else closely. It is
+required to have run
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.js .` to a zero exit, and that is the one part of a
+theme you can check in a second and cannot check by eye. See [this course's own
+look](./UNIT.md#this-courses-own-look).
+
+Skipping this step is legitimate: the default look works, and `assets/theme.css` is empty until
+somebody fills it. Say so to the learner rather than leaving it silent, so a later Session knows
+the plain look was chosen rather than forgotten.

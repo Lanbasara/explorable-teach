@@ -89,6 +89,36 @@ def with_boot(path, body):
     return re.sub(r'\n{3,}', '\n\n', body)
 
 
+THEME = re.compile(r'assets/theme\.css')
+STYLE = re.compile(r'^([ \t]*)(<link[^>]*assets/style\.css[^>]*>)[ \t]*$', re.M)
+
+
+def with_theme(body):
+    """The page, linking this course's theme immediately after the base styles.
+
+    `theme.css` has to come after `style.css` and it has to be on every page, and
+    those two are one requirement rather than two: a theme that loses the cascade
+    and a theme one page forgot look the same to a learner — some of the course in
+    the wrong colours. The author writes the pair from the skeleton; this is the
+    safety net, the same one `lesson-boot.js` gets, for the page that left it out.
+
+    Anchored to the `style.css` link rather than inserted into `<head>`, because
+    "after style.css" is the whole of the rule and finding the head again would
+    be guessing at where that link was. A page with no `style.css` link gets
+    nothing: it is not a page this script can reason about, and a theme is not
+    the defect worth reporting there.
+    """
+    if THEME.search(body):
+        return body
+    m = STYLE.search(body)
+    if not m:
+        return body
+    indent = m.group(1)
+    return (body[:m.end()] +
+            '\n%s<link rel="stylesheet" href="../assets/theme.css">' % indent +
+            body[m.end():])
+
+
 def with_lang(body, lang):
     """The page, declaring the workspace's language if it declared none.
 
@@ -135,7 +165,7 @@ def hand_over(pages):
 
 
 LANG = workspace_lang()
-wired = langed = skipped = 0
+wired = langed = themed = skipped = 0
 
 for p in PAGES:
     original = open(p, encoding='utf-8').read()
@@ -146,15 +176,21 @@ for p in PAGES:
     after = with_lang(body, LANG)
     gained_lang = after != body
 
-    if not gained_boot and not gained_lang:
+    final = with_theme(after)
+    gained_theme = final != after
+
+    if not gained_boot and not gained_lang and not gained_theme:
         print('  ok      %s' % p); skipped += 1; continue
 
-    open(p, 'w', encoding='utf-8').write(after)
+    open(p, 'w', encoding='utf-8').write(final)
     if gained_boot:
         print('  wired   %s  (unit %s)' % (p, unit_of(p, original) or '-')); wired += 1
     if gained_lang:
         print('  lang    %s  (%s)' % (p, LANG)); langed += 1
+    if gained_theme:
+        print('  theme   %s' % p); themed += 1
 
-print('\n%d wired, %d given a language, %d already fine.' % (wired, langed, skipped))
+print('\n%d wired, %d given a language, %d given the theme, %d already fine.'
+      % (wired, langed, themed, skipped))
 hand_over(PAGES)
 PY

@@ -87,6 +87,7 @@ link  "$RUNTIME/tutor/GRADER.md"    "tutor/GRADER.md"
 place "$TPL/tutor/TUNING.md"        "tutor/TUNING.md"
 place "$TPL/tutor/GRADER-TUNING.md" "tutor/GRADER-TUNING.md"
 place "$TPL/agents/tutor.md"    ".claude/agents/tutor.md"
+place "$TPL/agents/themer.md"   ".claude/agents/themer.md"
 place "$TPL/agents/grader.md"   ".claude/agents/grader.md"
 
 # Page infrastructure: the widget, the nav bar, the bootstrap. The manifest is
@@ -107,6 +108,7 @@ link  "$RUNTIME/assets/nav.css"         "assets/nav.css"
 link  "$RUNTIME/assets/lesson-boot.js"  "assets/lesson-boot.js"
 place "$TPL/assets/units.js"       "assets/units.js"
 place "$TPL/assets/strings.js"     "assets/strings.js"
+place "$TPL/assets/theme.css"      "assets/theme.css"
 place "$TPL/index.html"            "index.html"
 
 # Where a submission too large for the assignment page is put. Placed rather
