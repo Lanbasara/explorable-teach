@@ -1,5 +1,78 @@
 # Changelog
 
+## 0.8.0
+
+### Added
+
+- **A course's look is delegated to a `themer` subagent, and `assets/theme.css` is linked from
+  every page from the moment a Workspace is scaffolded.** The capability to re-theme existed and
+  was stated in one sentence of the authoring reference; across six courses built with this plugin
+  **not one changed a single design token**, so every course rendered in the same cold white, the
+  same blue accent and the same 760px column whatever it was about. That is what a capability
+  reachable only by a Session that has a Curriculum to write looks like: choosing a palette is
+  hours of arithmetic and taste with no teaching in it, so the Session takes the default and moves
+  on. The fix is to take the job off the Teacher rather than to remind it — the themer reads
+  `MISSION.md` and `NOTES.md`, writes exactly one file, and may not touch `style.css`, which is a
+  link to the plugin shared byte-for-byte with every other course. The seed arrives empty and empty
+  is a working state; it is linked from the start so that filling it in later is one edit rather
+  than an edit plus remembering every page, and
+  `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` adds the link to any page that left it out.
+- **`scripts/contrast.js` measures every text token against every surface it can land on, in both
+  colour schemes, and exits non-zero under 4.5:1.** A theme is judged by arithmetic nobody can do
+  by eye, and the defect is never the arithmetic — it is choosing which pair to measure. The one
+  Workspace that ever re-themed anything measured its replacement against `--bg` alone, the
+  darkest surface, where a dark token flatters itself by about 0.7, and shipped a value that still
+  failed on `--bg-card` — the surface `.callout-label` actually sits on. So this measures all of
+  them, and over-approximates on purpose: a hand-maintained list of which pairs occur goes stale
+  the first time a Component puts a label somewhere new, silently, in the direction of passing.
+- **Proofing a borrowed image, as a procedure with the order load-bearing.** Write the claim
+  first, from the prose rather than from the image; check the image against that sentence part by
+  part; name what it is of and where it came from, in the page; and where a part cannot be
+  confirmed, weaken the claim or drop the image. The failure this exists for is not that the wrong
+  *kind* of thing arrives — it is that the right kind arrives and is wrong: a map of the United
+  Kingdom answers a search for a map of China, and both are unmistakably maps. Neither a look at
+  the page nor the page pass can catch that, and the learner cannot either, because they came here
+  not knowing. The reference already contained the observation — "an image looks like something
+  whether or not it is the thing" — and spent it justifying a default instead of producing an
+  obligation.
+
+### Changed
+
+- **The imagery decision point states a finding and a question, and no default.** `Default to
+  drawing` stood there for two releases while four of six courses shipped a first Lesson with no
+  picture in it at all, and the section it opened ran 28 lines of encouragement against 128 of
+  ceiling, mitigation, ban and licence — so the encouragement sat in front of the price of taking
+  it. An encouragement at a decision point is still an answer supplied before the question, which
+  is the same defect as a positional mandate wearing the opposite sign. What survives is the
+  literature finding, stated as a finding, and the one question that sorts drawing from borrowing;
+  everything after it is now addressed in as many words to somebody who is **already** making a
+  picture. The craft did not move. Its reader did.
+- **Licensing leaves the authoring path, and publication is named as where the obligation lives.**
+  A Workspace is one learner's private directory. Twelve mentions of licences and credits priced
+  borrowing an image without protecting the only thing that actually goes wrong — an image that is
+  not of what the prose says — and what replaced them is the source line, whose job is a later
+  re-check rather than a courtesy. A course that is going to be published acquires an obligation
+  this document does not cover, and it says so rather than going quiet.
+- **The ban on figures lifted out of paper repositories keeps the ban and loses the reason.**
+  Redistribution was never the reason that mattered for teaching: a paper figure establishes its
+  axes, units and conditions in the surrounding text, so the crop cannot be proofed against the
+  claim a Lesson would be making for it. Link the paper — a Lesson already owes the learner one
+  primary source, and the paper is a better one than a crop of it.
+
+### Fixed
+
+- **`--accent-warm` failed the AA floor in the light scheme on the surface inline code sits on,
+  found by `contrast.js` on its first run.** `#a86813` on `--bg-soft` measured 4.03:1, and
+  `:not(pre) > code` colours inline code with that token *and* gives it a `--bg-soft` background
+  at .88em — so every inline code span in every light-mode course was under the floor. It is now
+  `#9d6111`, 4.52:1 there. This is the third contrast defect in two releases and the first one no
+  human found: the two in 0.7.0 were caught by reading a Workspace that had patched them locally,
+  and this pair was not among them.
+- **The theme seed offered `--serif`, which `style.css` does not define.** A themer setting it
+  would have written a line that changed nothing. `--sans` is the body face whatever is put in it
+  — the name is the slot rather than the shape — so a course that should read like a printed book
+  gets there with a serif stack in `--sans`, and the seed now says so.
+
 ## 0.7.0
 
 ### Changed
