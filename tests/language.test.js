@@ -226,7 +226,7 @@ test('the wiring script fills in the language, and leaves a page that stated one
   assert.equal(run.status, 0, run.stderr);
   assert.match(ws.read('lessons/0001-intro.html'), /<html lang="pt-BR">/, 'a page that stated none gets the Workspace\'s');
   assert.match(ws.read('lessons/0002-own.html'), /<html lang="ja">/, 'a page that stated one keeps it');
-  assert.match(run.stdout, /^2 wired, 1 given a language, \d+ given the theme, 0 already fine/m);
+  assert.match(run.stdout, /^2 wired, 1 given a language, \d+ given the course styles, 0 already fine/m);
 });
 
 test('running the wiring script again changes nothing', (t) => {
@@ -240,7 +240,7 @@ test('running the wiring script again changes nothing', (t) => {
   const second = ws.wire();
 
   assert.deepEqual(ws.snapshot(), before, 'the second run modified the Workspace');
-  assert.match(second.stdout, /^0 wired, 0 given a language, 0 given the theme, 1 already fine/m);
+  assert.match(second.stdout, /^0 wired, 0 given a language, 0 given the course styles, 1 already fine/m);
 });
 
 test('only the course block decides the language, not the rest of the manifest', (t) => {

@@ -6,10 +6,10 @@
  *   node ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.js [workspace-dir]
  *
  * Exits non-zero when any pair is under the floor, and prints the failing pairs
- * first. Run it after writing `assets/theme.css`, and read the failures rather
+ * first. Run it after writing `assets/course.css`, and read the failures rather
  * than the summary line.
  *
- * Why this ships here rather than being worked out each time. A theme is judged
+ * Why this ships here rather than being worked out each time. A palette is judged
  * by arithmetic nobody can do by eye, and the one Workspace that tried measured
  * its replacement against `--bg` alone — the darkest surface, where a dark
  * token flatters itself by about 0.7 — and shipped a value that still failed on
@@ -48,7 +48,7 @@ const SURFACE = ['--bg', '--bg-soft', '--bg-card'];
  * the default, and the light values arrive inside
  * `@media (prefers-color-scheme: light)`. So the light scheme starts as a copy
  * of the dark one and is then overlaid, which is what the cascade does and what
- * makes a theme redefining only one of the two behave the way its author meant.
+ * makes a course redefining only one of the two behave the way its author meant.
  */
 function tokensOf(css) {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -117,11 +117,11 @@ function main() {
     console.error(`no assets/style.css under ${workspace} — is this a workspace?`);
     process.exit(2);
   }
-  const theme = read('theme.css');
+  const own = read('course.css');
 
   const merged = {};
   for (const scheme of ['dark', 'light']) {
-    merged[scheme] = { ...tokensOf(base)[scheme], ...(theme ? tokensOf(theme)[scheme] : {}) };
+    merged[scheme] = { ...tokensOf(base)[scheme], ...(own ? tokensOf(own)[scheme] : {}) };
   }
 
   const rows = [];
@@ -151,7 +151,7 @@ function main() {
     failed.forEach((r) => console.log(show(r)));
     console.log('');
   }
-  console.log(`All pairs (${rows.length}), ${theme ? 'style.css + theme.css' : 'style.css only'}:\n`);
+  console.log(`All pairs (${rows.length}), ${own ? 'style.css + course.css' : 'style.css only'}:\n`);
   rows.forEach((r) => console.log(show(r)));
   console.log(`\n${rows.length - failed.length}/${rows.length} at or above ${FLOOR}:1`);
 

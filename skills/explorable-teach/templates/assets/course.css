@@ -1,0 +1,86 @@
+/* ============================================================
+   course.css — how this course's pages look, and what they are built from.
+   Deps: style.css, whose tokens this redefines. Every page links it
+         immediately after style.css, so what is written here wins.
+
+   It arrives empty, and an empty file is a working file: a course that never
+   touches it renders in the plugin's default look, which is fine. It is linked
+   from every page from the moment the workspace is scaffolded, so filling it in
+   later is one edit rather than an edit plus remembering every page.
+
+   ------------------------------------------------------------
+   THIS IS NOT A SKIN
+
+   Two things live here and they are one job, because the shape of a page and
+   the colour of it are not separable — a warm palette over a layout built for a
+   reference manual reads as a reference manual in warm colours.
+
+   **The palette.** Redefine the tokens below. Define none. `style.css` owns the
+   token list and every component reads from it and declares no colour of its
+   own; that contract is the only reason a component written for one course does
+   not clash with a component written for another. A new token here is a colour
+   only the page that named it knows about.
+
+       --bg  --bg-soft  --bg-card     surfaces, furthest back to nearest
+       --fg  --fg-dim   --fg-faint    text, loudest to quietest
+       --accent                       the one colour that is not a verdict
+       --accent-warm                  inline code, and a warning callout
+       --accent-good  --accent-bad    right and wrong
+       --sans  --mono                 typefaces
+       --maxw                         the reading column
+       --radius                       corner rounding
+
+   `--sans` is the body face whatever you put in it: `style.css` sets
+   `body { font-family: var(--sans) }` and nothing reads a serif token, so the
+   name is the slot rather than the shape. A course that should read like a
+   printed book gets there by putting a serif stack in `--sans` — not by adding
+   a `--serif` of its own, which nothing would read.
+
+   Both schemes or neither. `:root` here is the dark scheme; a
+   `@media (prefers-color-scheme: light)` block overrides it. Setting only one
+   leaves the other half of the course on the default palette, which reads as a
+   bug rather than as a choice.
+
+   **The blocks a page is built from.** `style.css` ships eight class names —
+   `.lesson`, `.lesson-header`, `.lesson-num`, `.lesson-sub`, `.lesson-footer`,
+   `.callout`, `.callout-label`, `.t-btn` — and that is the whole structural
+   vocabulary every course starts with. Eight is enough for prose and not enough
+   for a subject. So two things are open here:
+
+   - **Restyle what ships.** `.lesson-header` is an eyebrow, a title and a
+     subtitle stacked in that order; `.callout` is one bordered block. Neither
+     is sacred. A course whose pages should read like a worked handout can make
+     the header something else entirely.
+   - **Add what this subject needs**, as plain markup and styles: a transcript
+     block for a shell, a chord grid for a guitar, a warm frame for a
+     photograph, a two-column comparison. These are CSS and markup, not
+     Components — a Component is an *interaction*, and most of what a page is
+     built from does not interact.
+
+   **Document each block you add, right here, in a comment above its rules:
+   what it is for and the markup a Lesson author writes.** That is not tidiness.
+   A block nobody documented is one the next Session cannot find, so it writes
+   the same thing again under a different name, or inlines a style into one page
+   and the course drifts. It is the same rule a Component's head comment follows,
+   for the same reason, and `UNIT.md` sends every Session here to read it before
+   writing a Lesson.
+
+   ------------------------------------------------------------
+   THE ONE THING THAT IS NOT TASTE
+
+   Text has to stay readable on every surface it can land on, and this is
+   arithmetic rather than judgement, so do not do it by eye:
+
+       node ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.js .
+
+   It prints every text token against every surface in both schemes and exits
+   non-zero on anything under 4.5:1. Read the failures.
+
+   `--bg-card` and `--bg-soft` are usually the binding surfaces rather than
+   `--bg`, because they are the ones nearest the text: `.callout-label` sits on
+   `--bg-card`, inline code sits on `--bg-soft`. Measuring a dark token against
+   `--bg` alone flatters it by about 0.7, which is how two failing values
+   shipped in this plugin's own stylesheet. Note also that changing a *surface*
+   can break a text token you did not touch — the checker catches that, and no
+   amount of looking at the page will.
+   ============================================================ */

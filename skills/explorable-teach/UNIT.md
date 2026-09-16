@@ -91,9 +91,9 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson NN: Title</title>
   <link rel="stylesheet" href="../assets/style.css">
-  <!-- This course's own look, always immediately after style.css. Empty until a
-       themer writes it, and linked from the start so filling it in is one edit. -->
-  <link rel="stylesheet" href="../assets/theme.css">
+  <!-- This course's own look and its own blocks, always immediately after
+       style.css. Read its comments before writing the body below. -->
+  <link rel="stylesheet" href="../assets/course.css">
   <!-- Only the component CSS this lesson uses, e.g.: -->
   <link rel="stylesheet" href="../assets/predict-reveal.css">
 </head>
@@ -116,9 +116,9 @@ the service that served the page. [TUTOR.md](./TUTOR.md) states that preconditio
 see [the language the learner reads](#the-language-the-learner-reads) below for where it is stated.
 
 `style.css` is linked from `<head>` rather than pulled in by `lesson-boot.js` on purpose: a
-Lesson has to be styled whether or not a script ever runs. `theme.css` follows it for the same
-reason and in that order, because it wins by being later — it is [this course's own
-look](#this-courses-own-look), and
+Lesson has to be styled whether or not a script ever runs. `course.css` follows it for the same
+reason and in that order, because it wins by being later — it is [this course's own look and its
+own blocks](#this-courses-own-look-and-its-own-blocks), and
 `${CLAUDE_PLUGIN_ROOT}/scripts/wire-lessons.sh` adds it to any page that left it out.
 
 ### What breaks when a page is opened from disk
@@ -237,22 +237,39 @@ placed. None of it is mandatory — a Workspace left as seeded still works. The 
 definition is a different matter: it is prompt scaffolding and stays English, so the description
 line is the only part of one there is ever a reason to translate.
 
-### This course's own look
+### This course's own look, and its own blocks
 
-`assets/theme.css` is this course's palette and typography, linked from every page immediately
-after `style.css` so that what it declares wins. It arrives **empty**, and empty is a working
-state: a course that never touches it renders in the plugin's default look.
+`style.css` ships eight class names — `.lesson`, `.lesson-header`, `.lesson-num`, `.lesson-sub`,
+`.lesson-footer`, `.callout`, `.callout-label`, `.t-btn` — and that is the whole structural
+vocabulary every course starts with. Enough for prose. Not enough for a subject: a shell wants a
+transcript block, a guitar wants a chord grid, a photography course wants a framed plate. So
+`assets/course.css` holds this course's own, palette and blocks together, linked from every page
+immediately after `style.css`.
 
-**It is not yours to write, and this is the one piece of a Workspace that is delegated by
-default.** A `themer` subagent does it, once, near the end of [the first
-run](./FIRST-RUN.md) — because choosing a palette is hours of arithmetic and taste with no
-teaching in it, and a Teacher doing that in the middle of planning a Curriculum reaches for the
-default and moves on. That is measurable: across six courses, not one changed a single token.
+**Read `assets/course.css`'s comments before you write a Lesson.** That is the same rule as [read
+`assets/` first](#then-look-at-what-exists-reuse-build-or-nothing) for Components, and it is there
+for the same failure: a block nobody can find is one you write again under another name, and the
+course drifts into a pile of one-offs. Every block in there is documented above its own rules,
+with the markup you write.
 
-What you owe it is nothing. What you must not do is write a colour into a Lesson, or edit
-`assets/style.css` — that file is a link to the plugin, shared byte-for-byte with every other
-course, so editing it in place changes every other learner's. If a Lesson seems to need a colour
-of its own, it needs a token that is missing from the theme, and that is the themer's to add.
+**When a Lesson needs a block that is not there, add it to `assets/course.css`** — never inlined
+into the page. A style inlined in a Lesson is invisible to every later Session, and invisible is
+how one idea ends up with three names. Document it the way the others are documented.
+
+**Palette and blocks are one file because they are one decision.** A warm palette laid over a
+layout built for a reference manual reads as a reference manual in warm colours. That is why this
+is not a skin and why it does not split into two files.
+
+**Who writes it.** A `designer` subagent, once, near the end of [the first run](./FIRST-RUN.md) —
+the scaffold places it at `.claude/agents/designer.md`. That is delegated rather than yours
+because designing a course is hours of arithmetic and taste with no teaching in it, and a Session
+holding a Curriculum to write reaches for the default instead. Measured: across six courses, not
+one changed a single token. You read what it wrote and add to it; you do not start it.
+
+Two things are yours to not do. **Never edit `assets/style.css`** — it is a link to the plugin,
+shared byte-for-byte with every other course, so editing it in place changes every other
+learner's. And **never write a colour into a Lesson**: if a page seems to need one, what it needs
+is a block in `course.css`.
 
 **One thing here is arithmetic rather than taste, and it has a checker:**
 
@@ -262,10 +279,11 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/contrast.js .
 
 Every text token against every surface it can land on, in both colour schemes, against the 4.5:1
 floor. `--bg-card` and `--bg-soft` are usually the binding surfaces rather than `--bg`, because
-they are the ones nearest the text — a callout label sits on one, inline code on the other — and
-a token measured against `--bg` alone looks about 0.7 better than it is. Two failing values
-shipped in this plugin's own stylesheet that way, and a third was found by this checker on its
-first run.
+they are the ones nearest the text — a callout label sits on one, inline code on the other — and a
+token measured against `--bg` alone looks about 0.7 better than it is. Two failing values shipped
+in this plugin's own stylesheet that way, and a third was found by this checker on its first run.
+Note the case no amount of looking catches: **changing a surface can break a text token nobody
+touched.**
 
 ## Draw the diagram; borrow only what a drawing would fabricate
 

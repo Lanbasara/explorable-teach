@@ -89,14 +89,14 @@ def with_boot(path, body):
     return re.sub(r'\n{3,}', '\n\n', body)
 
 
-THEME = re.compile(r'assets/theme\.css')
+COURSE_CSS = re.compile(r'assets/course\.css')
 STYLE = re.compile(r'^([ \t]*)(<link[^>]*assets/style\.css[^>]*>)[ \t]*$', re.M)
 
 
-def with_theme(body):
+def with_course_css(body):
     """The page, linking this course's theme immediately after the base styles.
 
-    `theme.css` has to come after `style.css` and it has to be on every page, and
+    `course.css` has to come after `style.css` and it has to be on every page, and
     those two are one requirement rather than two: a theme that loses the cascade
     and a theme one page forgot look the same to a learner — some of the course in
     the wrong colours. The author writes the pair from the skeleton; this is the
@@ -108,14 +108,14 @@ def with_theme(body):
     nothing: it is not a page this script can reason about, and a theme is not
     the defect worth reporting there.
     """
-    if THEME.search(body):
+    if COURSE_CSS.search(body):
         return body
     m = STYLE.search(body)
     if not m:
         return body
     indent = m.group(1)
     return (body[:m.end()] +
-            '\n%s<link rel="stylesheet" href="../assets/theme.css">' % indent +
+            '\n%s<link rel="stylesheet" href="../assets/course.css">' % indent +
             body[m.end():])
 
 
@@ -165,7 +165,7 @@ def hand_over(pages):
 
 
 LANG = workspace_lang()
-wired = langed = themed = skipped = 0
+wired = langed = styled = skipped = 0
 
 for p in PAGES:
     original = open(p, encoding='utf-8').read()
@@ -176,10 +176,10 @@ for p in PAGES:
     after = with_lang(body, LANG)
     gained_lang = after != body
 
-    final = with_theme(after)
-    gained_theme = final != after
+    final = with_course_css(after)
+    gained_course_css = final != after
 
-    if not gained_boot and not gained_lang and not gained_theme:
+    if not gained_boot and not gained_lang and not gained_course_css:
         print('  ok      %s' % p); skipped += 1; continue
 
     open(p, 'w', encoding='utf-8').write(final)
@@ -187,10 +187,10 @@ for p in PAGES:
         print('  wired   %s  (unit %s)' % (p, unit_of(p, original) or '-')); wired += 1
     if gained_lang:
         print('  lang    %s  (%s)' % (p, LANG)); langed += 1
-    if gained_theme:
-        print('  theme   %s' % p); themed += 1
+    if gained_course_css:
+        print('  style   %s' % p); styled += 1
 
-print('\n%d wired, %d given a language, %d given the theme, %d already fine.'
-      % (wired, langed, themed, skipped))
+print('\n%d wired, %d given a language, %d given the course styles, %d already fine.'
+      % (wired, langed, styled, skipped))
 hand_over(PAGES)
 PY
