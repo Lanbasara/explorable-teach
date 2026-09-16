@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.9.0
+
+### Changed
+
+- **A course's design is one file and one job: `assets/course.css` holds its palette and the blocks
+  its pages are built from.** 0.8.0 shipped this as `theme.css` and scoped it to tokens, which was
+  the wrong half of the problem. `style.css` ships eight class names — `.lesson`,
+  `.lesson-header`, `.lesson-num`, `.lesson-sub`, `.lesson-footer`, `.callout`, `.callout-label`,
+  `.t-btn` — and that is the whole structural vocabulary every course starts with. Enough for
+  prose, not enough for a subject: a shell wants a transcript block, a guitar wants a chord grid, a
+  photography course wants a framed plate. A tokens-only file leaves the Teacher writing the same
+  composition for every subject in different colours, which is a reskin rather than a design —
+  **the shape of a page and the colour of it are not separable**, and splitting them into two
+  concerns is how a warm guitar course comes out as a reference manual in warm colours.
+  The name is the one two courses had already chosen for themselves.
+- **Restyling what ships is explicitly permitted, and the shipped blocks are not sacred.** Left
+  unstated, a course adds beside `.lesson-header` and `.callout` and never touches them — which is
+  every page keeping the same composition whatever it is about. A course whose pages should read
+  like a worked handout can make the header something else entirely.
+- **A block added to `course.css` is documented above its own rules with the markup an author
+  writes, and every Session is sent to read them before writing a Lesson.** This is the Component
+  rule — *read `assets/` first*, the head comment is the documentation — applied to the same
+  failure one level down, and the failure is measured: two of six courses invented their own
+  blocks (`.qmap`, `.qgrid`, `.bridge`, `.next-step`) in an undocumented stylesheet they
+  hand-linked page by page, and documented none of them. The vocabulary a Session invented was
+  therefore lost to the next Session, which reached for the same eight class names again.
+- **The role is `designer` rather than `themer`, and its brief is the whole look.** The shorter
+  brief is the one that produces a reskin, so the subagent now reads `CURRICULUM.md` as well —
+  design for the pages this course is going to have — and reports the blocks it documented
+  alongside its contrast result. A Workspace scaffolded under 0.8.0 keeps its `theme.css` and
+  gains a `course.css` beside it; both apply, and merging one into the other is a two-minute edit
+  with nothing depending on the order.
+- **No new vocabulary, deliberately.** The glossary has 47 terms and a block in a stylesheet is
+  not the 48th. What a page is built from was already covered: an **Element-built diagram** is a
+  glossary term and is what `.qmap` always was, a **Borrowed image** is one, and the rest is CSS.
+  A **Component** stays what it is — *an interaction* — because most of what a page is built from
+  does not interact, and widening it would put a keyboard path, a stand-in sentence and a
+  degradation rule on a bordered box.
+
 ## 0.8.0
 
 ### Added
