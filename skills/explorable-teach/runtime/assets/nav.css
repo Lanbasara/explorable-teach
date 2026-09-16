@@ -2,11 +2,17 @@
    Deps: style.css (design tokens). Pairs with nav.js + units.js.
    Stays well below tutor.css (8500-9500). */
 
+/* No negative margin here, and that is the fix rather than the omission:
+   nav.js mounts this bar on <body>, and style.css gives <body> no horizontal
+   padding. A `margin: 0 -20px` written to bleed past a container's padding
+   therefore had nothing to eat, and left the bar 40px wider than the viewport —
+   a horizontal scrollbar under every page of every course. As a direct child of
+   <body> it already spans the full width; its own padding insets the links. */
 .tnav {
   position: sticky;
   top: 0;
   z-index: 200;
-  margin: 0 -20px 0;
+  margin: 0;
   padding: 0 20px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter: saturate(140%) blur(10px);

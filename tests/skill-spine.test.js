@@ -526,3 +526,98 @@ test('the Component that asks for a prediction is offered on the same judgement'
     );
   }
 });
+
+/**
+ * Positional language, as the verbs that put a thing somewhere on a page.
+ *
+ * Bare `first` and `last` are left out deliberately. They order *instructions*
+ * throughout these documents — read `assets/` first, the bootstrap tag last,
+ * take the screenshot last — and a check that read those as positions on the
+ * page would fire on every procedure here and be switched off within a week.
+ */
+const POSITIONAL =
+  /\b(?:leads?|opens?|begins?|starts?|ends?|closes?|finishes?)\s+(?:with|on)\b|\bat the (?:top|end|bottom)\b/i;
+
+/** A universal over the artifacts a Teacher writes, in the words it gets written in. */
+const GOVERNS = /\b(?:every|each|all|any)\s+(?:Lesson|Unit)s?\b/i;
+
+const isBullet = (text) => /^\s*(?:[-*+]|\d+\.)\s/.test(text);
+const isBlank = (text) => text.trim() === '';
+
+/**
+ * Every bullet a universal paragraph hands its quantifier to, with that
+ * paragraph.
+ *
+ * This reads stem and bullet *together*, which is the whole point of it. The
+ * positional mandates that shaped six courses the same way escaped the check
+ * above three separate ways at once: that check reads `SKILL.md` while the
+ * list lived in `UNIT.md`; its shape pattern names the discovery vocabulary
+ * rather than the positions a page can hold; and the universal sat on the stem
+ * while the position sat in a bullet, so no *sentence* ever held both. Closing
+ * any one of the three on its own leaves the escape open.
+ */
+function mandatedBullets(markdown) {
+  const found = [];
+  let stem = null;
+
+  for (const { line, text } of logicalLines(markdown)) {
+    if (isBlank(text)) continue;
+    if (isBullet(text)) {
+      if (stem) found.push({ stem, line, text: text.trim() });
+      continue;
+    }
+    stem = GOVERNS.test(text) ? text.trim() : null;
+  }
+
+  return found;
+}
+
+test('a list binding every Lesson does not put its obligations anywhere on the page', () => {
+  // Guard the recogniser on the escape it exists to close. Written out here
+  // because the documents no longer contain it, which is the only reason this
+  // check can be trusted to have seen it.
+  const ESCAPED = [
+    'Every Lesson:',
+    '',
+    '- leads with the question rather than the answer, and with an interaction where the',
+    '  judgement admits one;',
+    '- carries a citation on every claim;',
+    '- ends with a sandbox or an open challenge;',
+  ].join('\n');
+
+  const caught = mandatedBullets(ESCAPED);
+  assert.equal(caught.length, 3, 'this check cannot see a stem handing its universal to its bullets');
+  assert.deepEqual(
+    caught.filter((b) => POSITIONAL.test(b.text)).map((b) => b.line),
+    [3, 6],
+    'this check cannot see the two positions that shaped every Lesson the same way',
+  );
+
+  // And guard it from the other side. Such a list is how a Lesson's
+  // obligations get stated, so a check that fired on those would be forbidding
+  // the list rather than the positions in it.
+  assert.ok(
+    !POSITIONAL.test('- **A citation on every claim**, and **one primary source** to go and read.'),
+    'this check reads a positionless obligation as a position',
+  );
+  assert.ok(
+    !POSITIONAL.test('- **Read `assets/` first.** Reuse beats reinvention.'),
+    'this check reads the ordering of instructions as a position on the page',
+  );
+
+  const docs = agentDocs().filter((d) => d.startsWith(SKILL_DIR + path.sep));
+
+  // Guard the observer twice: no documents, or documents with no governed
+  // bullet in them, would each pass this for free.
+  assert.ok(docs.length >= 2, `expected the skill's documents, found ${docs.length}`);
+  const governed = docs.flatMap((doc) => mandatedBullets(fs.readFileSync(doc, 'utf8')));
+  assert.ok(governed.length >= 3, `expected the obligations a Lesson carries, found ${governed.length}`);
+
+  assert.deepEqual(
+    governed
+      .filter((b) => POSITIONAL.test(b.text))
+      .map((b) => `"${b.stem.slice(0, 40)}…" → ${b.text.slice(0, 60)}`),
+    [],
+    'a rule about where a thing goes fixes the shape of a page whatever is inside it',
+  );
+});

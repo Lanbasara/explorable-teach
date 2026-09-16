@@ -5,6 +5,24 @@ being a decision and starts being files. Everything below is consulted while wri
 each artifact takes, the conventions a page follows, and the rules that make a Unit reachable
 once it exists.
 
+**Read it as two kinds of thing, because it is only two kinds of thing.** You already know how to
+teach — how to order an explanation, how to pitch it at the person in front of you, how to tell
+understanding from nodding. None of that is written here, and its absence is deliberate: a
+document that restates what you are already good at competes for attention with the part you are
+not, and loses you both.
+
+So what is here is, first, **the small number of things that are true about teaching and would not
+be your default** — interaction before explanation, difficulty as the enemy of understanding and
+the tool of retention, storage strength rather than fluency. And second, **the facts about this
+environment that cannot be worked out from inside it** — what breaks on a page opened from disk,
+that a label's rendered width is unknowable until something has rendered it, which file a
+Component's documentation lives in.
+
+**Nothing here says what shape a Unit is.** That follows from this subject and this person, and
+those are the two things only you are holding. Where a rule below reads like a shape, it is either
+an obligation whose position is yours, or a defect in this document — [the
+obligations](#the-lesson) say which.
+
 What to teach next, and which instrument verifies it, were settled before you got here — see
 [the judgement criteria](./SKILL.md#judging-what-to-teach-next) and [the assessment
 ladder](./SKILL.md#the-assessment-ladder).
@@ -23,21 +41,38 @@ on.
 **Make it beautiful.** Clean readable typography, generous space, nothing decorative that is not
 carrying meaning — think Tufte. The learner will come back to these to review.
 
-Every Lesson:
+Every Lesson owes the learner the things below, and **not one of them is a place on the page.**
+That distinction carries this whole section: an obligation is met wherever this material is best
+served by it, and a position is met in the same place whatever the material turns out to be.
 
-- uses **no more than three Components, and often none** — what a passage earns is [derived from
-  the material](#deriving-the-interaction-from-the-material) rather than picked off a list;
-- **shows** what it can rather than describing all of it — [draw the
-  diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) beside the prose, and
-  reach for that before reaching for an interaction;
-- leads with the question rather than the answer, and with an interaction where [the
-  judgement](./SKILL.md#interaction-before-explanation) admits one;
-- carries a citation on every claim, because a bare claim is untrustworthy even when it is true,
-  and recommends **one primary source** — the highest-trust thing you found — to go and read;
-- links by HTML anchor to the reference documents and the neighbouring Units it builds on;
-- ends with a sandbox or an open challenge;
-- keeps working when nothing else is — the constraint [the Unit](./SKILL.md#the-unit) states —
-  while still telling the learner they can ask about anything that did not land.
+- **No more than three Components, and often none** — what a passage earns is [derived from the
+  material](#deriving-the-interaction-from-the-material) rather than picked off a list.
+- **What it can show rather than describe** — [draw the
+  diagram](#draw-the-diagram-borrow-only-what-a-drawing-would-fabricate) beside the prose.
+- **A citation on every claim**, because a bare claim is untrustworthy even when it is true, and
+  **one primary source** — the highest-trust thing you found — to go and read.
+- **An anchor** to the reference documents and the neighbouring Units it builds on.
+- **A question that confronts a wrong belief**, where [the
+  judgement](./SKILL.md#interaction-before-explanation) admits one. That judgement is applied to a
+  question you are holding; it is not a slot this list is asking you to fill.
+- **Somewhere to go next** with what the learner now knows.
+- **It keeps working when nothing else is** — the constraint [the Unit](./SKILL.md#the-unit)
+  states — while still telling the learner they can ask about anything that did not land.
+
+**What orders them is what the learner will do with this Lesson, and that is not the same twice.**
+Two of these were written as positions — *leads with* a question, *ends with* a sandbox — and the
+cost was measurable: across six subjects every Lesson came out on one skeleton, a question at the
+top and a sandbox at the bottom, because a rule about *where* fixes the shape of a page
+whatever is inside it. Worse, where a passage had no wrong belief to confront, the position was
+**satisfied rather than met** — the opening became a wager or a bare assertion, which is the
+judgement above being routed around rather than applied.
+
+**And the doing does not always happen on the page.** Where the subject is something the learner
+performs — an instrument, a posture, a camera, a kitchen — the Lesson is one they **carry**, and
+its parts are ordered for somebody standing in the place the doing happens rather than for
+somebody reading to the end. That is a second shape this document owes you, not a footnote to the
+first: a page whose practice is elsewhere is organised by the errand, and a Lesson that reads
+well to the end can still be useless in a shop.
 
 Hand the Lesson to the learner once you have written it — after [looking at
 it](#look-at-the-page-before-handing-it-over) — and mind which of the two you hand

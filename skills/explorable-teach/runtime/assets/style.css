@@ -17,10 +17,16 @@
   --bg-soft:   #161920;
   --bg-card:   #1b1f27;
 
-  /* text, from loudest to quietest */
+  /* text, from loudest to quietest.
+
+     `--fg-faint` is measured against `--bg-card`, not against `--bg`. It is the
+     lightest surface any of the three lands on, so it is the binding one — and
+     it is where this token actually gets used: `.callout-label` sits inside a
+     `.callout`, which is `--bg-card`. Measured on `--bg` alone the value below
+     looks 0.7 better than it is, which is how the failing pair shipped. */
   --fg:        #e7e9ee;
   --fg-dim:    #a8aebb;
-  --fg-faint:  #6b7280;
+  --fg-faint:  #81899a;  /* 4.70:1 on --bg-card, 5.38 on --bg */
 
   /* one accent, plus a verdict pair — nothing else gets a colour */
   --accent:      #7aa2f7;
@@ -49,7 +55,7 @@
     --bg-card:   #ffffff;
     --fg:        #1c1f26;
     --fg-dim:    #4d5460;
-    --fg-faint:  #8a919e;
+    --fg-faint:  #656c79;  /* 5.11:1 on --bg, 5.28 on --bg-card */
     --accent:      #2f5fd0;
     --accent-warm: #a86813;
     --accent-good: #2b7a3f;
