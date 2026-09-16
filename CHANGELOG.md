@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.7.0
+
+### Changed
+
+- **A Lesson's obligations no longer say where they go, and the two that did are gone.** The list
+  binding every Lesson said *leads with* a question and *ends with* a sandbox, and the cost of that
+  was measurable rather than theoretical: across six subjects every Lesson came out on one skeleton
+  — a question at the top, a sandbox at the bottom, the same closing pair of sections — because a
+  rule about *where* fixes the shape of a page whatever is inside it. Worse, a passage with no
+  wrong belief to confront **satisfied** the position rather than meeting it: two courses opened on
+  a wager and on a bare assertion instead, which is the judgement that governs a prediction being
+  routed around rather than applied. What a Lesson owes the learner is unchanged and is still a
+  list; the order of it is now the Teacher's, and what orders it is what the learner will do with
+  the Lesson.
+- **A Lesson whose practice happens away from the screen is a second shape, not a footnote to the
+  first.** Where the subject is something the learner performs — an instrument, a posture, a
+  camera, a kitchen — the page is carried to where the doing happens and ordered for somebody
+  standing there, rather than read to the end. Nothing said so, and the reference assumed the
+  opposite throughout: the derivation for material the learner operates produces "a constrained
+  place to run it **inside the Lesson**", and a guitar cannot be brought into one. A course on
+  choosing a first guitar taught the physics of a vibrating string on the page while the learner's
+  next act was walking into a shop.
+- **The authoring reference declares what kind of document it is before it says anything else.** It
+  holds two things and says so: the small number of things that are true about teaching and would
+  not be the Teacher's default, and the facts about this environment that cannot be worked out from
+  inside it. It does not say what shape a Unit is. Read as a specification — which is how 982 lines
+  in one authoritative voice do get read — every sentence in it is a requirement, and the Teacher
+  has no way to tell the part that feeds a judgement from the part that replaces one.
+- **The skill opens on the situation rather than on the request.** One person, their attention as
+  the scarce resource, and the fact that this Workspace reports back on the Teacher: questions land
+  in `learning-records/questions.jsonl` and a Grader's verdict arrives whether or not the learner
+  thinks to mention it. Those mechanisms already existed and were written as bookkeeping — write
+  the record, move the marker — which is the same machinery stated as a chore rather than as the
+  thing that will find out. How to teach is not in question here and never was; what the opening
+  owed was the pressure that selects for it.
+
+### Fixed
+
+- **The check against a universal default now reads stem and bullet together, and every document
+  the skill ships.** The two positional mandates escaped the existing check three ways at once: it
+  reads `SKILL.md` while the list lived in `UNIT.md`; its pattern names the discovery vocabulary
+  rather than the positions a page can hold; and the universal sat on the list stem while the
+  position sat in a bullet, so no *sentence* ever held both. Closing any one of the three on its
+  own leaves the escape open, which is why the mandates survived the release that was meant to
+  remove exactly this. The new check is guarded on the escape it closes, written out in the test
+  because the documents no longer contain it, and on the other side too: an obligation carrying no
+  position is what such a list is for.
+- **`--fg-faint` failed the WCAG AA floor in both themes, measured against the surface it actually
+  lands on.** Light `#8a919e` on `--bg-card` was 3.17 : 1 and dark `#6b7280` was 3.42 : 1, against
+  a floor of 4.5. This is not decorative text: in `style.css` the token colours `.callout-label`,
+  `figcaption` and `.lesson-footer`, all of which carry real content, at 11 to 13.5 px. The
+  replacements are `#656c79` and `#81899a`, both verified in a browser against what rendered rather
+  than computed from the declaration — 5.11 : 1 and 4.70 : 1 — and both kept quieter than
+  `--fg-dim` so the hierarchy `--fg`, `--fg-dim`, `--fg-faint` survives. `--bg-card` is the
+  binding surface rather than `--bg`, and measuring against `--bg` alone is how a failing pair
+  shipped: it flatters the dark value by 0.7.
+- **The navigation bar overflowed the viewport by 40 px, putting a horizontal scrollbar under every
+  page of every course.** `.tnav` carried `margin: 0 -20px` to bleed past a container's padding,
+  but `nav.js` mounts the bar on `<body>` and `style.css` gives `<body>` no horizontal padding, so
+  the negative margin had nothing to eat. As a direct child of `<body>` the bar already spans the
+  full width and its own padding insets the links, so removing the bleed is the whole fix. Measured
+  before and after in a browser: 1552 px inside a 1512 px viewport, now 1512.
+
 ## 0.6.0
 
 ### Changed
